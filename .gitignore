@@ -1,0 +1,13 @@
+# Ignorar o diretório de build
+/build/
+
+# Ignorar arquivos de log e de onda do GHDL
+*.cf
+*.ghw
+*.vcd
+
+# Ignorar arquivos gerados pelo compilador de C
+*.o
+*.elf
+*.bin
+*.map
