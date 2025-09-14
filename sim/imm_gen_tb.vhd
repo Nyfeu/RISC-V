@@ -95,7 +95,9 @@ begin
         constant c_IMM_B_MAX_POS_slv : std_logic_vector(12 downto 0) := std_logic_vector(c_IMM_B_MAX_POS);
 
     begin
-        report "INICIANDO VERIFICACAO FINAL DO GERADOR DE IMEDIATOS..." severity note;
+
+        -- Mensagem inicial indicando o início dos testes
+        report "INICIANDO VERIFICACAO DO GERADOR DE IMEDIATOS..." severity note;
         wait for 1 ns;
 
         -- Teste I-Type (addi x5, x6, -100)
