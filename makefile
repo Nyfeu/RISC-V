@@ -16,9 +16,9 @@ RTL_SRCS := $(wildcard $(RTL_DIR)/*.vhd)
 # --- Alvo Principal (o que acontece se você digitar apenas 'make') ---
 .PHONY: all
 all:
-	@echo "Makefile pronto. Alvos disponíveis:"
+	@echo "Makefile pronto. Alvos disponiveis:"
 	@echo "  make compile-rtl -> Compila todo o hardware da pasta rtl/"
-	@echo "  make sim TB=<nome_do_testbench> -> Roda uma simulação"
+	@echo "  make sim TB=<nome_do_testbench> -> Roda uma simulacao"
 	@echo "  make clean -> Apaga todos os arquivos gerados"
 
 # --- Alvo para Compilar todo o Hardware ---
@@ -35,19 +35,19 @@ compile-rtl:
 # Exemplo: make sim TB=alu_tb
 .PHONY: sim
 sim: compile-rtl
-	@echo ">>> Preparando simulação para o testbench: $(TB)"
-	# Analisa o arquivo do testbench específico
+	@echo ">>> Preparando simulacao para o testbench: $(TB)"
+	# Analisa o arquivo do testbench especifico
 	@$(GHDL) -a $(GHDLFLAGS) -P$(BUILD_DIR)/rtl --workdir=$(BUILD_DIR)/rtl $(SIM_DIR)/$(TB).vhd
 	# Elabora (monta) o design a partir do testbench
 	@$(GHDL) -e $(GHDLFLAGS) -P$(BUILD_DIR)/rtl --workdir=$(BUILD_DIR)/rtl $(TB)
-	# Roda a simulação e gera o arquivo de onda
-	@echo ">>> Rodando simulação de $(TB)..."
+	# Roda a simulacao e gera o arquivo de onda
+	@echo ">>> Rodando simulacao de $(TB)..."
 	@$(GHDL) -r $(GHDLFLAGS) -P$(BUILD_DIR)/rtl --workdir=$(BUILD_DIR)/rtl $(TB) --wave=$(BUILD_DIR)/wave-$(TB).ghw
-	@echo ">>> Simulação concluída. Arquivo de onda: $(BUILD_DIR)/wave-$(TB).ghw"
+	@echo ">>> Simulacao concluida. Arquivo de onda: $(BUILD_DIR)/wave-$(TB).ghw"
 
 # --- Alvo para Limpar o Projeto ---
 # Essencial para garantir que você está sempre trabalhando com uma compilação limpa
 .PHONY: clean
 clean:
-	@echo ">>> Limpando diretório de build..."
+	@echo ">>> Limpando diretorio de build..."
 	@rm -rf $(BUILD_DIR) *.cf
