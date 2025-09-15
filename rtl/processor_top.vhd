@@ -139,6 +139,16 @@ architecture rtl of processor_top is
         ) ;
     end component ;
 
+    -- Componente: Unidade de Carga (Load Unit)
+    component load_unit is
+        port (
+            DMem_data_i  : in  std_logic_vector(31 downto 0);     -- A palavra de 32 bits vinda da memória de dados
+            Addr_LSB_i   : in  std_logic_vector( 1 downto 0);     -- Os 2 bits menos significativos do endereço da ALU (seleciona o byte/half)
+            Funct3_i     : in  std_logic_vector( 2 downto 0);     -- Campo funct3 da instrução (define o tipo de load)
+            Data_o       : out std_logic_vector(31 downto 0)      -- O dado final de 32 bits, corretamente extraído e estendido
+        );
+    end component load_unit;
+
     -- ============== DECLARAÇÃO DOS SINAIS INTERMEDIÁRIOS ==============
 
     -- Sinais do Caminho de Dados
@@ -170,6 +180,7 @@ architecture rtl of processor_top is
     signal s_aluop                : std_logic_vector(1 downto 0) := (others => '0');      -- Código de operação da ALU (2 bits)
     signal s_alu_control          : std_logic_vector(3 downto 0) := (others => '0');      -- Sinal de controle da ALU (4 bits)
     signal s_write_data_source    : std_logic := '0';
+    signal s_load_unit_out        : std_logic_vector(31 downto 0) := (others => '0');
 
 begin
 
@@ -294,13 +305,26 @@ begin
 
             DMem_writeEnable_o <= s_memwrite;
 
+        -- Instanciação da Unidade de Carga
+        
+            U_LOAD_UNIT: entity work.load_unit port map (
+                DMem_data_i  => DMem_data_i,                      -- Palavra completa vinda da memória de dados
+                Addr_LSB_i   => s_alu_result(1 downto 0),         -- 2 bits do endereço para selecionar o byte/half
+                Funct3_i     => s_instruction(14 downto 12),      -- Funct3 para decodificar o tipo de load
+                Data_o       => s_load_unit_out                   -- Saída de 32 bits, já tratada
+            );
+
     -- ============== 5. ESTÁGIO DE ESCRITA DE VOLTA (WRITE-BACK) ==============
 
         -- O Mux MemtoReg decide o que será escrito de volta no registrador.
 
-            s_write_back_data <= s_pc_plus_4 when s_write_data_source = '1' else -- Para JAL/JALR
-                     DMem_data_i when s_memtoreg = '1' else                      -- Para Loads
-                     s_alu_result;                                               -- Padrão (R-Type, I-Type, etc.)
+            -- s_write_back_data <= s_pc_plus_4 when s_write_data_source = '1' else -- Para JAL/JALR
+            --         DMem_data_i when s_memtoreg = '1' else                      -- Para Loads
+            --          s_alu_result;                                               -- Padrão (R-Type, I-Type, etc.)
+
+            s_write_back_data <= s_pc_plus_4 when s_write_data_source = '1' else
+                     s_load_unit_out when s_memtoreg = '1' else
+                     s_alu_result;
 
         -- Cálculo do próximo PC (s_pc_next)
 
@@ -326,8 +350,8 @@ begin
         -- (Esta lógica será expandida para outros branches como BNE, BLT, etc.)
 
             s_branch_condition_met <= '1' when (s_branch = '1') and (
-                    (s_instruction(14 downto 12) = "000" and s_alu_zero = '1') or  -- BEQ: Z=1 (A==B)
-                    (s_instruction(14 downto 12) = "001" and s_alu_zero = '0') or  -- BNE: Z=0 (A!=B)
+                    (s_instruction(14 downto 12) = "000" and s_alu_zero = '1') or        -- BEQ: Z=1 (A==B)
+                    (s_instruction(14 downto 12) = "001" and s_alu_zero = '0') or        -- BNE: Z=0 (A!=B)
                     (s_instruction(14 downto 12) = "100" and s_alu_result(31) = '1') or  -- BLT: N=1 (A<B, com sinal)
                     (s_instruction(14 downto 12) = "101" and s_alu_result(31) = '0') or  -- BGE: N=0 (A>=B, com sinal)
                     (s_instruction(14 downto 12) = "110" and s_alu_result(31) = '1') or  -- BLTU: C=1 (A<B, sem sinal) -> Simplificado

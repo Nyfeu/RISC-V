@@ -1,6 +1,18 @@
+// Aponta para o nosso endereço de console mapeado em memória (MMIO)
+#define console_output (*((volatile char*)0x10000000))
+
+void print_string(const char* s) {
+    
+    while (*s) console_output = *s++;
+
+}
+
 int main() {
-    volatile int a = 5;
-    volatile int b = 3;
-    volatile int c = a + b;
+
+    // Imprime "Hello, World!\n" iterativamente
+    print_string("Hello, World!\n");
+
+    // Finaliza o código
     return 0;
+
 }
