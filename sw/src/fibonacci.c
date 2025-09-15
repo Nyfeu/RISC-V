@@ -20,6 +20,6 @@ int main() {
     
     }
 
-    // Esta linha nunca será alcançada
     return 0;
+
 }

@@ -2,6 +2,7 @@
 #define console_output (*((volatile char*)0x10000000))
 
 void print_start() {
+
     // Imprime apenas um caractere
     console_output = 'S'; 
     console_output = 'T';
@@ -9,14 +10,17 @@ void print_start() {
     console_output = 'R';
     console_output = 'T';
     console_output = '\n';
+    
 }
 
 int main() {
+
     // Imprime "START\n" iterativamente
-    while(1) {
+    for(int n = 1; n <= 5; n++) {
         print_start();
     }
 
     // Finaliza o código
     return 0;
+
 }

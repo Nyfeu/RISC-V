@@ -10,7 +10,7 @@ void print_string(const char* s) {
 int main() {
 
     // Imprime "Hello, World!\n" iterativamente
-    print_string("Hello, World!\n");
+    print_string("Hello, World");
 
     // Finaliza o código
     return 0;

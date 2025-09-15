@@ -61,6 +61,7 @@ architecture test of processor_top_tb is
     
     signal s_memory : t_mem_array := init_mem_from_hex(PROGRAM_PATH);
     
+    constant c_HALT_ADDR : std_logic_vector(31 downto 0) := x"10000008";
     constant CLK_PERIOD : time := 10 ns;
 
 begin
@@ -189,19 +190,19 @@ begin
         write(L, string'("INICIANDO SIMULACAO DO PROCESSADOR COMPLETO..."));
         writeline(output, L);
         writeline(output, L);
-
         wait for CLK_PERIOD * 2;
         s_reset <= '0';
-        wait for CLK_PERIOD * 500;
+
+        -- Aguarda o programa escrever no endereço de MMIO de parada.
+        wait until (s_dmem_write_enable = '1' and s_dmem_addr = c_HALT_ADDR);
 
         writeline(output, L);
-        write(L, string'("SIMULACAO CONCLUIDA."));
+        write(L, string'("SIMULACAO CONCLUIDA. Programa finalizado por sinal de HALT."));
         writeline(output, L);
         writeline(output, L);
-
         std.env.stop;
         wait;
-
+        
     end process stimulus_proc;
 
 end architecture test;
