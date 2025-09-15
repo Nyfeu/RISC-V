@@ -1,10 +1,10 @@
 # RISC-V (RV32I) Processor in VHDL
 
-This repository contains the implementation of a 32-bit, single-cycle processor that follows the base RISC-V instruction set specification (RV32I). The project is developed entirely in **VHDL (2008 standard)** and is intended as an educational project for studying computer architecture.
+This repository contains the implementation of a 32-bit, single-cycle processor that follows the base RISC-V instruction set specification (RV32I). The project is developed entirely in VHDL (2008 standard) and is intended as an educational project for studying computer architecture.
 
-The design is modular, with each main processor component (ALU, Register File, Control Unit, Immediate Generator, etc.) implemented in its own file. Each module is accompanied by a **self-verifying testbench** to ensure correctness before final integration.  
+The design is modular, with each main processor component (ALU, Register File, Control Unit, etc.) implemented in its own file. Each module is accompanied by a self-verifying testbench to ensure correctness before final integration.
 
-A top-level processor entity integrates all modules and can execute software compiled from C or Assembly.
+A top-level processor entity integrates all modules and can execute software compiled from C or Assembly, with the program being loaded dynamically into the simulation at runtime.
 
 ## 🎯 Goals and Features
 
@@ -23,21 +23,20 @@ RV32I_processor/
 ├── rtl/                # Synthesizable VHDL code (processor components)
 │   ├── processor_top.vhd
 │   ├── alu.vhd
-│   ├── reg_file.vhd
-│   ├── control_unit.vhd
 │   └── ...
 │
-├── sim/                # Testbenches for verification
+├── sim/                # Testbenches and simulation support
 │   ├── processor_top_tb.vhd
-│   ├── alu_tb.vhd
-│   ├── reg_file_tb.vhd
+│   ├── memory_loader_pkg.vhd  # << VHDL package for dynamic program loading
 │   └── ...
 │
-├── sw/                 # Example software programs (C/Assembly)
+├── sw/                 # Example software programs
 │   ├── src/
-│   │   ├── test_addi.s
-│   │   └── ...
-│   └── linker/link.ld
+│   │   ├── hello.c
+│   │   └── test_addi.s
+│   ├── linker/
+│   │   └── link.ld
+│   └── start.s         # << Assembly boot code for C programs
 │
 ├── build/              # Auto-generated build output (ignored by Git)
 │
@@ -51,7 +50,7 @@ To compile and simulate this project, install the following tools and ensure the
 
 1. GHDL: Open-source VHDL simulator.
 2. GTKWave: Waveform viewer.
-3. RISC-V GCC Toolchain (riscv64-unknown-elf-gcc): For compiling C/Assembly programs to .hex.
+3. RISC-V GCC Toolchain (riscv64-unknown-elf-gcc): For compiling C/Assembly programs.
 
 ## 🚀 How to Compile and Simulate (Using the Makefile)
 

@@ -1,20 +1,37 @@
--- sim/processor_top_tb.vhd (versão final com correção para warnings)
+-------------------------------------------------------------------------------------------------------------------
+--
+-- File: processor_top_tb.vhd (Testbench para o Processador RISC-V)
+--
+-- Descrição: Este testbench verifica a funcionalidade de execução de códigos
+--            compilados a partir da toolchain riscv64-unknown-elf-gcc do 
+--            processador com suas partes integradas.
+--
+-------------------------------------------------------------------------------------------------------------------
+
+-- Inclusão dos módulos necessários
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use std.env.all;
 
+-- Carrega o pacote memory_loader
 library work;
 use work.memory_loader_pkg.all;
 
+-- A entidade de um testbench é sempre vazia.
 entity processor_top_tb is
     generic (
         PROGRAM_PATH : string := "program.hex"
     );
 end entity processor_top_tb;
 
+-- A arquitetura do testbench contém a instância do DUT e o processo de estímulo.
 architecture test of processor_top_tb is
-    -- Componente processor_top (sem alterações)
+
+-------------------------------------------------------------------------------------------------------------------
+    -- 1. Declaração do Componente sob Teste (DUT - Device Under Test)
+-------------------------------------------------------------------------------------------------------------------
+
     component processor_top is
         port (
             CLK_i              : in  std_logic;
@@ -28,7 +45,10 @@ architecture test of processor_top_tb is
         );
     end component;
 
-    -- Sinais
+-------------------------------------------------------------------------------------------------------------------
+    -- 2. Constantes e Sinais para o Teste
+-------------------------------------------------------------------------------------------------------------------
+
     signal s_clk               : std_logic := '0';
     signal s_reset             : std_logic := '1';
     signal s_imem_addr         : std_logic_vector(31 downto 0) := (others => '0');
@@ -43,7 +63,11 @@ architecture test of processor_top_tb is
     constant CLK_PERIOD : time := 10 ns;
 
 begin
-    -- DUT (sem alterações)
+    
+-------------------------------------------------------------------------------------------------------------------
+    -- 3. Instanciação do Componente sob Teste (DUT)
+-------------------------------------------------------------------------------------------------------------------
+
     DUT: entity work.processor_top port map (
         CLK_i              => s_clk,
         Reset_i            => s_reset,
@@ -55,33 +79,49 @@ begin
         DMem_writeEnable_o => s_dmem_write_enable
     );
 
+-------------------------------------------------------------------------------------------------------------------
+    -- 4. Processo de Estímulo e Verificação
+-------------------------------------------------------------------------------------------------------------------
+
+    -- Geração do sinal de clock principal para o processador
     s_clk <= not s_clk after CLK_PERIOD / 2;
 
-    -- >> CORREÇÃO: Mover a lógica de leitura para dentro de um processo <<
-    -- Este processo é sensível a mudanças nos endereços e no reset.
+    -- Processo para leitura de memória (barramentos IMEM e DMEM)
     MEMORY_READ_PROC: process(s_reset, s_imem_addr, s_dmem_addr)
     begin
+
         -- Se o processador está em reset, a memória retorna '0'
         if s_reset = '1' then
+
             s_imem_data      <= (others => '0');
             s_dmem_data_read <= (others => '0');
+
         -- Somente se o reset estiver inativo, fazemos a leitura real
         else
+
             s_imem_data      <= s_memory(to_integer(unsigned(s_imem_addr(11 downto 2))));
             s_dmem_data_read <= s_memory(to_integer(unsigned(s_dmem_addr(11 downto 2))));
+        
         end if;
+
     end process MEMORY_READ_PROC;
 
+    -- Processo para a escrita na memória (barramento DMEM)
     MEM_WRITE_PROC: process(s_clk)
     begin
+
         if rising_edge(s_clk) then
+
             if s_dmem_write_enable = '1' then
+
                 s_memory(to_integer(unsigned(s_dmem_addr(11 downto 2)))) <= s_dmem_data_write;
-            end if;
+           
+                end if;
         end if;
+
     end process MEM_WRITE_PROC;
 
-    -- Estímulo (sem alterações)
+    -- Estímulo (define a execução do testbench)
     stimulus_proc: process is
     begin
         report "INICIANDO SIMULACAO DO PROCESSADOR COMPLETO..." severity note;
@@ -94,3 +134,5 @@ begin
     end process stimulus_proc;
 
 end architecture test;
+
+-------------------------------------------------------------------------------------------------------------------

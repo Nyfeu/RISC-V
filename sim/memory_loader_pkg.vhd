@@ -1,5 +1,23 @@
--- sim/memory_loader_pkg.vhd
--- Pacote VHDL dedicado para carregar arquivos .hex na memória da simulação.
+------------------------------------------------------------------------------------------------------------------
+-- 
+-- File: memory_loader_pkg.vhd
+--   
+--   ███╗   ███╗███████╗███╗   ███╗        ██╗      ██████╗  █████╗ ██████╗ ███████╗██████╗ 
+--   ████╗ ████║██╔════╝████╗ ████║        ██║     ██╔═══██╗██╔══██╗██╔══██╗██╔════╝██╔══██╗
+--   ██╔████╔██║█████╗  ██╔████╔██║        ██║     ██║   ██║███████║██║  ██║█████╗  ██████╔╝
+--   ██║╚██╔╝██║██╔══╝  ██║╚██╔╝██║        ██║     ██║   ██║██╔══██║██║  ██║██╔══╝  ██╔══██╗
+--   ██║ ╚═╝ ██║███████╗██║ ╚═╝ ██║███████╗███████╗╚██████╔╝██║  ██║██████╔╝███████╗██║  ██║
+--   ╚═╝     ╚═╝╚══════╝╚═╝     ╚═╝╚══════╝╚══════╝ ╚═════╝ ╚═╝  ╚═╝╚═════╝ ╚══════╝╚═╝  ╚═╝                                                                                     
+--                                                                                                                                                                                                                                                          
+-- 
+-- Descrição : Pacote VHDL dedicado ao carregamento de arquivos .hex na memória
+--             de instruções (IMEM) da simulação executada pelo processor_top_tb
+--             (testbench) de maneira dinâmica.
+--
+-- Autor     : [André Maiolini]
+-- Data      : [15/09/2025]
+--
+-------------------------------------------------------------------------------------------------------------------
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -7,22 +25,23 @@ use ieee.numeric_std.all;
 use std.textio.all;
 use std.env.all;
 
--- ================================================================= --
--- >> PARTE 1: DECLARAÇÃO DO PACOTE (O que estava faltando) <<
--- ================================================================= --
--- Isto define a "interface pública" do pacote.
+------------------------------------------------------------------------------------------------------------------
+-- PACOTE: Definição do pacote (interface pública)
+-------------------------------------------------------------------------------------------------------------------
+
 package memory_loader_pkg is
     type t_mem_array is array (0 to 1023) of std_logic_vector(31 downto 0);
     impure function init_mem_from_hex(file_path : string) return t_mem_array;
 end package memory_loader_pkg;
 
+------------------------------------------------------------------------------------------------------------------
+-- CORPO: Definição do corpo do pacote (implementação da função)
+-------------------------------------------------------------------------------------------------------------------
 
--- ================================================================= --
--- >> PARTE 2: CORPO DO PACOTE (A implementação da função) <<
--- ================================================================= --
 package body memory_loader_pkg is
 
     impure function init_mem_from_hex(file_path : string) return t_mem_array is
+
         file hex_file       : text open read_mode is file_path;
         variable file_line  : line;
         variable mem        : t_mem_array := (others => (others => '0'));
@@ -31,14 +50,21 @@ package body memory_loader_pkg is
         variable word_val   : std_logic_vector(31 downto 0);
         variable byte_count : integer := 0;
         variable C          : character;
+
     begin
+
+        -- Mensagem inicial do processo de leitura do arquivo de programa (.hex)
         report "Lendo arquivo de programa: " & file_path severity note;
 
+        -- Enquanto não for o fim do arquivo de programa
         while not endfile(hex_file) loop
+
+            -- Lê uma linha completa do arquivo
             readline(hex_file, file_line);
 
             -- Testa o primeiro caractere real da linha
             if file_line'length > 0 and file_line(file_line'low) /= '@' then
+
                 -- Processa a linha inteira
                 while file_line'length > 0 and mem_idx < mem'length loop
 
@@ -66,16 +92,24 @@ package body memory_loader_pkg is
                             mem_idx := mem_idx + 1;
                             byte_count := 0;
                         end if;
+
                     end if;
+
                 end loop;
+
             end if;
+
         end loop;
 
-        report "Carga do programa na memoria de simulacao concluida. "
+        -- Mensagem sinalizando a finalização do carregamento do programa na memória
+        report "Carregamento do programa na memoria de simulacao concluida."
             & integer'image(mem_idx) & " palavras lidas."
             severity note;
 
         return mem;
+        
     end function;
 
 end package body memory_loader_pkg;
+
+-------------------------------------------------------------------------------------------------------------------
