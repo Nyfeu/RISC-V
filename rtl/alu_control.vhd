@@ -112,6 +112,32 @@ begin
 
                 end case ;
 
+            -- I-Type Aritmético/Lógico
+            when "11" => 
+
+                -- Nível 2 de decodificação: baseado em funct3
+                case Funct3_i is
+
+                    when "000" => ALUControl_o <= c_ALU_ADD;  -- ADDI
+                    when "010" => ALUControl_o <= c_ALU_SLT;  -- SLTI
+                    when "011" => ALUControl_o <= c_ALU_SLTU; -- SLTIU
+                    when "100" => ALUControl_o <= c_ALU_XOR;  -- XORI
+                    when "110" => ALUControl_o <= c_ALU_OR;   -- ORI
+                    when "111" => ALUControl_o <= c_ALU_AND;  -- ANDI
+                    when "001" => ALUControl_o <= c_ALU_SLL;  -- SLLI
+                    when "101" => 
+
+                        -- Nível 3 de decodificação: funct7(5)
+                        if Funct7_i(5) = '1' then
+                            ALUControl_o <= c_ALU_SRA; -- SRAI
+                        else
+                            ALUControl_o <= c_ALU_SRL; -- SRLI
+                        end if;
+
+                    when others => ALUControl_o <= (others => 'X');
+
+                end case;
+
             -- Código não utilizado (caso padrão)
             when others => ALUControl_o <= (others => 'X');
         

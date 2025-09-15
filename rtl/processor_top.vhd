@@ -99,7 +99,8 @@ architecture rtl of processor_top is
             MemWrite_o    : out std_logic;                        -- Habilita escrita na memória
             Branch_o      : out std_logic;                        -- Indica desvio condicional
             Jump_o        : out std_logic;                        -- Indica salto incondicional
-            ALUOp_o       : out std_logic_vector(1 downto 0)      -- Código de operação da ALU (2 bits)
+            ALUOp_o       : out std_logic_vector(1 downto 0);     -- Código de operação da ALU (2 bits)
+            WriteDataSource_o : out std_logic                     -- Seleciona se o dado de escrita é PC+4
         ) ;
     end component control_unit ;
 
@@ -168,6 +169,7 @@ architecture rtl of processor_top is
     signal s_pc_src               : std_logic := '0';                                     -- Seleciona a fonte do próximo PC (0=PC+4, 1=branch/jump)
     signal s_aluop                : std_logic_vector(1 downto 0) := (others => '0');      -- Código de operação da ALU (2 bits)
     signal s_alu_control          : std_logic_vector(3 downto 0) := (others => '0');      -- Sinal de controle da ALU (4 bits)
+    signal s_write_data_source    : std_logic := '0';
 
 begin
 
@@ -220,7 +222,8 @@ begin
                 MemWrite_o     => s_memwrite,
                 Branch_o       => s_branch,
                 Jump_o         => s_jump,
-                ALUOp_o        => s_aluop
+                ALUOp_o        => s_aluop,
+                WriteDataSource_o => s_write_data_source
             );
 
         -- - Unidade de Controle da ALU (ALU Control)
@@ -295,7 +298,9 @@ begin
 
         -- O Mux MemtoReg decide o que será escrito de volta no registrador.
 
-            s_write_back_data <= DMem_data_i when s_memtoreg = '1' else s_alu_result;
+            s_write_back_data <= s_pc_plus_4 when s_write_data_source = '1' else -- Para JAL/JALR
+                     DMem_data_i when s_memtoreg = '1' else                      -- Para Loads
+                     s_alu_result;                                               -- Padrão (R-Type, I-Type, etc.)
 
         -- Cálculo do próximo PC (s_pc_next)
 

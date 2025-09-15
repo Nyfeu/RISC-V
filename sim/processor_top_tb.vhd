@@ -176,7 +176,7 @@ begin
         report "INICIANDO SIMULACAO DO PROCESSADOR COMPLETO..." severity note;
         wait for CLK_PERIOD * 2;
         s_reset <= '0';
-        wait for CLK_PERIOD * 5000;
+        wait for CLK_PERIOD * 500;
         report "SIMULACAO CONCLUIDA." severity note;
         std.env.stop;
         wait;

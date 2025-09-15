@@ -41,7 +41,8 @@ entity control_unit is
     MemWrite_o    : out std_logic;                       -- Habilita escrita na memória
     Branch_o      : out std_logic;                       -- Indica desvio condicional
     Jump_o        : out std_logic;                       -- Indica salto incondicional
-    ALUOp_o       : out std_logic_vector(1 downto 0)     -- Código de operação da ALU (2 bits)
+    ALUOp_o       : out std_logic_vector(1 downto 0);    -- Código de operação da ALU (2 bits)
+    WriteDataSource_o : out std_logic                    -- Habilita PC+4 como fonte de escrita
 
   ) ;
 
@@ -69,6 +70,9 @@ begin
     -- Processo de decodificação do opcode para gerar os sinais de controle
     DECODER: process(Opcode_i)
     begin
+
+        -- Defina um valor padrão 
+        WriteDataSource_o <= '0';
 
         case Opcode_i is
         
@@ -130,7 +134,7 @@ begin
                 MemWrite_o <= '0';
                 Branch_o   <= '0';
                 Jump_o     <= '0';
-                ALUOp_o    <= "00";  -- Operação de soma para cálculo de endereço
+                ALUOp_o    <= "11";
 
             when c_OPCODE_JAL =>
 
@@ -143,6 +147,7 @@ begin
                 Branch_o   <= '0';
                 Jump_o     <= '1';
                 ALUOp_o    <= "00";  -- Não é usado pela ALU
+                WriteDataSource_o <= '1';
 
             when c_OPCODE_JALR =>
 
@@ -155,6 +160,7 @@ begin
                 Branch_o   <= '0';
                 Jump_o     <= '1';
                 ALUOp_o    <= "00";  -- Operação de soma para cálculo de endereço
+                WriteDataSource_o <= '1';
 
             when c_OPCODE_LUI | c_OPCODE_AUIPC =>
 
