@@ -1,53 +1,121 @@
-# --- Configuração da Ferramenta VHDL ---
-# Define o comando para o GHDL e as flags padrão (usando a versão 2008 do VHDL)
+# ================================
+# Ferramentas
+# ================================
 GHDL      = ghdl
 GHDLFLAGS = --std=08
 
-# --- Configuração dos Diretórios do Projeto ---
-# Define os nomes dos nossos diretórios para manter o Makefile organizado
-BUILD_DIR = build
-RTL_DIR   = rtl
-SIM_DIR   = sim
+CC        = riscv64-unknown-elf-gcc
+CFLAGS    = -march=rv32i -mabi=ilp32 -nostdlib -nostartfiles -T sw/linker/link.ld
+OBJCOPY   = riscv64-unknown-elf-objcopy
+OBJFLAGS  = -O verilog
 
-# --- Descoberta Automática de Arquivos VHDL ---
-# Encontra todos os arquivos .vhd no diretório rtl e os armazena na variável RTL_SRCS
-RTL_SRCS := $(wildcard $(RTL_DIR)/*.vhd)
+GTKWAVE   = gtkwave
 
-# --- Alvo Principal (o que acontece se você digitar apenas 'make') ---
+# ================================
+# Diretórios
+# ================================
+BUILD_DIR  = build
+RTL_DIR    = rtl
+SIM_DIR    = sim
+SW_SRC_DIR = sw/src
+
+# ================================
+# Fontes VHDL
+# ================================
+RTL_DEPS := $(filter-out $(RTL_DIR)/processor_top.vhd, $(wildcard $(RTL_DIR)/*.vhd))
+RTL_SRCS := $(RTL_DEPS) $(RTL_DIR)/processor_top.vhd
+
+# ================================
+# Ajuda
+# ================================
 .PHONY: all
 all:
-	@echo "Makefile pronto. Alvos disponiveis:"
-	@echo "  make compile-rtl -> Compila todo o hardware da pasta rtl/"
-	@echo "  make sim TB=<nome_do_testbench> -> Roda uma simulacao"
-	@echo "  make clean -> Apaga todos os arquivos gerados"
+	@echo "==============================================================="
+	@echo "           Ambiente de Projeto RISC-V   "
+	@echo "==============================================================="
+	@echo " "
+	@echo " make sw SW=<prog>        -> compilar software (.s/.c)"
+	@echo " make sim TB=<tb> [SW=..] -> simular processador"
+	@echo " make comp TB=<tb_comp>   -> simular testbench de componente"
+	@echo " make view TB=<tb>        -> abrir GTKWave do último .ghw"
+	@echo " make clean               -> limpar build"
+	@echo " "
+	@echo "==============================================================="
 
-# --- Alvo para Compilar todo o Hardware ---
-# Este alvo garante que todo o seu código em rtl/ seja analisado pelo GHDL
-.PHONY: compile-rtl
-compile-rtl:
-	@mkdir -p $(BUILD_DIR)/rtl
-	@echo ">>> Compilando fontes VHDL de hardware..."
-	@$(GHDL) -a $(GHDLFLAGS) -P$(BUILD_DIR)/rtl --workdir=$(BUILD_DIR)/rtl $(RTL_SRCS)
+# ================================
+# Compilação de Software
+# ================================
+.PHONY: sw
+sw: $(BUILD_DIR)/sw/$(SW).hex
 
-# --- Alvo Principal de Simulação ---
-# Este é o comando que você mais usará.
-# Uso: make sim TB=<nome_do_testbench_sem_extensão>
-# Exemplo: make sim TB=alu_tb
+$(BUILD_DIR)/sw/%.hex: $(SW_SRC_DIR)/%.s
+	@mkdir -p $(@D)
+	@echo ">>> Compilando Assembly: $<"
+	@$(CC) $(CFLAGS) -o $(patsubst %.hex,%.elf,$(@)) $<
+	@echo ">>> Gerando HEX: $@"
+	@$(OBJCOPY) $(OBJFLAGS) $(patsubst %.hex,%.elf,$(@)) $(@)
+
+$(BUILD_DIR)/sw/%.hex: $(SW_SRC_DIR)/%.c
+	@mkdir -p $(@D)
+	@echo ">>> Compilando C: $<"
+	@$(CC) $(CFLAGS) -o $(patsubst %.hex,%.elf,$(@)) $<
+	@echo ">>> Gerando HEX: $@"
+	@$(OBJCOPY) $(OBJFLAGS) $(patsubst %.hex,%.elf,$(@)) $(@)
+
+# ================================
+# Simulação do Processador Completo
+# ================================
 .PHONY: sim
-sim: compile-rtl
-	@echo ">>> Preparando simulacao para o testbench: $(TB)"
-	# Analisa o arquivo do testbench especifico
-	@$(GHDL) -a $(GHDLFLAGS) -P$(BUILD_DIR)/rtl --workdir=$(BUILD_DIR)/rtl $(SIM_DIR)/$(TB).vhd
-	# Elabora (monta) o design a partir do testbench
-	@$(GHDL) -e $(GHDLFLAGS) -P$(BUILD_DIR)/rtl --workdir=$(BUILD_DIR)/rtl $(TB)
-	# Roda a simulacao e gera o arquivo de onda
-	@echo ">>> Rodando simulacao de $(TB)..."
-	@$(GHDL) -r $(GHDLFLAGS) -P$(BUILD_DIR)/rtl --workdir=$(BUILD_DIR)/rtl $(TB) --wave=$(BUILD_DIR)/wave-$(TB).ghw
-	@echo ">>> Simulacao concluida. Arquivo de onda: $(BUILD_DIR)/wave-$(TB).ghw"
+sim:
+	@mkdir -p $(BUILD_DIR)/rtl $(BUILD_DIR)/sw
+	$(if $(SW), $(MAKE) sw SW=$(SW), )
 
-# --- Alvo para Limpar o Projeto ---
-# Essencial para garantir que você está sempre trabalhando com uma compilação limpa
+	@echo ">>> Analisando e compilando VHDL..."
+	@$(GHDL) -a $(GHDLFLAGS) --workdir=$(BUILD_DIR)/rtl \
+		$(RTL_DEPS) \
+		$(RTL_DIR)/processor_top.vhd \
+		$(SIM_DIR)/$(TB).vhd
+
+	@echo ">>> Elaborando $(TB)..."
+	@$(GHDL) -e $(GHDLFLAGS) --workdir=$(BUILD_DIR)/rtl $(TB)
+
+	@echo ">>> Rodando simulação..."
+	@$(GHDL) -r $(GHDLFLAGS) --workdir=$(BUILD_DIR)/rtl $(TB) \
+		--wave=$(BUILD_DIR)/wave-$(TB).ghw \
+		$(if $(SW), -gPROGRAM_PATH=$(BUILD_DIR)/sw/$(SW).hex, )
+	@echo ">>> Simulação concluída. Onda: $(BUILD_DIR)/wave-$(TB).ghw"
+
+# ================================
+# Simulação de Componentes
+# ================================
+.PHONY: comp
+comp:
+	@mkdir -p $(BUILD_DIR)/rtl
+	@echo ">>> Analisando e compilando componente..."
+	@$(GHDL) -a $(GHDLFLAGS) --workdir=$(BUILD_DIR)/rtl \
+		$(RTL_SRCS) \
+		$(SIM_DIR)/$(TB).vhd
+
+	@echo ">>> Elaborando $(TB)..."
+	@$(GHDL) -e $(GHDLFLAGS) --workdir=$(BUILD_DIR)/rtl $(TB)
+
+	@echo ">>> Rodando simulação..."
+	@$(GHDL) -r $(GHDLFLAGS) --workdir=$(BUILD_DIR)/rtl $(TB) \
+		--wave=$(BUILD_DIR)/wave-$(TB).ghw
+	@echo ">>> Simulação concluída. Onda: $(BUILD_DIR)/wave-$(TB).ghw"
+
+# ================================
+# Visualização com GTKWave
+# ================================
+.PHONY: view
+view:
+	@echo ">>> Abrindo GTKWave em $(BUILD_DIR)/wave-$(TB).ghw"
+	@$(GTKWAVE) $(BUILD_DIR)/wave-$(TB).ghw 2>/dev/null &
+
+# ================================
+# Limpeza
+# ================================
 .PHONY: clean
 clean:
-	@echo ">>> Limpando diretorio de build..."
+	@echo ">>> Limpando..."
 	@rm -rf $(BUILD_DIR) *.cf
