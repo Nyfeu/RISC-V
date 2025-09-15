@@ -73,6 +73,30 @@ To compile and simulate this project, install the following tools and ensure the
 
 All commands are executed from the root of the repository. The Makefile automates software compilation, hardware simulation, and waveform visualization.
 
+```
+
+
+     ██████╗ ██╗███████╗ ██████╗ ██╗   ██╗
+     ██╔══██╗██║██╔════╝██╔════╝ ██║   ██║
+     ██████╔╝██║███████╗██║█████╗██║   ██║
+     ██╔══██╗██║╚════██║██║╚════╝╚██╗ ██╔╝
+     ██║  ██║██║███████║╚██████╗  ╚████╔╝
+     ╚═╝  ╚═╝╚═╝╚══════╝ ╚═════╝   ╚═══╝
+
+
+===============================================================
+           Ambiente de Projeto RISC-V
+===============================================================
+
+ make sw SW=<prog>        -> compilar software (.s/.c)
+ make sim TB=<tb> [SW=..] -> simular processador
+ make comp TB=<tb_comp>   -> simular testbench de componente
+ make view TB=<tb>        -> abrir GTKWave do último .ghw
+ make clean               -> limpar build
+
+===============================================================
+```
+
 ### 1. Clean Project
 Removes all generated files:
 ```bash
