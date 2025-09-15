@@ -4,9 +4,9 @@
 GHDL      = ghdl
 GHDLFLAGS = --std=08
 
-CC        = riscv64-unknown-elf-gcc
-CFLAGS    = -march=rv32i -mabi=ilp32 -nostdlib -nostartfiles -T sw/linker/link.ld -lgcc
-OBJCOPY   = riscv64-unknown-elf-objcopy
+CC        = riscv32-unknown-elf-gcc
+CFLAGS    = -march=rv32i -mabi=ilp32 -nostdlib -nostartfiles -T sw/linker/link.ld
+OBJCOPY   = riscv32-unknown-elf-objcopy
 OBJFLAGS  = -O verilog
 
 GTKWAVE   = gtkwave
@@ -31,6 +31,15 @@ RTL_SRCS := $(RTL_DEPS) $(RTL_DIR)/processor_top.vhd
 # ========================================================================================
 .PHONY: all
 all:
+	@echo " "
+	@echo " "
+	@echo "     ██████╗ ██╗███████╗ ██████╗ ██╗   ██╗    "
+	@echo "     ██╔══██╗██║██╔════╝██╔════╝ ██║   ██║    "
+	@echo "     ██████╔╝██║███████╗██║█████╗██║   ██║    "
+	@echo "     ██╔══██╗██║╚════██║██║╚════╝╚██╗ ██╔╝    "
+	@echo "     ██║  ██║██║███████║╚██████╗  ╚████╔╝     "
+	@echo "     ╚═╝  ╚═╝╚═╝╚══════╝ ╚═════╝   ╚═══╝      "
+	@echo " "
 	@echo " "
 	@echo "==============================================================="
 	@echo "           Ambiente de Projeto RISC-V   "
@@ -61,7 +70,7 @@ $(BUILD_DIR)/sw/%.hex: $(SW_SRC_DIR)/%.s
 $(BUILD_DIR)/sw/%.hex: $(SW_SRC_DIR)/%.c
 	@mkdir -p $(@D)
 	@echo ">>> Compilando C: $<"
-	@$(CC) $(CFLAGS) -o $(patsubst %.hex,%.elf,$(@)) $(SW_DIR)/start.s $<
+	@$(CC) $(CFLAGS) -o $(patsubst %.hex,%.elf,$(@)) sw/start.s $<
 	@echo ">>> Gerando HEX: $@"
 	@$(OBJCOPY) $(OBJFLAGS) $(patsubst %.hex,%.elf,$(@)) $(@)
 
@@ -75,10 +84,8 @@ sim:
 
 	@echo ">>> Analisando e compilando VHDL..."
 	@$(GHDL) -a $(GHDLFLAGS) --workdir=$(BUILD_DIR)/rtl \
-		$(SIM_DIR)/memory_loader_pkg.vhd \
-		$(RTL_DEPS) \
-		$(RTL_DIR)/processor_top.vhd \
-		$(SIM_DIR)/$(TB).vhd
+		$(RTL_SRCS) \
+		$(wildcard $(SIM_DIR)/*.vhd)
 
 	@echo ">>> Elaborando $(TB)..."
 	@$(GHDL) -e $(GHDLFLAGS) --workdir=$(BUILD_DIR)/rtl $(TB)
@@ -87,7 +94,9 @@ sim:
 	@$(GHDL) -r $(GHDLFLAGS) --workdir=$(BUILD_DIR)/rtl $(TB) \
 		--wave=$(BUILD_DIR)/wave-$(TB).ghw \
 		$(if $(SW), -gPROGRAM_PATH=$(BUILD_DIR)/sw/$(SW).hex, )
+	@echo " "
 	@echo ">>> Simulação concluída. Onda: $(BUILD_DIR)/wave-$(TB).ghw"
+	@echo " "
 
 # ========================================================================================
 #    Simulação de Componentes

@@ -13,6 +13,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use std.env.all;
+use std.textio.all;
 
 -- Carrega o pacote memory_loader
 library work;
@@ -126,6 +127,7 @@ begin
 
         -- Endereço do dispositivo de saída virtual
         constant c_CONSOLE_ADDR : std_logic_vector(31 downto 0) := x"10000000";
+        variable L : line;
 
     begin
 
@@ -139,7 +141,10 @@ begin
                 -- Pega os 8 bits menos significativos do dado e os imprime como um caractere.
                 -- A função character'val() converte o valor inteiro do byte para um caractere.
 
-                report "CONSOLE: " & character'val(to_integer(unsigned(s_dmem_data_write(7 downto 0))));
+                -- Escreve um caractere no console
+                write(L, string'("CONSOLE: "));
+                write(L, character'val(to_integer(unsigned(s_dmem_data_write(7 downto 0)))));
+                writeline(output, L);
 
             end if;
 
@@ -152,6 +157,7 @@ begin
 
         -- Endereço para dispositivo de saída de inteiros
         constant c_INTEGER_ADDR : std_logic_vector(31 downto 0) := x"10000004";
+        variable L : line;
 
     begin
 
@@ -162,7 +168,9 @@ begin
 
                 -- Usa a função 'to_integer' para converter o dado de 32 bits em um inteiro
                 -- e 'integer'image' para formatá-lo como string para impressão.
-                report "INTEGER: " & integer'image(to_integer(signed(s_dmem_data_write)));
+                write(L, string'("INTEGER: "));
+                write(L, to_integer(signed(s_dmem_data_write)));
+                writeline(output, L);
                 
             end if;
 
@@ -172,14 +180,28 @@ begin
 
     -- Estímulo (define a execução do testbench)
     stimulus_proc: process is
+
+        variable L : line;
+
     begin
-        report "INICIANDO SIMULACAO DO PROCESSADOR COMPLETO..." severity note;
+
+        writeline(output, L);
+        write(L, string'("INICIANDO SIMULACAO DO PROCESSADOR COMPLETO..."));
+        writeline(output, L);
+        writeline(output, L);
+
         wait for CLK_PERIOD * 2;
         s_reset <= '0';
         wait for CLK_PERIOD * 500;
-        report "SIMULACAO CONCLUIDA." severity note;
+
+        writeline(output, L);
+        write(L, string'("SIMULACAO CONCLUIDA."));
+        writeline(output, L);
+        writeline(output, L);
+
         std.env.stop;
         wait;
+
     end process stimulus_proc;
 
 end architecture test;
