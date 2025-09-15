@@ -20,9 +20,6 @@ int main() {
     
     }
 
-    // Coloca o processador em um loop infinito - HLT
-    while (1);
-
     // Esta linha nunca será alcançada
     return 0;
 }

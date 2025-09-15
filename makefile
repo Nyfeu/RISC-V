@@ -18,6 +18,7 @@ BUILD_DIR  = build
 RTL_DIR    = rtl
 SIM_DIR    = sim
 SW_SRC_DIR = sw/src
+SW_DIR     = sw
 
 # ========================================================================================
 # Fontes VHDL
@@ -60,7 +61,7 @@ $(BUILD_DIR)/sw/%.hex: $(SW_SRC_DIR)/%.s
 $(BUILD_DIR)/sw/%.hex: $(SW_SRC_DIR)/%.c
 	@mkdir -p $(@D)
 	@echo ">>> Compilando C: $<"
-	@$(CC) $(CFLAGS) -o $(patsubst %.hex,%.elf,$(@)) $<
+	@$(CC) $(CFLAGS) -o $(patsubst %.hex,%.elf,$(@)) $(SW_DIR)/start.s $<
 	@echo ">>> Gerando HEX: $@"
 	@$(OBJCOPY) $(OBJFLAGS) $(patsubst %.hex,%.elf,$(@)) $(@)
 
