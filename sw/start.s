@@ -28,9 +28,3 @@ _start:
     li a0, 1
     li t0, HALT_MMIO
     sw a0, 0(t0)
-
-# ---------------------------------------------------------------------
-# Loop infinito para o caso de 'main' retornar (o que não deve acontecer).
-# ---------------------------------------------------------------------
-hang:
-    j hang

@@ -1,5 +1,22 @@
 # RISC-V (RV32I) Processor in VHDL
 
+![VHDL](https://img.shields.io/badge/VHDL-2008-blue?style=for-the-badge&logo=vhdl)
+![RISC-V](https://img.shields.io/badge/ISA-RISC--V%20RV32I-yellow?style=for-the-badge&logo=riscv)
+![GHDL](https://img.shields.io/badge/Simulator-GHDL-green?style=for-the-badge&logo=ghdl)
+![GTKWave](https://img.shields.io/badge/Waveform-GTKWave-9cf?style=for-the-badge&logo=gtkwave)
+
+
+```
+
+   ██████╗ ██╗   ██╗██████╗ ██████╗ ██╗
+   ██╔══██╗██║   ██║╚════██╗╚════██╗██║
+   ██████╔╝██║   ██║ █████╔╝ █████╔╝██║
+   ██╔══██╗╚██╗ ██╔╝ ╚═══██╗██╔═══╝ ██║     ->> PROJETO: Processador RISC-V (RV32I) 
+   ██║  ██║ ╚████╔╝ ██████╔╝███████╗██║     ->> AUTOR: André Solano F. R. Maiolini 
+   ╚═╝  ╚═╝  ╚═══╝  ╚═════╝ ╚══════╝╚═╝     ->> DATA: 15/09/2025
+
+```
+
 This repository contains the implementation of a 32-bit, single-cycle processor that follows the base RISC-V instruction set specification (RV32I). The project is developed entirely in VHDL (2008 standard) and is intended as an educational project for studying computer architecture.
 
 The design is modular, with each main processor component (ALU, Register File, Control Unit, etc.) implemented in its own file. Each module is accompanied by a self-verifying testbench to ensure correctness before final integration.
@@ -20,27 +37,27 @@ The repository is organized as follows to separate the hardware design (RTL), si
 
 ```text
 RV32I_processor/
-├── rtl/                # Synthesizable VHDL code (processor components)
+├── rtl/                       # Synthesizable VHDL code (processor components)
 │   ├── processor_top.vhd
 │   ├── alu.vhd
 │   └── ...
 │
-├── sim/                # Testbenches and simulation support
+├── sim/                       # Testbenches and simulation support
 │   ├── processor_top_tb.vhd
 │   ├── memory_loader_pkg.vhd  # << VHDL package for dynamic program loading
 │   └── ...
 │
-├── sw/                 # Example software programs
+├── sw/                        # Example software programs
 │   ├── src/
 │   │   ├── hello.c
 │   │   └── test_addi.s
 │   ├── linker/
 │   │   └── link.ld
-│   └── start.s         # << Assembly boot code for C programs
+│   └── start.s                # << Assembly boot code for C programs
 │
-├── build/              # Auto-generated build output (ignored by Git)
+├── build/                     # Auto-generated build output (ignored by Git)
 │
-├── Makefile            # Automates compilation, simulation and visualization
+├── Makefile                   # Automates compilation, simulation and visualization
 │
 └── .gitignore
 ```
@@ -50,7 +67,7 @@ To compile and simulate this project, install the following tools and ensure the
 
 1. GHDL: Open-source VHDL simulator.
 2. GTKWave: Waveform viewer.
-3. RISC-V GCC Toolchain (riscv64-unknown-elf-gcc): For compiling C/Assembly programs.
+3. RISC-V GCC Toolchain (riscv32-unknown-elf-gcc): For compiling C/Assembly programs.
 
 ## 🚀 How to Compile and Simulate (Using the Makefile)
 
