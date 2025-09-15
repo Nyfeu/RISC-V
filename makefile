@@ -5,7 +5,7 @@ GHDL      = ghdl
 GHDLFLAGS = --std=08
 
 CC        = riscv64-unknown-elf-gcc
-CFLAGS    = -march=rv32i -mabi=ilp32 -nostdlib -nostartfiles -T sw/linker/link.ld
+CFLAGS    = -march=rv32i -mabi=ilp32 -nostdlib -nostartfiles -T sw/linker/link.ld -lgcc
 OBJCOPY   = riscv64-unknown-elf-objcopy
 OBJFLAGS  = -O verilog
 

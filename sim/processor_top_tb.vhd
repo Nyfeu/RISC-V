@@ -121,13 +121,62 @@ begin
 
     end process MEM_WRITE_PROC;
 
+    -- Processo que escuta o endereço de CHAR_OUTPUT (MMIO - Memory Mapped IO)
+    CONSOLE_OUTPUT: process(s_clk)
+
+        -- Endereço do dispositivo de saída virtual
+        constant c_CONSOLE_ADDR : std_logic_vector(31 downto 0) := x"10000000";
+
+    begin
+
+        if rising_edge(s_clk) then
+
+            -- Verifica se o processador está tentando escrever na memória
+            -- e se o endereço corresponde ao console.
+
+            if s_dmem_write_enable = '1' and s_dmem_addr = c_CONSOLE_ADDR then
+
+                -- Pega os 8 bits menos significativos do dado e os imprime como um caractere.
+                -- A função character'val() converte o valor inteiro do byte para um caractere.
+
+                report "CONSOLE: " & character'val(to_integer(unsigned(s_dmem_data_write(7 downto 0))));
+
+            end if;
+
+        end if;
+
+    end process CONSOLE_OUTPUT;
+
+    -- Processo que escuta o endereço de INT_OUTPUT (MMIO - Memory Mapped IO)
+    INTEGER_OUTPUT: process(s_clk)
+
+        -- Endereço para dispositivo de saída de inteiros
+        constant c_INTEGER_ADDR : std_logic_vector(31 downto 0) := x"10000004";
+
+    begin
+
+        if rising_edge(s_clk) then
+
+            -- Verifica se o processador está escrevendo no endereço do console de inteiros
+            if s_dmem_write_enable = '1' and s_dmem_addr = c_INTEGER_ADDR then
+
+                -- Usa a função 'to_integer' para converter o dado de 32 bits em um inteiro
+                -- e 'integer'image' para formatá-lo como string para impressão.
+                report "INTEGER: " & integer'image(to_integer(signed(s_dmem_data_write)));
+                
+            end if;
+
+        end if;
+
+    end process INTEGER_OUTPUT;
+
     -- Estímulo (define a execução do testbench)
     stimulus_proc: process is
     begin
         report "INICIANDO SIMULACAO DO PROCESSADOR COMPLETO..." severity note;
         wait for CLK_PERIOD * 2;
         s_reset <= '0';
-        wait for CLK_PERIOD * 200;
+        wait for CLK_PERIOD * 5000;
         report "SIMULACAO CONCLUIDA." severity note;
         std.env.stop;
         wait;
