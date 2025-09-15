@@ -101,7 +101,7 @@ begin
                 -- Valores para instruções de armazenamento (sw, sb, sh)
                 RegWrite_o <= '0';
                 ALUSrc_o   <= '1';
-                MemtoReg_o <= 'X';   -- Don't care (não tem efeito sem MemWrite_o)    
+                MemtoReg_o <= '0';   -- Don't care (não tem efeito sem MemWrite_o)    
                 MemRead_o  <= '0';
                 MemWrite_o <= '1';
                 Branch_o   <= '0';
@@ -113,7 +113,7 @@ begin
                 -- Valores para instruções de desvio (BEQ, BNE, etc.)
                 RegWrite_o <= '0';
                 AluSrc_o   <= '0';
-                MemtoReg_o <= 'X';   -- Don't care (não tem efeito sem RegWrite_o)
+                MemtoReg_o <= '0';   -- Don't care (não tem efeito sem RegWrite_o)
                 MemRead_o  <= '0';
                 MemWrite_o <= '0';
                 Branch_o   <= '1';
@@ -136,13 +136,13 @@ begin
 
                 -- Valores para instruções JAL (Jump and Link)
                 RegWrite_o <= '1';
-                AluSrc_o   <= 'X';   -- Don't care (não é usado pela ALU)
+                AluSrc_o   <= '0';   -- Don't care (não é usado pela ALU)
                 MemtoReg_o <= '0';   
                 MemRead_o  <= '0';
                 MemWrite_o <= '0';
                 Branch_o   <= '0';
                 Jump_o     <= '1';
-                ALUOp_o    <= "XX";  -- Não é usado pela ALU
+                ALUOp_o    <= "00";  -- Não é usado pela ALU
 
             when c_OPCODE_JALR =>
 

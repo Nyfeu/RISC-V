@@ -43,7 +43,7 @@ all:
 	@echo "==============================================================="
 
 # ================================
-# Compilação de Software
+# Compilação de Software (Versão Revertida)
 # ================================
 .PHONY: sw
 sw: $(BUILD_DIR)/sw/$(SW).hex
@@ -72,6 +72,7 @@ sim:
 
 	@echo ">>> Analisando e compilando VHDL..."
 	@$(GHDL) -a $(GHDLFLAGS) --workdir=$(BUILD_DIR)/rtl \
+		$(SIM_DIR)/memory_loader_pkg.vhd \
 		$(RTL_DEPS) \
 		$(RTL_DIR)/processor_top.vhd \
 		$(SIM_DIR)/$(TB).vhd
