@@ -1,356 +1,292 @@
-# RISC-V RV32I - Suíte de Teste de Instruções em Assembly
+# RISC-V RV32I - Suíte de Teste de Instruções em Assembly (Versão Final com HALT)
 #
 # ESTRATÉGIA:
-# - Cada teste verifica uma instrução.
-# - Se um teste passa, um código de sucesso único é escrito no endereço INT_OUTPUT.
-# - Se um teste falha, o código pula para a rotina 'fail', imprime -1 e para.
-# - Se todos os testes passam, o código imprime 999 e para.
+# - Usa um registrador temporário (t5) para o endereço de MMIO.
+# - Se todos os testes passam, imprime 999 e sinaliza HALT.
+# - Se um teste falha, imprime -1 e sinaliza HALT.
 
 .section .text
 .globl _start
 
 # Endereços de MMIO
 .equ INT_OUTPUT, 0x10000004
-.equ STACK_TOP,  0x00001000  # Define um topo para a pilha (ex: 4KB)
+.equ HALT_MMIO,  0x10000008
+.equ STACK_TOP,  0x00001000
 
 _start:
-    # Configura o stack pointer para uma área segura da memória
+    # Configura o stack pointer e o ponteiro de MMIO
     li sp, STACK_TOP
+    li t5, INT_OUTPUT
 
-    # --- TESTE 1: ADDI (Add Immediate) ---
+    # --- INÍCIO DOS TESTES (lógica idêntica à anterior) ---
+    # Teste 1: ADDI
     li t0, 10
-    addi t1, t0, 5      # t1 = 10 + 5 = 15
+    addi t1, t0, 5
     li t2, 15
     bne t1, t2, fail
-    li a0, 1            # Código de sucesso
-    sw a0, 0(sp)        # Usa a pilha para salvar o endereço de output
-    li sp, INT_OUTPUT
-    sw a0, 0(sp)
-    li sp, STACK_TOP    # Restaura a pilha
+    li a0, 1
+    sw a0, 0(t5)
 
-    # --- TESTE 2: ADD (Add) ---
+    # Teste 2: ADD
     li t0, 20
     li t1, 22
-    add t2, t0, t1      # t2 = 20 + 22 = 42
+    add t2, t0, t1
     li t3, 42
     bne t2, t3, fail
     li a0, 2
-    li sp, INT_OUTPUT
-    sw a0, 0(sp)
-    li sp, STACK_TOP
+    sw a0, 0(t5)
 
+    # ... (todos os outros 29 testes continuam aqui)
+    # --- Coloque o restante dos testes de 3 a 31 aqui ---
+    # --- (O código é o mesmo da versão anterior, apenas o final muda) ---
     # --- TESTE 3: SUB (Subtract) ---
     li t0, 50
     li t1, 10
-    sub t2, t0, t1      # t2 = 50 - 10 = 40
+    sub t2, t0, t1
     li t3, 40
     bne t2, t3, fail
     li a0, 3
-    li sp, INT_OUTPUT
-    sw a0, 0(sp)
-    li sp, STACK_TOP
+    sw a0, 0(t5)
 
     # --- TESTE 4: LUI (Load Upper Immediate) ---
-    lui t0, 0xABCDE     # t0 = 0xABCDE000
+    lui t0, 0xABCDE
     li t1, 0xABCDE000
     bne t0, t1, fail
     li a0, 4
-    li sp, INT_OUTPUT
-    sw a0, 0(sp)
-    li sp, STACK_TOP
+    sw a0, 0(t5)
 
     # --- TESTE 5: AUIPC (Add Upper Immediate to PC) ---
-    # Este é mais complexo. Pularemos a verificação exata do valor,
-    # mas garantiremos que ele execute e não trave.
-    auipc t0, 0         # t0 = endereço da instrução auipc
+    auipc t0, 0
     li a0, 5
-    li sp, INT_OUTPUT
-    sw a0, 0(sp)
-    li sp, STACK_TOP
+    sw a0, 0(t5)
 
     # --- TESTES LÓGICOS ---
     li t0, 0b1010
     li t1, 0b1100
 
     # --- TESTE 6: AND ---
-    and t2, t0, t1      # t2 = 1010 & 1100 = 1000 (8)
+    and t2, t0, t1
     li t3, 8
     bne t2, t3, fail
     li a0, 6
-    li sp, INT_OUTPUT
-    sw a0, 0(sp)
-    li sp, STACK_TOP
+    sw a0, 0(t5)
 
     # --- TESTE 7: OR ---
-    or t2, t0, t1       # t2 = 1010 | 1100 = 1110 (14)
+    or t2, t0, t1
     li t3, 14
     bne t2, t3, fail
     li a0, 7
-    li sp, INT_OUTPUT
-    sw a0, 0(sp)
-    li sp, STACK_TOP
+    sw a0, 0(t5)
 
     # --- TESTE 8: XOR ---
-    xor t2, t0, t1      # t2 = 1010 ^ 1100 = 0110 (6)
+    xor t2, t0, t1
     li t3, 6
     bne t2, t3, fail
     li a0, 8
-    li sp, INT_OUTPUT
-    sw a0, 0(sp)
-    li sp, STACK_TOP
+    sw a0, 0(t5)
 
     # --- TESTES LÓGICOS IMEDIATOS ---
     li t0, 0b1010
 
     # --- TESTE 9: ANDI ---
-    andi t1, t0, 0b1100 # t1 = 1010 & 1100 = 1000 (8)
+    andi t1, t0, 0b1100
     li t2, 8
     bne t1, t2, fail
     li a0, 9
-    li sp, INT_OUTPUT
-    sw a0, 0(sp)
-    li sp, STACK_TOP
+    sw a0, 0(t5)
 
     # --- TESTE 10: ORI ---
-    ori t1, t0, 0b1100  # t1 = 1010 | 1100 = 1110 (14)
+    ori t1, t0, 0b1100
     li t2, 14
     bne t1, t2, fail
     li a0, 10
-    li sp, INT_OUTPUT
-    sw a0, 0(sp)
-    li sp, STACK_TOP
+    sw a0, 0(t5)
 
     # --- TESTE 11: XORI ---
-    xori t1, t0, 0b1100 # t1 = 1010 ^ 1100 = 0110 (6)
+    xori t1, t0, 0b1100
     li t2, 6
     bne t1, t2, fail
     li a0, 11
-    li sp, INT_OUTPUT
-    sw a0, 0(sp)
-    li sp, STACK_TOP
+    sw a0, 0(t5)
 
     # --- TESTES DE SHIFT ---
-    li t0, 2            # 0b...10
+    li t0, 2
 
-    # --- TESTE 12: SLL (Shift Left Logical) ---
+    # --- TESTE 12: SLL ---
     li t1, 3
-    sll t2, t0, t1      # t2 = 2 << 3 = 16
+    sll t2, t0, t1
     li t3, 16
     bne t2, t3, fail
     li a0, 12
-    li sp, INT_OUTPUT
-    sw a0, 0(sp)
-    li sp, STACK_TOP
+    sw a0, 0(t5)
 
-    # --- TESTE 13: SLLI (Shift Left Logical Immediate) ---
-    slli t1, t0, 4      # t1 = 2 << 4 = 32
+    # --- TESTE 13: SLLI ---
+    slli t1, t0, 4
     li t2, 32
     bne t1, t2, fail
     li a0, 13
-    li sp, INT_OUTPUT
-    sw a0, 0(sp)
-    li sp, STACK_TOP
+    sw a0, 0(t5)
 
-    # --- TESTE 14: SRL / SRLI (Shift Right Logical) ---
-    li t0, 16           # 0b10000
-    srli t1, t0, 2      # t1 = 16 >> 2 = 4
+    # --- TESTE 14: SRL / SRLI ---
+    li t0, 16
+    srli t1, t0, 2
     li t2, 4
     bne t1, t2, fail
     li a0, 14
-    li sp, INT_OUTPUT
-    sw a0, 0(sp)
-    li sp, STACK_TOP
+    sw a0, 0(t5)
 
-    # --- TESTE 15: SRA / SRAI (Shift Right Arithmetic) ---
-    li t0, -16          # 0xFFFFFFF0
-    srai t1, t0, 2      # t1 = -16 >> 2 = -4 (0xFFFFFFFC)
+    # --- TESTE 15: SRA / SRAI ---
+    li t0, -16
+    srai t1, t0, 2
     li t2, -4
     bne t1, t2, fail
     li a0, 15
-    li sp, INT_OUTPUT
-    sw a0, 0(sp)
-    li sp, STACK_TOP
+    sw a0, 0(t5)
 
     # --- TESTES DE COMPARAÇÃO ---
     li t0, 10
     li t1, 20
     li t2, -10
 
-    # --- TESTE 16: SLT (Set Less Than) ---
-    slt t3, t0, t1      # t3 = (10 < 20) = 1
+    # --- TESTE 16: SLT ---
+    slt t3, t0, t1
     li t4, 1
     bne t3, t4, fail
     li a0, 16
-    li sp, INT_OUTPUT
-    sw a0, 0(sp)
-    li sp, STACK_TOP
+    sw a0, 0(t5)
 
-    # --- TESTE 17: SLTU (Set Less Than Unsigned) ---
-    sltu t3, t2, t0     # t3 = (-10u > 10u) = 0
+    # --- TESTE 17: SLTU ---
+    sltu t3, t2, t0
     li t4, 0
     bne t3, t4, fail
     li a0, 17
-    li sp, INT_OUTPUT
-    sw a0, 0(sp)
-    li sp, STACK_TOP
+    sw a0, 0(t5)
 
     # --- TESTE 18: SLTI / SLTIU ---
-    slti t3, t0, 5      # t3 = (10 < 5) = 0
+    slti t3, t0, 5
     li t4, 0
     bne t3, t4, fail
     li a0, 18
-    li sp, INT_OUTPUT
-    sw a0, 0(sp)
-    li sp, STACK_TOP
+    sw a0, 0(t5)
 
     # --- TESTES DE BRANCH ---
     li t0, 10
     li t1, 10
     li t2, 20
 
-    # --- TESTE 19: BEQ (Branch if Equal) - Taken ---
+    # --- TESTE 19: BEQ ---
     beq t0, t1, beq_ok
     j fail
 beq_ok:
     li a0, 19
-    li sp, INT_OUTPUT
-    sw a0, 0(sp)
-    li sp, STACK_TOP
+    sw a0, 0(t5)
 
-    # --- TESTE 20: BNE (Branch if Not Equal) - Not Taken ---
+    # --- TESTE 20: BNE ---
     bne t0, t1, fail
     li a0, 20
-    li sp, INT_OUTPUT
-    sw a0, 0(sp)
-    li sp, STACK_TOP
+    sw a0, 0(t5)
 
-    # --- TESTE 21: BLT (Branch if Less Than) - Taken ---
+    # --- TESTE 21: BLT ---
     blt t0, t2, blt_ok
     j fail
 blt_ok:
     li a0, 21
-    li sp, INT_OUTPUT
-    sw a0, 0(sp)
-    li sp, STACK_TOP
+    sw a0, 0(t5)
 
-    # --- TESTE 22: BGE (Branch if Greater or Equal) - Not Taken ---
+    # --- TESTE 22: BGE ---
     bge t0, t2, fail
     li a0, 22
-    li sp, INT_OUTPUT
-    sw a0, 0(sp)
-    li sp, STACK_TOP
+    sw a0, 0(t5)
 
-    # --- TESTE 23: BLTU (Unsigned) - t0(10) < t2(20) - Taken ---
+    # --- TESTE 23: BLTU ---
     bltu t0, t2, bltu_ok
     j fail
 bltu_ok:
     li a0, 23
-    li sp, INT_OUTPUT
-    sw a0, 0(sp)
-    li sp, STACK_TOP
+    sw a0, 0(t5)
 
-    # --- TESTE 24: BGEU (Unsigned) - t2(20) >= t0(10) - Taken ---
+    # --- TESTE 24: BGEU ---
     bgeu t2, t0, bgeu_ok
     j fail
 bgeu_ok:
     li a0, 24
-    li sp, INT_OUTPUT
-    sw a0, 0(sp)
-    li sp, STACK_TOP
+    sw a0, 0(t5)
 
     # --- TESTES DE MEMÓRIA (Load/Store) ---
     li t0, 12345
-    # Endereço de memória para teste
     li t1, 0x00000200
 
-    # --- TESTE 25: SW (Store Word) e LW (Load Word) ---
+    # --- TESTE 25: SW e LW ---
     sw t0, 0(t1)
     lw t2, 0(t1)
     bne t0, t2, fail
     li a0, 25
-    li sp, INT_OUTPUT
-    sw a0, 0(sp)
-    li sp, STACK_TOP
+    sw a0, 0(t5)
 
-    # --- TESTE 26: SH (Store Half) e LH (Load Half) ---
-    li t0, -300         # 0xFFFFFECC
+    # --- TESTE 26: SH e LH ---
+    li t0, -300
     sh t0, 0(t1)
-    lh t2, 0(t1)        # Carrega e estende o sinal -> -300
+    lh t2, 0(t1)
     bne t0, t2, fail
     li a0, 26
-    li sp, INT_OUTPUT
-    sw a0, 0(sp)
-    li sp, STACK_TOP
+    sw a0, 0(t5)
 
-    # --- TESTE 27: SB (Store Byte) e LBU (Load Byte Unsigned) ---
-    li t0, 250          # 0xFA
+    # --- TESTE 27: SB e LBU ---
+    li t0, 250
     sb t0, 0(t1)
-    lbu t2, 0(t1)       # Carrega sem sinal -> 250
+    lbu t2, 0(t1)
     bne t0, t2, fail
     li a0, 27
-    li sp, INT_OUTPUT
-    sw a0, 0(sp)
-    li sp, STACK_TOP
+    sw a0, 0(t5)
     
-    # --- TESTE 28: SB (Store Byte) e LB (Load Byte) ---
-    li t0, -10          # 0xF6
+    # --- TESTE 28: SB e LB ---
+    li t0, -10
     sb t0, 0(t1)
-    lb t2, 0(t1)        # Carrega com sinal -> -10
+    lb t2, 0(t1)
     bne t0, t2, fail
     li a0, 28
-    li sp, INT_OUTPUT
-    sw a0, 0(sp)
-    li sp, STACK_TOP
+    sw a0, 0(t5)
 
     # --- TESTES DE JUMP ---
+    # --- TESTE 29: JAL ---
+    la t0, jal_target
+    jal ra, jal_target
 
-    # --- TESTE 29: JAL (Jump and Link) ---
-    la t0, jal_target   # Carrega o endereço do alvo
-    jal ra, jal_target  # Pula e armazena o endereço de retorno em ra (para a linha abaixo)
-
-    # --- TESTE 30: JALR (Jump and Link Register) ---
-    # A verificação é implícita. Se chegamos aqui após o JAL, o JALR funcionou.
+    # --- TESTE 30: JALR ---
     li a0, 30
-    li sp, INT_OUTPUT
-    sw a0, 0(sp)
-    li sp, STACK_TOP
-    j jal_continue      # Pula para o próximo teste
+    sw a0, 0(t5)
+    j jal_continue
 
 jal_target:
-    # Este código é executado após o JAL
     li a0, 29
-    li sp, INT_OUTPUT
-    sw a0, 0(sp)
-    li sp, STACK_TOP
-    jalr x0, ra, 0      # Retorna para a instrução após o 'jal'
+    sw a0, 0(t5)
+    jalr x0, ra, 0
 
 jal_continue:
-    # --- TESTE 31: FENCE (apenas executa, sem verificação de resultado) ---
+    # --- TESTE 31: FENCE ---
     fence
     li a0, 31
-    li sp, INT_OUTPUT
-    sw a0, 0(sp)
-    li sp, STACK_TOP
+    sw a0, 0(t5)
     
     j pass
 
 # --- Rotinas de Fim ---
 pass:
-    # Todos os testes passaram!
     li a0, 999
-    li sp, INT_OUTPUT
-    sw a0, 0(sp)
-    li sp, STACK_TOP
-    j pass_loop
-pass_loop:
-    j pass_loop
+    sw a0, 0(t5)
+    j halt_sim      # Pula para a rotina de parada
 
 fail:
-    # Um teste falhou!
     li a0, -1
-    li sp, INT_OUTPUT
-    sw a0, 0(sp)
-    li sp, STACK_TOP
-    j fail_loop
-fail_loop:
-    j fail_loop
+    sw a0, 0(t5)
+    j halt_sim      # Pula para a rotina de parada
+
+halt_sim:
+    # Escreve no endereço de HALT para terminar a simulação
+    li t0, 1
+    li t1, HALT_MMIO
+    sw t0, 0(t1)
+    
+# Loop infinito final para garantir
+halt_loop:
+    j halt_loop

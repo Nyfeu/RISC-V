@@ -59,10 +59,11 @@ architecture test of processor_top_tb is
     signal s_dmem_data_write   : std_logic_vector(31 downto 0) := (others => '0');
     signal s_dmem_write_enable : std_logic := '0';
     
-    signal s_memory : t_mem_array := init_mem_from_hex(PROGRAM_PATH);
+    signal s_memory : t_mem_array := init_mem_from_hex(PROGRAM_PATH);       -- Memória de programa
     
-    constant c_HALT_ADDR : std_logic_vector(31 downto 0) := x"10000008";
-    constant CLK_PERIOD : time := 10 ns;
+    constant c_HALT_ADDR : std_logic_vector(31 downto 0) := x"10000008";    -- Endereço para HALT
+    
+    constant CLK_PERIOD : time := 10 ns;                                    -- Período clock em [ns]
 
 begin
     
@@ -186,6 +187,7 @@ begin
 
     begin
 
+        -- Mensagem inicial da simulação
         writeline(output, L);
         write(L, string'("INICIANDO SIMULACAO DO PROCESSADOR COMPLETO..."));
         writeline(output, L);
@@ -196,6 +198,10 @@ begin
         -- Aguarda o programa escrever no endereço de MMIO de parada.
         wait until (s_dmem_write_enable = '1' and s_dmem_addr = c_HALT_ADDR);
 
+        -- Para a sincronização entre os processos
+        wait for CLK_PERIOD;
+
+        -- Mensagem de conclusão da simulação
         writeline(output, L);
         write(L, string'("SIMULACAO CONCLUIDA. Programa finalizado por sinal de HALT."));
         writeline(output, L);
