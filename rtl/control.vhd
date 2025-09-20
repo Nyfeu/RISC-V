@@ -86,7 +86,7 @@ begin
         -- - rs1 nos bits [19:15];
         -- - rs2 nos bits [24:20].
 
-            U_CONTROL: entity work.control_unit
+            U_CONTROL: entity work.decoder
                 port map (
                     Opcode_i           => s_opcode,
                     RegWrite_o         => RegWrite_o,

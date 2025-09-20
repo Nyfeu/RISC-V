@@ -1,15 +1,15 @@
 ------------------------------------------------------------------------------------------------------------------
 -- 
--- File: control_unit.vhd
+-- File: decoder.vhd
 --
---    ██████╗ ██████╗ ███╗   ██╗████████╗██████╗  ██████╗ ██╗             ██╗   ██╗███╗   ██╗██╗████████╗
---   ██╔════╝██╔═══██╗████╗  ██║╚══██╔══╝██╔══██╗██╔═══██╗██║             ██║   ██║████╗  ██║██║╚══██╔══╝
---   ██║     ██║   ██║██╔██╗ ██║   ██║   ██████╔╝██║   ██║██║             ██║   ██║██╔██╗ ██║██║   ██║   
---   ██║     ██║   ██║██║╚██╗██║   ██║   ██╔══██╗██║   ██║██║             ██║   ██║██║╚██╗██║██║   ██║   
---   ╚██████╗╚██████╔╝██║ ╚████║   ██║   ██║  ██║╚██████╔╝███████╗███████╗╚██████╔╝██║ ╚████║██║   ██║   
---    ╚═════╝ ╚═════╝ ╚═╝  ╚═══╝   ╚═╝   ╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚══════╝ ╚═════╝ ╚═╝  ╚═══╝╚═╝   ╚═╝                                                                                                                                                            
+--   ██████╗ ███████╗ ██████╗ ██████╗ ██████╗ ███████╗██████╗ 
+--   ██╔══██╗██╔════╝██╔════╝██╔═══██╗██╔══██╗██╔════╝██╔══██╗
+--   ██║  ██║█████╗  ██║     ██║   ██║██║  ██║█████╗  ██████╔╝
+--   ██║  ██║██╔══╝  ██║     ██║   ██║██║  ██║██╔══╝  ██╔══██╗
+--   ██████╔╝███████╗╚██████╗╚██████╔╝██████╔╝███████╗██║  ██║
+--   ╚═════╝ ╚══════╝ ╚═════╝ ╚═════╝ ╚═════╝ ╚══════╝╚═╝  ╚═╝                                                                                                                                                           
 -- 
--- Descrição : Unidade de Controle para um processador RISC-V de 32 bits (RV32I).
+-- Descrição : Unidade de Decodificação para um processador RISC-V de 32 bits (RV32I).
 --             Decodifica o opcode da instrução e gera os sinais de controle
 --             necessários para a operação correta do datapath.
 --
@@ -23,10 +23,10 @@ use ieee.std_logic_1164.all;      -- Tipos lógicos (std_logic, std_logic_vector
 use ieee.numeric_std.all;         -- Biblioteca para operações aritméticas com vetores lógicos (signed, unsigned)
 
 -------------------------------------------------------------------------------------------------------------------
--- ENTIDADE: Definição da interface da unidade de controle
+-- ENTIDADE: Definição da interface da unidade decodificadora
 -------------------------------------------------------------------------------------------------------------------
 
-entity control_unit is
+entity decoder is
 
   port (
     
@@ -46,13 +46,13 @@ entity control_unit is
 
   ) ;
 
-end control_unit ;
+end decoder ;
 
 -------------------------------------------------------------------------------------------------------------------
--- ARQUITETURA: Implementação da unidade de controle
+-- ARQUITETURA: Implementação da unidade decodificadora
 -------------------------------------------------------------------------------------------------------------------
 
-architecture rtl of control_unit is
+architecture rtl of decoder is
 
     -- Constantes para os opcodes das instruções RISC-V
     constant c_OPCODE_R_TYPE : std_logic_vector(6 downto 0) := "0110011";
@@ -68,7 +68,7 @@ architecture rtl of control_unit is
 begin
 
     -- Processo de decodificação do opcode para gerar os sinais de controle
-    DECODER: process(Opcode_i)
+    DECODING: process(Opcode_i)
     begin
 
         -- Defina um valor padrão 
@@ -188,7 +188,7 @@ begin
         
         end case ;
 
-    end process DECODER;
+    end process DECODING;
 
 end architecture rtl;
 

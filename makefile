@@ -29,7 +29,7 @@ RTL_SRCS := \
   $(RTL_DIR)/imm_gen.vhd \
   $(RTL_DIR)/reg_file.vhd \
   $(RTL_DIR)/load_unit.vhd \
-  $(RTL_DIR)/control_unit.vhd \
+  $(RTL_DIR)/decoder.vhd \
   $(RTL_DIR)/control.vhd \
   $(RTL_DIR)/datapath.vhd \
   $(RTL_DIR)/processor_top.vhd

@@ -1,8 +1,8 @@
 -------------------------------------------------------------------------------------------------------------------
 --
--- File: control_unit_tb.vhd (Testbench para a Unidade de Controle)
+-- File: decoder_tb.vhd (Testbench para a Unidade Decodificadora)
 --
--- Descrição: Este testbench verifica a funcionalidade da unidade de controle
+-- Descrição: Este testbench verifica a funcionalidade da unidade decodificadora
 --            para um processador RISC-V de 32 bits (RV32I). Ele aplica uma
 --            série de opcodes de instrução e verifica se os sinais de controle
 --            gerados correspondem aos valores esperados.
@@ -15,17 +15,17 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 -- A entidade de um testbench é sempre vazia.
-entity control_unit_tb is
-end entity control_unit_tb;
+entity decoder_tb is
+end entity decoder_tb;
 
 -- A arquitetura do testbench contém a instância do DUT e o processo de estímulo.
-architecture test of control_unit_tb is
+architecture test of decoder_tb is
 
 -------------------------------------------------------------------------------------------------------------------
     -- 1. Declaração do Componente sob Teste (DUT - Device Under Test)
 -------------------------------------------------------------------------------------------------------------------
 
-    component control_unit is
+    component decoder is
         port (
             Opcode_i      : in  std_logic_vector(6 downto 0);
             RegWrite_o    : out std_logic;
@@ -37,22 +37,23 @@ architecture test of control_unit_tb is
             Jump_o        : out std_logic;
             ALUOp_o       : out std_logic_vector(1 downto 0)
         );
-    end component control_unit;
+    end component decoder;
 
 -------------------------------------------------------------------------------------------------------------------
     -- 2. Constantes e Sinais para o Teste
 -------------------------------------------------------------------------------------------------------------------
 
     -- Sinais para conectar ao DUT
-    signal s_opcode_i   : std_logic_vector(6 downto 0);
-    signal s_reg_write_o: std_logic;
-    signal s_alusrc_o   : std_logic;
-    signal s_memtoreg_o : std_logic;
-    signal s_memread_o  : std_logic;
-    signal s_memwrite_o : std_logic;
-    signal s_branch_o   : std_logic;
-    signal s_jump_o     : std_logic;
-    signal s_aluop_o    : std_logic_vector(1 downto 0);
+    signal s_opcode_i            : std_logic_vector(6 downto 0);
+    signal s_reg_write_o         : std_logic;
+    signal s_alusrc_o            : std_logic;
+    signal s_memtoreg_o          : std_logic;
+    signal s_memread_o           : std_logic;
+    signal s_memwrite_o          : std_logic;
+    signal s_branch_o            : std_logic;
+    signal s_jump_o              : std_logic;
+    signal s_aluop_o             : std_logic_vector(1 downto 0);
+    signal s_write_data_source_o : std_logic;
 
     -- Constantes para os opcodes a serem testados
     constant c_OPCODE_R_TYPE : std_logic_vector(6 downto 0) := "0110011";
@@ -72,7 +73,7 @@ begin
     -- 3. Instanciação do Componente sob Teste (DUT)
 -------------------------------------------------------------------------------------------------------------------
 
-    DUT: entity work.control_unit
+    DUT: entity work.decoder
         port map (
             Opcode_i      => s_opcode_i,
             RegWrite_o    => s_reg_write_o,
@@ -82,7 +83,8 @@ begin
             MemWrite_o    => s_memwrite_o,
             Branch_o      => s_branch_o,
             Jump_o        => s_jump_o,
-            ALUOp_o       => s_aluop_o
+            ALUOp_o       => s_aluop_o,
+            WriteDataSource_o => s_write_data_source_o
         );
 
 -------------------------------------------------------------------------------------------------------------------
@@ -93,7 +95,7 @@ begin
     begin
 
         -- Mensagem inicial indicando o início dos testes
-        report "INICIANDO VERIFICACAO DA UNIDADE DE CONTROLE PRINCIPAL..." severity note;
+        report "INICIANDO VERIFICACAO DA UNIDADE DECODIFICADORA PRINCIPAL..." severity note;
 
         -- Teste 1: R-Type
         report "TESTE: Opcode R-Type (add, sub, etc.)" severity note;
@@ -127,14 +129,14 @@ begin
         report "TESTE: Opcode I-Type (addi, etc.)" severity note;
         s_opcode_i <= c_OPCODE_IMM;
         wait for 1 ns;
-        ASSERT s_reg_write_o = '1' and s_alusrc_o = '1' and s_memtoreg_o = '0' and s_memread_o = '0' and s_memwrite_o = '0' and s_branch_o = '0' and s_jump_o = '0' and s_aluop_o = "00"
+        ASSERT s_reg_write_o = '1' and s_alusrc_o = '1' and s_memtoreg_o = '0' and s_memread_o = '0' and s_memwrite_o = '0' and s_branch_o = '0' and s_jump_o = '0' and s_aluop_o = "11"
             REPORT "ERRO: Sinais de controle incorretos para I-Type!" SEVERITY error;
             
         -- Teste 6: JAL (Jump and Link)
         report "TESTE: Opcode JAL" severity note;
         s_opcode_i <= c_OPCODE_JAL;
         wait for 1 ns;
-        ASSERT s_reg_write_o = '1' and s_jump_o = '1' and s_branch_o = '0'
+        ASSERT s_reg_write_o = '1' and s_jump_o = '1' and s_branch_o = '0' and s_write_data_source_o = '1'
             REPORT "ERRO: Sinais de controle incorretos para JAL!" SEVERITY error;
 
         -- Teste 7: JALR (Jump and Link Register) 
@@ -173,7 +175,7 @@ begin
             REPORT "ERRO: A clausula 'others' nao gerou um estado seguro!" SEVERITY error;
 
         -- Mensagem final indicando que todos os testes finalizaram
-        report "VERIFICACAO DA UNIDADE DE CONTROLE CONCLUIDA" severity note;
+        report "VERIFICACAO DA UNIDADE DECODIFICADORA CONCLUIDA" severity note;
         
         -- Para a simulação para não rodar para sempre.
         std.env.stop;
