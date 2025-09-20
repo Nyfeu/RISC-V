@@ -66,7 +66,9 @@ begin
     DECODER: process(all)
     begin
 
-        -- Nível 1 de decodificação: baseado em ALUOp_i
+        ----------------------------------------------------------------------------------------------------------
+        -- NÍVEL 1: Decodificação com base em ALUOp_i
+        ----------------------------------------------------------------------------------------------------------
         case ALUOp_i is
         
             -- Operação de soma 
@@ -78,12 +80,16 @@ begin
             -- Avaliar funct3 e funct7
             when "10" => 
 
-                -- Nível 2 de decodificação: baseado em funct3
+                --------------------------------------------------------------------------------------------------
+                -- NÍVEL 2: Decodificação com base em funct3
+                --------------------------------------------------------------------------------------------------
                 case Funct3_i is 
 
                     when "000" =>
 
-                        -- Nível 3 de decodificação: diferenciar ADD e SUB - funct7(5)
+                        ------------------------------------------------------------------------------------------
+                        -- NÍVEL 3: Decodificação com base em funct7(5) - diferenciar ADD e SUB 
+                        ------------------------------------------------------------------------------------------
                         if Funct7_i(5) = '1' then
                             ALUControl_o <= C_ALU_SUB; -- SUB
                         else
@@ -97,7 +103,9 @@ begin
 
                     when "101" =>
 
-                        -- Nível 3 de decodificação: diferenciar SRL e SRA - funct7(5)
+                        ------------------------------------------------------------------------------------------
+                        -- NÍVEL 3: Decodificação com base em funct7(5) - diferenciar SRL e SRA
+                        ------------------------------------------------------------------------------------------
                         if Funct7_i(5) = '1' then
                             ALUControl_o <= c_ALU_SRA; -- SRA
                         else
@@ -115,7 +123,9 @@ begin
             -- I-Type Aritmético/Lógico
             when "11" => 
 
-                -- Nível 2 de decodificação: baseado em funct3
+                --------------------------------------------------------------------------------------------------
+                -- NÍVEL 2: Decodificação com base em funct3
+                --------------------------------------------------------------------------------------------------
                 case Funct3_i is
 
                     when "000" => ALUControl_o <= c_ALU_ADD;  -- ADDI
@@ -127,7 +137,9 @@ begin
                     when "001" => ALUControl_o <= c_ALU_SLL;  -- SLLI
                     when "101" => 
 
-                        -- Nível 3 de decodificação: funct7(5)
+                        ------------------------------------------------------------------------------------------
+                        -- NÍVEL 3: Decodificação com base em funct7(5) - diferenciar SRLI e SRAI
+                        ------------------------------------------------------------------------------------------
                         if Funct7_i(5) = '1' then
                             ALUControl_o <= c_ALU_SRA; -- SRAI
                         else
@@ -147,4 +159,4 @@ begin
 
 end rtl ; -- rtl
 
--------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------
