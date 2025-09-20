@@ -17,6 +17,13 @@
 -- Data      : [14/09/2025]
 --
 -------------------------------------------------------------------------------------------------------------------
+--
+-- IMPORTANTE: 
+--  - O "opcode" indica apeenas a CATEGORIA (formato) da instrução.
+--  - A operação exata (ex: ADD vs SUB, AND vs OR) é definida em outro nível,
+--    usando os campos funct3 e funct7.
+--
+-------------------------------------------------------------------------------------------------------------------
 
 library ieee;                     -- Biblioteca padrão IEEE
 use ieee.std_logic_1164.all;      -- Tipos lógicos (std_logic, std_logic_vector)
@@ -54,12 +61,40 @@ end decoder ;
 
 architecture rtl of decoder is
 
+    ---------------------------------------------------------------------------------------------------------------
+    --
+    -- MAPA DE FORMATOS DO RV32I
+    --
+    -- - Cada instrução pertence a um "formato" definido pelo campo OPCODE (7 bits).
+    -- 
+    -- - Formato R (registrador-registrador): operações aritméticas/lógicas
+    --     opcode = 0110011
+    --
+    -- - Formato I (imediato): operações com imediato, loads, JALR
+    --     opcode = 0010011 (I-type aritmético: ADDI, ANDI, ORI, ...)
+    --     opcode = 0000011 (LOAD: LB, LH, LW, LBU, LHU)
+    --     opcode = 1100111 (JALR)
+    --
+    -- - Formato S (store): operações de armazenamento na memória
+    --     opcode = 0100011 (SB, SH, SW)
+    --
+    -- - Formato B (branch): desvios condicionais
+    --     opcode = 1100011 (BEQ, BNE, BLT, ...)
+    --
+    -- - Formato U (upper immediate): imediato de 20 bits
+    --     opcode = 0110111 (LUI)
+    --     opcode = 0010111 (AUIPC)
+    --
+    -- - Formato J (jump): salto incondicional
+    --     opcode = 1101111 (JAL)
+    ---------------------------------------------------------------------------------------------------------------
+
     -- Constantes para os opcodes das instruções RISC-V
-    constant c_OPCODE_R_TYPE : std_logic_vector(6 downto 0) := "0110011";
+    constant c_OPCODE_R_TYPE : std_logic_vector(6 downto 0) := "0110011"; -- Operações entre registradores
+    constant c_OPCODE_I_TYPE : std_logic_vector(6 downto 0) := "0010011"; -- Operações imediato
     constant c_OPCODE_LOAD   : std_logic_vector(6 downto 0) := "0000011";
     constant c_OPCODE_STORE  : std_logic_vector(6 downto 0) := "0100011";
     constant c_OPCODE_BRANCH : std_logic_vector(6 downto 0) := "1100011";
-    constant c_OPCODE_IMM    : std_logic_vector(6 downto 0) := "0010011";
     constant c_OPCODE_JAL    : std_logic_vector(6 downto 0) := "1101111";
     constant c_OPCODE_JALR   : std_logic_vector(6 downto 0) := "1100111";
     constant c_OPCODE_LUI    : std_logic_vector(6 downto 0) := "0110111";
@@ -68,127 +103,112 @@ architecture rtl of decoder is
 begin
 
     -- Processo de decodificação do opcode para gerar os sinais de controle
-    DECODING: process(Opcode_i)
+
+    --------------------------------------------------------------------------------------------------------------
+    -- Processo de decodificação do OPCODE
+    -- 
+    -- Observação: ALUOp_o é um código "resumido":
+    --
+    --   "00" → operações de soma (load/store, endereçamento, jalr, auipc)
+    --   "01" → operações de comparação (branch)
+    --   "10" → operações R-type (ADD, SUB, AND, OR, etc.)
+    --   "11" → operações I-type aritméticas (ADDI, ANDI, ORI, etc.)
+    --
+    -- A distinção final é feita no módulo ALUControl, usando funct3/funct7.
+    --
+    --------------------------------------------------------------------------------------------------------------
+
+    DECODING : process(Opcode_i)
     begin
 
-        -- Defina um valor padrão 
-        WriteDataSource_o <= '0';
+        -- Valores padrão (NOP)
+
+        RegWrite_o        <= '0'  ;
+        ALUSrc_o          <= '0'  ;
+        MemtoReg_o        <= '0'  ;
+        MemRead_o         <= '0'  ;
+        MemWrite_o        <= '0'  ;
+        Branch_o          <= '0'  ;
+        Jump_o            <= '0'  ;
+        ALUOp_o           <= "00" ;
+        WriteDataSource_o <= '0'  ;
 
         case Opcode_i is
-        
-            when c_OPCODE_R_TYPE =>
 
-                -- Valores para instruções R-Type (add, sub, and, or, etc.)
+            -- ===================================================================================================
+            -- Formato R (ex: ADD, SUB...)
+            -- ===================================================================================================
+            when c_OPCODE_R_TYPE =>
                 RegWrite_o <= '1';
                 ALUSrc_o   <= '0';
-                MemtoReg_o <= '0';
-                MemRead_o  <= '0';
-                MemWrite_o <= '0';
-                Branch_o   <= '0';
-                Jump_o     <= '0';
-                ALUOp_o    <= "10";  -- Operação da ALU definida pelo funct3/funct7
+                ALUOp_o    <= "10";
 
+            -- ===================================================================================================
+            -- Formato I (imediato ALU)
+            -- ===================================================================================================
+            when c_OPCODE_I_TYPE =>
+                RegWrite_o <= '1';
+                ALUSrc_o   <= '1';
+                ALUOp_o    <= "11";
+
+            -- ===================================================================================================
+            -- LOAD (ex: LW)
+            -- ===================================================================================================
             when c_OPCODE_LOAD =>
-
-                -- Valores para instruções de carga (lw, lb, lh)
                 RegWrite_o <= '1';
                 ALUSrc_o   <= '1';
                 MemtoReg_o <= '1';
                 MemRead_o  <= '1';
-                MemWrite_o <= '0';
-                Branch_o   <= '0';
-                Jump_o     <= '0';
-                ALUOp_o    <= "00";  -- Operação de soma para cálculo de endereço
+                ALUOp_o    <= "00"; -- soma para endereçamento
 
+            -- ===================================================================================================
+            -- STORE (ex: SW)
+            -- ===================================================================================================
             when c_OPCODE_STORE =>
-
-                -- Valores para instruções de armazenamento (sw, sb, sh)
-                RegWrite_o <= '0';
                 ALUSrc_o   <= '1';
-                MemtoReg_o <= '0';   -- Don't care (não tem efeito sem MemWrite_o)    
-                MemRead_o  <= '0';
                 MemWrite_o <= '1';
-                Branch_o   <= '0';
-                Jump_o     <= '0';
-                ALUOp_o    <= "00";  -- Operação de soma para cálculo de endereço
+                ALUOp_o    <= "00"; -- soma para endereçamento
 
+            -- ===================================================================================================
+            -- BRANCH (ex: BEQ)
+            -- ===================================================================================================
             when c_OPCODE_BRANCH =>
-
-                -- Valores para instruções de desvio (BEQ, BNE, etc.)
-                RegWrite_o <= '0';
-                AluSrc_o   <= '0';
-                MemtoReg_o <= '0';   -- Don't care (não tem efeito sem RegWrite_o)
-                MemRead_o  <= '0';
-                MemWrite_o <= '0';
                 Branch_o   <= '1';
-                Jump_o     <= '0';
-                ALUOp_o    <= "01";  -- Operação de subtração para comparação
+                ALUOp_o    <= "01"; -- subtração para comparação
 
-            when c_OPCODE_IMM =>
-
-                -- Valores para instruções I-Type (ADDI, ANDI, ORI, etc.)
-                RegWrite_o <= '1';
-                AluSrc_o   <= '1';
-                MemtoReg_o <= '0';
-                MemRead_o  <= '0';
-                MemWrite_o <= '0';
-                Branch_o   <= '0';
-                Jump_o     <= '0';
-                ALUOp_o    <= "11";
-
+            -- ===================================================================================================
+            -- JUMP (JAL)
+            -- ===================================================================================================
             when c_OPCODE_JAL =>
+                RegWrite_o        <= '1';
+                Jump_o            <= '1';
+                WriteDataSource_o <= '1'; -- grava PC+4 no rd
 
-                -- Valores para instruções JAL (Jump and Link)
-                RegWrite_o <= '1';
-                AluSrc_o   <= '0';   -- Don't care (não é usado pela ALU)
-                MemtoReg_o <= '0';   
-                MemRead_o  <= '0';
-                MemWrite_o <= '0';
-                Branch_o   <= '0';
-                Jump_o     <= '1';
-                ALUOp_o    <= "00";  -- Não é usado pela ALU
-                WriteDataSource_o <= '1';
-
+            -- ===================================================================================================
+            -- JUMP (JALR)
+            -- ===================================================================================================
             when c_OPCODE_JALR =>
-
-                -- Valores para instruções JALR (Jump and Link Register)
-                RegWrite_o <= '1';
-                AluSrc_o   <= '1';   -- Usa imediato para calcular o endereço
-                MemtoReg_o <= '0';   
-                MemRead_o  <= '0';
-                MemWrite_o <= '0';
-                Branch_o   <= '0';
-                Jump_o     <= '1';
-                ALUOp_o    <= "00";  -- Operação de soma para cálculo de endereço
+                RegWrite_o        <= '1';
+                ALUSrc_o          <= '1';
+                Jump_o            <= '1';
                 WriteDataSource_o <= '1';
 
+            -- ===================================================================================================
+            -- U-Type (LUI, AUIPC)
+            -- ===================================================================================================
             when c_OPCODE_LUI | c_OPCODE_AUIPC =>
-
-                -- Valores para instruções U-Type (LUI, AUIPC)
                 RegWrite_o <= '1';
-                AluSrc_o   <= '1';   
-                MemtoReg_o <= '0';
-                MemRead_o  <= '0';
-                MemWrite_o <= '0';
-                Branch_o   <= '0';
-                Jump_o     <= '0';
-                ALUOp_o    <= "00";  -- Não é usado pela ALU
-
-            when others => 
-
-                -- Valores padrão para opcodes desconhecidos
-                RegWrite_o <= '0';
-                ALUSrc_o   <= '0';
-                MemtoReg_o <= '0';
-                MemRead_o  <= '0';
-                MemWrite_o <= '0';
-                Branch_o   <= '0';
-                Jump_o     <= '0';
+                ALUSrc_o   <= '1';
                 ALUOp_o    <= "00";
-        
-        end case ;
 
-    end process DECODING;
+            -- ===================================================================================================
+            -- OPCODE desconhecido → NOP
+            -- ===================================================================================================
+            when others => null; -- mantém os valores padrão
+
+        end case;
+        
+    end process;
 
 end architecture rtl;
 
