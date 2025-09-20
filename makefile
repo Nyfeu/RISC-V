@@ -23,8 +23,17 @@ SW_DIR     = sw
 # ========================================================================================
 # Fontes VHDL
 # ========================================================================================
-RTL_DEPS := $(filter-out $(RTL_DIR)/processor_top.vhd, $(wildcard $(RTL_DIR)/*.vhd))
-RTL_SRCS := $(RTL_DEPS) $(RTL_DIR)/processor_top.vhd
+RTL_SRCS := \
+  $(RTL_DIR)/alu.vhd \
+  $(RTL_DIR)/alu_control.vhd \
+  $(RTL_DIR)/imm_gen.vhd \
+  $(RTL_DIR)/reg_file.vhd \
+  $(RTL_DIR)/load_unit.vhd \
+  $(RTL_DIR)/control_unit.vhd \
+  $(RTL_DIR)/control.vhd \
+  $(RTL_DIR)/datapath.vhd \
+  $(RTL_DIR)/processor_top.vhd
+
 
 # ========================================================================================
 #    Ajuda

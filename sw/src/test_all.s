@@ -287,6 +287,8 @@ halt_sim:
     li t1, HALT_MMIO
     sw t0, 0(t1)
     
-# Loop infinito final para garantir
-halt_loop:
-    j halt_loop
+# Garante o final da execução
+halt_end:
+    li a0, 1
+    li t0, HALT_MMIO
+    sw a0, 0(t0)
