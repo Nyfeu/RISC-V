@@ -130,7 +130,7 @@ begin
 
             -- Caso padrão para instruções que não usam imediato (como Tipo-R)
             when others =>
-                Immediate_o <= (others => 'X');
+                Immediate_o <= (others => '0');
 
         end case;
         

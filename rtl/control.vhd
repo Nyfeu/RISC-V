@@ -39,7 +39,9 @@ entity control is
 
         -- Entradas
 
-            Instruction_i : in  std_logic_vector(31 downto 0);    -- A instrução para decodificação
+            Instruction_i  : in  std_logic_vector(31 downto 0);   -- A instrução para decodificação
+            ALU_Zero_i     : in  std_logic;                       -- Flag 'Zero' vinda do Datapath
+            ALU_Negative_i : in  std_logic;                       -- Flag 'Negative' vinda do Datapath
         
         -- Saídas (Sinais de Controle para o Datapath)
 
@@ -48,9 +50,8 @@ entity control is
             MemtoReg_o        : out std_logic;                    -- Seleciona a fonte de escrita no registrador (ALU vs Mem)
             MemRead_o         : out std_logic;                    -- Habilita leitura na DMEM
             MemWrite_o        : out std_logic;                    -- Habilita escrita na DMEM
-            Branch_o          : out std_logic;                    -- Indica que a instrução é um branch
-            Jump_o            : out std_logic;                    -- Indica que a instrução é um jump
-            WriteDataSource_o : out std_logic;                    -- Habilita PC+4 como fonte de escrita (para JAL/JALR)
+            WriteDataSource_o : out std_logic;                    -- Essencial para JAL/JALR
+            PCSrc_o           : out std_logic_vector(1 downto 0); -- Seleciona o PC (program counter)
             ALUControl_o      : out std_logic_vector(3 downto 0)  -- Código de 4 bits para a operação da ALU
 
     );
@@ -64,6 +65,10 @@ architecture rtl of control is
     signal s_funct7 : std_logic_vector(6 downto 0) := (others => '0');
 
     signal s_aluop  : std_logic_vector(1 downto 0) := (others => '0');
+
+    signal s_branch : std_logic := '0';
+    signal s_jump   : std_logic := '0';
+    signal s_branch_condition_met : std_logic := '0'; 
 
 begin
 
@@ -94,10 +99,10 @@ begin
                     MemtoReg_o         => MemtoReg_o,
                     MemRead_o          => MemRead_o,
                     MemWrite_o         => MemWrite_o,
-                    Branch_o           => Branch_o,
-                    Jump_o             => Jump_o,
+                    Branch_o           => s_branch,
+                    Jump_o             => s_jump,
                     ALUOp_o            => s_aluop,
-                    WriteDataSource_o  => WriteDataSource_o
+                    WriteDataSource_o => WriteDataSource_o
                 );
 
     -- Unidade de Controle da ALU
@@ -112,6 +117,36 @@ begin
                     Funct7_i           => s_funct7,
                     ALUControl_o       => ALUControl_o
                 );
+
+    -- Lógica para o sinal PCSrc_o
+    
+        -- Usa funct3 para decidir qual condição verificar
+            BRANCH_LOGIC: process(s_branch, s_funct3, ALU_Zero_i, ALU_Negative_i)
+            begin
+                if s_branch = '1' then
+                    case s_funct3 is
+                        when "000" => -- BEQ
+                            if ALU_Zero_i = '1' then s_branch_condition_met <= '1'; else s_branch_condition_met <= '0'; end if;
+                        when "001" => -- BNE
+                            if ALU_Zero_i = '0' then s_branch_condition_met <= '1'; else s_branch_condition_met <= '0'; end if;
+                        when "100" | "110" => -- BLT, BLTU
+                            if ALU_Negative_i = '1' then s_branch_condition_met <= '1'; else s_branch_condition_met <= '0'; end if;
+                        when "101" | "111" => -- BGE, BGEU
+                            if ALU_Negative_i = '0' then s_branch_condition_met <= '1'; else s_branch_condition_met <= '0'; end if;
+                        when others =>
+                            s_branch_condition_met <= '0';
+                    end case;
+                else
+                    s_branch_condition_met <= '0';
+                end if;
+            end process BRANCH_LOGIC;
+
+        -- O desvio é tomado se a instrução for um Branch E a condição Zero for atendida.
+
+            PCSrc_o <= "10" when (s_jump = '1' and s_opcode = "1100111") else -- JALR
+               "01" when (s_jump = '1' and s_opcode = "1101111") else -- JAL
+               "01" when (s_branch = '1' and s_branch_condition_met = '1') else -- Branch Tomado
+               "00"; -- Padrão (PC + 4)
 
 end architecture; -- rtl
 

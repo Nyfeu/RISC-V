@@ -63,12 +63,16 @@ entity datapath is
         RegWrite_i         : in std_logic;                            -- Habilita escrita no Banco de Registradores
         ALUSrc_i           : in std_logic;                            -- Seleciona a 2ª fonte da ALU (Reg vs Imm)
         MemtoReg_i         : in std_logic;                            -- Seleciona a fonte de escrita no registrador (ALU vs Mem)
-        MemRead_i          : in std_logic;                            -- Habilita leitura da memória (DMEM)
         MemWrite_i         : in std_logic;                            -- Habilita escrita na memória (DMEM)
-        Branch_i           : in std_logic;                            -- Indica que a instrução é um branch
-        Jump_i             : in std_logic;                            -- Indica que a instrução é um jump
+        PCSrc_i            : in std_logic_vector(1 downto 0);         -- Comando para o MUX do PC
         ALUControl_i       : in std_logic_vector(3 downto 0);         -- Código de 4 bits para a operação da ALU
-        WriteDataSource_i  : in std_logic                             -- Habilita PC+4 como fonte de escrita (para JAL/JALR)
+        WriteDataSource_i  : in std_logic;                            -- Habilita PC+4 como fonte de escrita (para JAL/JALR)
+
+        -- Saídas
+
+        Instruction_o  : out std_logic_vector(31 downto 0);           -- Envia a instrução para o controle
+        ALU_Zero_o     : out std_logic;                               -- Envia a flag Zero para o controle
+        ALU_Negative_o : out std_logic                                -- Envia a flag Negative para o controle
     
     );
 
@@ -95,9 +99,15 @@ architecture rtl of datapath is
     signal s_load_unit_out        : std_logic_vector(31 downto 0) := (others => '0');     -- Sinal de saida da load_unit
     signal s_alu_zero             : std_logic := '0';                                     -- Flag "Zero" da ALU
     signal s_branch_or_jal_addr   : std_logic_vector(31 downto 0) := (others => '0');     -- Endereço para Branch e JAL
-    signal s_branch_condition_met : std_logic := '0';      
+    signal s_alu_negative         : std_logic := '0';                                     -- Flag "Negative" da ALU
 
 begin
+
+    -- Saídas para o control path
+
+        Instruction_o <= s_instruction;
+        ALU_Zero_o    <= s_alu_zero;
+        ALU_Negative_o <= s_alu_negative;
 
     -- ============== Estágio de Busca (FETCH) ===============================================
 
@@ -160,7 +170,8 @@ begin
                     B_i => s_alu_in_b,
                     ALUControl_i => ALUControl_i,
                     Result_o => s_alu_result,
-                    Zero_o => s_alu_zero
+                    Zero_o => s_alu_zero,
+                    Negative_o => s_alu_negative
                 );
 
     -- ============== Estágio de Acesso à Memória (MEMORY) ==================================
@@ -206,25 +217,15 @@ begin
         -- Candidato 2: Endereço de destino para Branch e JAL (PC + imediato)
 
             s_branch_or_jal_addr <= std_logic_vector(signed(s_pc_current) + signed(s_immediate));
-    
-        -- Lógica de condição do Branch
-
-            s_branch_condition_met <= '1' when (Branch_i = '1' and (
-                (s_instruction(14 downto 12) = "000" and s_alu_zero = '1') or  -- BEQ
-                (s_instruction(14 downto 12) = "001" and s_alu_zero = '0') or  -- BNE
-                (s_instruction(14 downto 12) = "100" and signed(s_read_data_1) < signed(s_read_data_2)) or  -- BLT (signed)
-                (s_instruction(14 downto 12) = "101" and signed(s_read_data_1) >= signed(s_read_data_2)) or -- BGE (signed)
-                (s_instruction(14 downto 12) = "110" and unsigned(s_read_data_1) < unsigned(s_read_data_2)) or -- BLTU (unsigned)
-                (s_instruction(14 downto 12) = "111" and unsigned(s_read_data_1) >= unsigned(s_read_data_2))   -- BGEU (unsigned)
-            )) else '0';
 
         -- Mux final que alimenta o registrador do PC no próximo ciclo de clock
         -- - A prioridade é: Jumps têm precedência sobre Branches, que têm precedência sobre PC+4.
 
-            s_pc_next <= s_alu_result when (Jump_i = '1' and s_instruction(6 downto 0) = "1100111") else
-                s_branch_or_jal_addr when (Jump_i = '1' and s_instruction(6 downto 0) = "1101111") else
-                s_branch_or_jal_addr when s_branch_condition_met = '1' else
-                s_pc_plus_4;
+            with PCSrc_i select
+                s_pc_next <= s_pc_plus_4           when "00", -- PC <- PC + 4
+                            s_branch_or_jal_addr   when "01", -- PC <- Endereço de Branch ou JAL
+                            s_alu_result           when "10", -- PC <- Endereço do JALR (rs1 + imm)
+                            (others => 'X')        when others;
 
 end architecture; -- rtl
 

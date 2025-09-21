@@ -95,7 +95,6 @@ begin
 
         -- Se o processador está em reset, a memória retorna '0'
         if s_reset = '1' then
-
             s_imem_data      <= (others => '0');
             s_dmem_data_read <= (others => '0');
 

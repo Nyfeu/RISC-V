@@ -84,8 +84,15 @@ architecture rtl of processor_top is
         -- Estes sinais conectam controlpath ao datapath, 
         -- indicando o que deve ser feito a cada ciclo de clock.
 
-            signal s_reg_write, s_alusrc, s_memtoreg, s_memread, s_memwrite, s_branch, s_jump, s_wdatasrc : std_logic := '0';
+            signal s_alu_zero, s_alu_negative, s_reg_write, s_alusrc, s_memtoreg, s_memread, s_memwrite, s_branch, s_jump, 
+                s_wdatasrc : std_logic := '0';
+
+            signal s_pc_src     : std_logic_vector(1 downto 0) := (others => '0');
             signal s_alucontrol : std_logic_vector(3 downto 0) := (others => '0');
+
+        -- Sinal para transmissão da instrução entre os caminhos...
+
+            signal s_instruction_to_ctrl : std_logic_vector(31 downto 0) := (others => '0'); 
 
 begin
 
@@ -96,14 +103,15 @@ begin
 
             U_CONTROLPATH: entity work.control
                 port map (
-                    Instruction_i => IMem_data_i,                 -- Instrução buscada na memória
+                    Instruction_i => s_instruction_to_ctrl,                 -- Instrução buscada na memória
+                    ALU_Zero_i    => s_alu_zero,
+                    ALU_Negative_i => s_alu_negative,
                     RegWrite_o    => s_reg_write,
                     ALUSrc_o      => s_alusrc,
                     MemtoReg_o    => s_memtoreg,
                     MemRead_o     => s_memread,
                     MemWrite_o    => s_memwrite,
-                    Branch_o      => s_branch,
-                    Jump_o        => s_jump,
+                    PCSrc_o       => s_pc_src,
                     WriteDataSource_o => s_wdatasrc,
                     ALUControl_o  => s_alucontrol
                 );
@@ -126,12 +134,13 @@ begin
                     RegWrite_i  => s_reg_write,
                     ALUSrc_i    => s_alusrc,
                     MemtoReg_i  => s_memtoreg,
-                    MemRead_i   => s_memread,
                     MemWrite_i  => s_memwrite,
-                    Branch_i    => s_branch,
-                    Jump_i      => s_jump,
+                    PCSrc_i     => s_pc_src, 
                     ALUControl_i => s_alucontrol,
-                    WriteDataSource_i => s_wdatasrc
+                    WriteDataSource_i  => s_wdatasrc,
+                    Instruction_o => s_instruction_to_ctrl,
+                    ALU_Zero_o => s_alu_zero,
+                    ALU_Negative_o => s_alu_negative
                 );
 
 end architecture rtl; -- rtl
