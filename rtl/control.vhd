@@ -121,25 +121,14 @@ begin
     -- Lógica para o sinal PCSrc_o
     
         -- Usa funct3 para decidir qual condição verificar
-            BRANCH_LOGIC: process(s_branch, s_funct3, ALU_Zero_i, ALU_Negative_i)
-            begin
-                if s_branch = '1' then
-                    case s_funct3 is
-                        when "000" => -- BEQ
-                            if ALU_Zero_i = '1' then s_branch_condition_met <= '1'; else s_branch_condition_met <= '0'; end if;
-                        when "001" => -- BNE
-                            if ALU_Zero_i = '0' then s_branch_condition_met <= '1'; else s_branch_condition_met <= '0'; end if;
-                        when "100" | "110" => -- BLT, BLTU
-                            if ALU_Negative_i = '1' then s_branch_condition_met <= '1'; else s_branch_condition_met <= '0'; end if;
-                        when "101" | "111" => -- BGE, BGEU
-                            if ALU_Negative_i = '0' then s_branch_condition_met <= '1'; else s_branch_condition_met <= '0'; end if;
-                        when others =>
-                            s_branch_condition_met <= '0';
-                    end case;
-                else
-                    s_branch_condition_met <= '0';
-                end if;
-            end process BRANCH_LOGIC;
+            U_BRANCH_UNIT: entity work.branch_unit
+                port map (
+                    Branch_i       => s_branch,              -- Sinal vindo do decoder principal
+                    Funct3_i       => s_funct3,              -- Campo funct3 da instrução
+                    ALU_Zero_i     => ALU_Zero_i,            -- Flag Zero vinda do datapath
+                    ALU_Negative_i => ALU_Negative_i,        -- Flag Negative vinda do datapath
+                    BranchTaken_o  => s_branch_condition_met -- Saída que indica se o desvio deve ser tomado
+                );
 
         -- O desvio é tomado se a instrução for um Branch E a condição Zero for atendida.
 
