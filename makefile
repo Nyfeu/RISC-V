@@ -29,6 +29,7 @@ RTL_SRCS := \
   $(RTL_DIR)/imm_gen.vhd \
   $(RTL_DIR)/reg_file.vhd \
   $(RTL_DIR)/load_unit.vhd \
+  $(RTL_DIR)/store_unit.vhd \
   $(RTL_DIR)/decoder.vhd \
   $(RTL_DIR)/branch_unit.vhd \
   $(RTL_DIR)/control.vhd \

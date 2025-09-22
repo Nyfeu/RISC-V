@@ -123,11 +123,12 @@ begin
 
     end process MEM_WRITE_PROC;
 
-    -- Processo que escuta o endereço de CHAR_OUTPUT (MMIO - Memory Mapped IO)
-    CONSOLE_OUTPUT: process(s_clk)
+    -- Processo que escuta os endereços e gera um TERMINAL (MMIO - Memory Mapped IO)
+    TERMINAL_OUTPUT: process(s_clk)
 
-        -- Endereço do dispositivo de saída virtual
+        -- Endereços dos dispositivos de saída virtuais
         constant c_CONSOLE_ADDR : std_logic_vector(31 downto 0) := x"10000000";
+        constant c_INTEGER_ADDR : std_logic_vector(31 downto 0) := x"10000004";
         variable L : line;
 
     begin
@@ -145,24 +146,10 @@ begin
                 -- Escreve um caractere no console
                 write(L, string'("CONSOLE: "));
                 write(L, character'val(to_integer(unsigned(s_dmem_data_write(7 downto 0)))));
+                
                 writeline(output, L);
 
             end if;
-
-        end if;
-
-    end process CONSOLE_OUTPUT;
-
-    -- Processo que escuta o endereço de INT_OUTPUT (MMIO - Memory Mapped IO)
-    INTEGER_OUTPUT: process(s_clk)
-
-        -- Endereço para dispositivo de saída de inteiros
-        constant c_INTEGER_ADDR : std_logic_vector(31 downto 0) := x"10000004";
-        variable L : line;
-
-    begin
-
-        if rising_edge(s_clk) then
 
             -- Verifica se o processador está escrevendo no endereço do console de inteiros
             if s_dmem_write_enable = '1' and s_dmem_addr = c_INTEGER_ADDR then
@@ -177,7 +164,7 @@ begin
 
         end if;
 
-    end process INTEGER_OUTPUT;
+    end process TERMINAL_OUTPUT;
 
     -- Estímulo (define a execução do testbench)
     stimulus_proc: process is

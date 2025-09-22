@@ -18,7 +18,7 @@ _start:
     li sp, STACK_TOP
     li t5, INT_OUTPUT
 
-    # --- INÍCIO DOS TESTES (lógica idêntica à anterior) ---
+    # --- INÍCIO DOS TESTES ---
     # Teste 1: ADDI
     li t0, 10
     addi t1, t0, 5
@@ -36,9 +36,6 @@ _start:
     li a0, 2
     sw a0, 0(t5)
 
-    # ... (todos os outros 29 testes continuam aqui)
-    # --- Coloque o restante dos testes de 3 a 31 aqui ---
-    # --- (O código é o mesmo da versão anterior, apenas o final muda) ---
     # --- TESTE 3: SUB (Subtract) ---
     li t0, 50
     li t1, 10
@@ -212,40 +209,60 @@ bgeu_ok:
     li a0, 24
     sw a0, 0(t5)
 
-    # --- TESTES DE MEMÓRIA (Load/Store) ---
-    li t0, 12345
+    # --- TESTES DE MEMÓRIA (Store/Load com verificação de alinhamento) ---
+    # Endereço base para os testes de memória
     li t1, 0x00000200
 
-    # --- TESTE 25: SW e LW ---
+    # --- TESTE 25: SW e LW (Palavra Completa) ---
+    li t0, 0x1A2B3C4D
     sw t0, 0(t1)
     lw t2, 0(t1)
     bne t0, t2, fail
     li a0, 25
     sw a0, 0(t5)
 
-    # --- TESTE 26: SH e LH ---
-    li t0, -300
-    sh t0, 0(t1)
-    lh t2, 0(t1)
+    # --- TESTE 26: SH e LH (Meia-Palavra com Sinal) ---
+    li t0, -3          # Carrega um valor negativo pequeno (0xFFFFFFFD)
+    # Metade inferior (endereço 0x200)
+    sh t0, 0(t1)       # Armazena a meia-palavra 0xFFFD
+    lh t2, 0(t1)       # Carrega de volta com extensão de sinal
+    bne t0, t2, fail   # t2 deve ser -3 (0xFFFFFFFD)
+    # Metade superior (endereço 0x202)
+    sh t0, 2(t1)
+    lh t2, 2(t1)
     bne t0, t2, fail
     li a0, 26
     sw a0, 0(t5)
 
-    # --- TESTE 27: SB e LBU ---
-    li t0, 250
+    # --- TESTE 27: SB e LBU (Byte sem Sinal em Posições Diferentes) ---
+    li t0, 250         # Valor 0xFA
+    # Posição 0 (0x200)
     sb t0, 0(t1)
     lbu t2, 0(t1)
+    bne t0, t2, fail
+    # Posição 1 (0x201)
+    sb t0, 1(t1)
+    lbu t2, 1(t1)
+    bne t0, t2, fail
+    # Posição 2 (0x202)
+    sb t0, 2(t1)
+    lbu t2, 2(t1)
+    bne t0, t2, fail
+    # Posição 3 (0x203)
+    sb t0, 3(t1)
+    lbu t2, 3(t1)
     bne t0, t2, fail
     li a0, 27
     sw a0, 0(t5)
     
-    # --- TESTE 28: SB e LB ---
-    li t0, -10
-    sb t0, 0(t1)
-    lb t2, 0(t1)
+    # --- TESTE 28: SB e LB (Byte com Sinal) ---
+    li t0, -10         # Valor -10 (0xFFFFFFF6)
+    sb t0, 0(t1)       # Armazena o byte 0xF6
+    lb t2, 0(t1)       # Carrega com extensão de sinal, deve voltar a ser -10
     bne t0, t2, fail
     li a0, 28
     sw a0, 0(t5)
+    # --- FIM DOS TESTES DE MEMÓRIA ---
 
     # --- TESTES DE JUMP ---
     # --- TESTE 29: JAL ---
