@@ -100,6 +100,7 @@ architecture rtl of datapath is
     signal s_alu_zero             : std_logic := '0';                                     -- Flag "Zero" da ALU
     signal s_branch_or_jal_addr   : std_logic_vector(31 downto 0) := (others => '0');     -- Endereço para Branch e JAL
     signal s_alu_negative         : std_logic := '0';                                     -- Flag "Negative" da ALU
+    signal s_store_unit_out       : std_logic_vector(31 downto 0) := (others => '0');     -- Dado preparado para DMEM
 
 begin
 
@@ -185,7 +186,7 @@ begin
     
         -- - O dado a ser escrito vem sempre de rs2.
 
-            DMem_data_o        <= s_read_data_2;
+            DMem_data_o        <= s_store_unit_out;
     
         -- - O sinal de escrita na memória vem da unidade de controle.
 
@@ -198,6 +199,16 @@ begin
                 Addr_LSB_i   => s_alu_result(1 downto 0),             -- 2 bits do endereço para selecionar o byte/half
                 Funct3_i     => s_instruction(14 downto 12),          -- Funct3 para decodificar o tipo de load
                 Data_o       => s_load_unit_out                       -- Saída de 32 bits, já tratada
+            );
+
+        -- Instanciação da Unidade de Armazenamento
+
+            U_STORE_UNIT: entity work.store_unit port map (
+                Data_from_DMEM_i => DMem_data_i,                      -- Dado já contido na memória
+                WriteData_i      => s_read_data_2,                    -- Dado vem sempre de rs2
+                Addr_LSB_i       => s_alu_result(1 downto 0),         -- LSBs do endereço da ALU
+                Funct3_i         => s_instruction(14 downto 12),      -- Funct3 para SW/SH/SB
+                Data_o           => s_store_unit_out                  -- Saída preparada para a DMEM
             );
 
     -- ============== Estágio de Escrita de Volta (WRITE-BACK) ===============================
