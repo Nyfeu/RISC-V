@@ -144,7 +144,9 @@ begin
                     -- Converte o byte recebido para um tipo 'character'
                     current_char := character'val(to_integer(unsigned(s_dmem_data_write(7 downto 0))));
                     
-                    report "CHAR code: " & integer'image(to_integer(unsigned(s_dmem_data_write(7 downto 0))));
+                    -- DEBUG CHARS
+                    -- report "CHAR code: " & integer'image(to_integer(unsigned(s_dmem_data_write(7 downto 0))));
+                    
                     -- Se o caractere for uma quebra de linha (LF - Line Feed, ou '\n')...
                     if current_char = LF then
                         -- Adiciona o LF ao buffer antes de imprimir
