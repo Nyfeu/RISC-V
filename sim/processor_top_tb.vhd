@@ -192,7 +192,7 @@ begin
         wait until (s_dmem_write_enable = '1' and s_dmem_addr = c_HALT_ADDR);
 
         -- Para a sincronização entre os processos
-        wait for 100*CLK_PERIOD;
+        wait for 5*CLK_PERIOD;
 
         -- Mensagem de conclusão da simulação
         writeline(output, L);

@@ -3,7 +3,7 @@
 
 int main() {
 
-    volatile int n = 20;
+    volatile int n = 47;
     volatile int a = 0;
     volatile int b = 1;
     volatile int temp;
