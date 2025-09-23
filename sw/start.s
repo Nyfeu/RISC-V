@@ -7,12 +7,16 @@
 _start:
 
     # -----------------------------------------------------------------
-    # Inicializa o Stack Pointer (sp) para um local seguro na memória.
-    # 0x1000 (4096) é o topo da pilha de 4KB.
-    # A pilha cresce para baixo, então este é o endereço mais alto.
+    # Inicializa o Stack Pointer (sp) para o final da RAM,
+    # usando o símbolo fornecido pelo linker script (link.ld).
+    # Isso garante que a pilha não colidirá com o programa.
     # -----------------------------------------------------------------
-
-    li sp, 0x1000
+    
+    # ANTES: li sp, 0x1000
+    
+    # DEPOIS (CORRIGIDO):
+    lui sp, %hi(_stack_start)
+    addi sp, sp, %lo(_stack_start)
 
     # -----------------------------------------------------------------
     # Pula para a função 'main' em C.

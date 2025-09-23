@@ -125,45 +125,50 @@ begin
 
     -- Processo que escuta os endereços e gera um TERMINAL (MMIO - Memory Mapped IO)
     TERMINAL_OUTPUT: process(s_clk)
-
         -- Endereços dos dispositivos de saída virtuais
         constant c_CONSOLE_ADDR : std_logic_vector(31 downto 0) := x"10000000";
         constant c_INTEGER_ADDR : std_logic_vector(31 downto 0) := x"10000004";
-        variable L : line;
+
+        -- Todas as variáveis devem ser declaradas aqui, antes do 'begin'.
+        variable line_buffer : line := new string'(""); -- Buffer de saída
+        variable L_temp      : line;                   -- Linha temporária para impressão
+        variable current_char: character;
 
     begin
-
         if rising_edge(s_clk) then
-
-            -- Verifica se o processador está tentando escrever na memória
-            -- e se o endereço corresponde ao console.
-
-            if s_dmem_write_enable = '1' and s_dmem_addr = c_CONSOLE_ADDR then
-
-                -- Pega os 8 bits menos significativos do dado e os imprime como um caractere.
-                -- A função character'val() converte o valor inteiro do byte para um caractere.
-
-                -- Escreve um caractere no console
-                write(L, string'("CONSOLE: "));
-                write(L, character'val(to_integer(unsigned(s_dmem_data_write(7 downto 0)))));
+            -- Verifica se o processador está tentando escrever na memória...
+            if s_dmem_write_enable = '1' then
                 
-                writeline(output, L);
+                -- Caso 1: Escrita no console de CARACTERES
+                if s_dmem_addr = c_CONSOLE_ADDR then
+                    -- Converte o byte recebido para um tipo 'character'
+                    current_char := character'val(to_integer(unsigned(s_dmem_data_write(7 downto 0))));
+                    
+                    report "CHAR code: " & integer'image(to_integer(unsigned(s_dmem_data_write(7 downto 0))));
+                    -- Se o caractere for uma quebra de linha (LF - Line Feed, ou '\n')...
+                    if current_char = LF then
+                        -- Adiciona o LF ao buffer antes de imprimir
+                        write(line_buffer, current_char);
+                        -- Imprime a linha completa no console
+                        write(L_temp, string'("CONSOLE: "));
+                        write(L_temp, line_buffer.all);
+                        writeline(output, L_temp);
+                        -- Libera e recria o buffer
+                        deallocate(line_buffer);
+                        line_buffer := new string'("");
+                    else
+                        -- Caso contrário, apenas adicionamos o caractere ao final do buffer.
+                        write(line_buffer, current_char);
+                    end if;
 
+                -- Caso 2: Escrita no console de INTEIROS
+                elsif s_dmem_addr = c_INTEGER_ADDR then
+                    write(L_temp, string'("INTEGER: "));
+                    write(L_temp, to_integer(signed(s_dmem_data_write)));
+                    writeline(output, L_temp);
+                end if;
             end if;
-
-            -- Verifica se o processador está escrevendo no endereço do console de inteiros
-            if s_dmem_write_enable = '1' and s_dmem_addr = c_INTEGER_ADDR then
-
-                -- Usa a função 'to_integer' para converter o dado de 32 bits em um inteiro
-                -- e 'integer'image' para formatá-lo como string para impressão.
-                write(L, string'("INTEGER: "));
-                write(L, to_integer(signed(s_dmem_data_write)));
-                writeline(output, L);
-                
-            end if;
-
         end if;
-
     end process TERMINAL_OUTPUT;
 
     -- Estímulo (define a execução do testbench)
@@ -185,13 +190,14 @@ begin
         wait until (s_dmem_write_enable = '1' and s_dmem_addr = c_HALT_ADDR);
 
         -- Para a sincronização entre os processos
-        wait for CLK_PERIOD;
+        wait for 100*CLK_PERIOD;
 
         -- Mensagem de conclusão da simulação
         writeline(output, L);
         write(L, string'("SIMULACAO CONCLUIDA. Programa finalizado por sinal de HALT."));
         writeline(output, L);
         writeline(output, L);
+
         std.env.stop;
         wait;
         

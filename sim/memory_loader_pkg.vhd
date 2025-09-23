@@ -30,7 +30,8 @@ use std.env.all;
 -------------------------------------------------------------------------------------------------------------------
 
 package memory_loader_pkg is
-    type t_mem_array is array (0 to 1023) of std_logic_vector(31 downto 0);
+    -- Aumentado para 4096 palavras = 16KB de memória total
+    type t_mem_array is array (0 to 4095) of std_logic_vector(31 downto 0); 
     impure function init_mem_from_hex(file_path : string) return t_mem_array;
 end package memory_loader_pkg;
 
@@ -102,7 +103,7 @@ package body memory_loader_pkg is
         end loop;
 
         -- Mensagem sinalizando a finalização do carregamento do programa na memória
-        report "Carregamento do programa na memoria de simulacao concluida."
+        report "Carregamento do programa na memoria de simulacao concluida. "
             & integer'image(mem_idx) & " palavras lidas."
             severity note;
 
