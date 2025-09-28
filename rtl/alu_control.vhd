@@ -75,7 +75,22 @@ begin
             when "00" => ALUControl_o <= c_ALU_ADD ;
 
             -- Operação de subtração 
-            when "01" => ALUControl_o <= c_ALU_SUB ;
+            when "01" =>
+
+                --------------------------------------------------------------------------------------------------
+                -- NÍVEL 2: Decodificação com base em funct3
+                --------------------------------------------------------------------------------------------------
+                case Funct3_i is
+                    -- Para BEQ, BNE, BLT, BGE, a subtração é suficiente
+                    when "000" | "001" | "100" | "101" =>
+                        ALUControl_o <= c_ALU_SUB;
+                    -- Para BLTU, BGEU, precisamos de uma comparação sem sinal
+                    when "110" | "111" =>
+                        ALUControl_o <= c_ALU_SLTU;
+                    -- Caso padrão para segurança
+                    when others =>
+                        ALUControl_o <= (others => '0');
+                end case;
 
             -- Avaliar funct3 e funct7
             when "10" => 

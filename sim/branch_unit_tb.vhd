@@ -132,6 +132,31 @@ begin
         wait for 1 ns;
         ASSERT s_branch_taken_o = '0' REPORT "ERRO [BGE not taken]: Desvio foi tomado indevidamente!" SEVERITY error;
 
+        -- Teste 6: BLTU (Branch if Less Than Unsigned)
+        report "TESTE: BLTU (Resultado SLTU = 1 => Z=0)" severity note;
+        s_funct3_i <= c_FUNCT3_BLTU;
+        s_alu_zero_i <= '0'; -- Simula resultado 1 da ULA (A < B)
+        s_alu_negative_i <= '0'; -- Irrelevante, mas bom definir
+        wait for 1 ns;
+        ASSERT s_branch_taken_o = '1' REPORT "ERRO [BLTU taken]: Desvio não foi tomado!" SEVERITY error;
+
+        report "TESTE: BLTU (Resultado SLTU = 0 => Z=1)" severity note;
+        s_alu_zero_i <= '1'; -- Simula resultado 0 da ULA (A >= B)
+        wait for 1 ns;
+        ASSERT s_branch_taken_o = '0' REPORT "ERRO [BLTU not taken]: Desvio foi tomado indevidamente!" SEVERITY error;
+
+        -- Teste 7: BGEU (Branch if Greater or Equal Unsigned)
+        report "TESTE: BGEU (Resultado SLTU = 0 => Z=1)" severity note;
+        s_funct3_i <= c_FUNCT3_BGEU;
+        s_alu_zero_i <= '1'; -- Simula resultado 0 da ULA (A >= B)
+        wait for 1 ns;
+        ASSERT s_branch_taken_o = '1' REPORT "ERRO [BGEU taken]: Desvio não foi tomado!" SEVERITY error;
+
+        report "TESTE: BGEU (Resultado SLTU = 1 => Z=0)" severity note;
+        s_alu_zero_i <= '0'; -- Simula resultado 1 da ULA (A < B)
+        wait for 1 ns;
+        ASSERT s_branch_taken_o = '0' REPORT "ERRO [BGEU not taken]: Desvio foi tomado indevidamente!" SEVERITY error;
+
         -- Mensagem final
         report "VERIFICACAO DA BRANCH UNIT CONCLUIDA." severity note;
         std.env.stop;

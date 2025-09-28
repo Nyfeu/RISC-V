@@ -52,14 +52,30 @@ begin
     begin
         if Branch_i = '1' then
             case Funct3_i is
-                when "000" => -- BEQ
-                    if ALU_Zero_i = '1' then BranchTaken_o <= '1'; else BranchTaken_o <= '0'; end if;
-                when "001" => -- BNE
-                    if ALU_Zero_i = '0' then BranchTaken_o <= '1'; else BranchTaken_o <= '0'; end if;
-                when "100" | "110" => -- BLT, BLTU
-                    if ALU_Negative_i = '1' then BranchTaken_o <= '1'; else BranchTaken_o <= '0'; end if;
-                when "101" | "111" => -- BGE, BGEU
-                    if ALU_Negative_i = '0' then BranchTaken_o <= '1'; else BranchTaken_o <= '0'; end if;
+                when "000" => -- BEQ (A == B) -> A - B == 0
+                    if ALU_Zero_i = '1' then BranchTaken_o <= '1';
+                    else BranchTaken_o <= '0'; end if;
+
+                when "001" => -- BNE (A != B) -> A - B != 0
+                    if ALU_Zero_i = '0' then BranchTaken_o <= '1';
+                    else BranchTaken_o <= '0'; end if;
+
+                when "100" => -- BLT (A < B, com sinal)
+                    if ALU_Negative_i = '1' then BranchTaken_o <= '1';
+                    else BranchTaken_o <= '0'; end if;
+
+                when "101" => -- BGE (A >= B, com sinal)
+                    if ALU_Negative_i = '0' then BranchTaken_o <= '1';
+                    else BranchTaken_o <= '0'; end if;
+
+                when "110" => -- BLTU (A < B, sem sinal) -> ALU fez SLTU. Resultado é 1 (não-zero) se A < B.
+                    if ALU_Zero_i = '0' then BranchTaken_o <= '1';
+                    else BranchTaken_o <= '0'; end if;
+
+                when "111" => -- BGEU (A >= B, sem sinal) -> ALU fez SLTU. Resultado é 0 se A >= B.
+                    if ALU_Zero_i = '1' then BranchTaken_o <= '1';
+                    else BranchTaken_o <= '0'; end if;
+
                 when others =>
                     BranchTaken_o <= '0';
             end case;
