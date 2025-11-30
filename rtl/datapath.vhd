@@ -241,9 +241,9 @@ begin
         -- - A prioridade é: Jumps têm precedência sobre Branches, que têm precedência sobre PC+4.
 
             with PCSrc_i select
-                s_pc_next <= s_pc_plus_4           when "00", -- PC <- PC + 4
-                            s_branch_or_jal_addr   when "01", -- PC <- Endereço de Branch ou JAL
-                            s_alu_result           when "10", -- PC <- Endereço do JALR (rs1 + imm)
+                s_pc_next <= s_pc_plus_4                    when "00", -- PC <- PC + 4
+                            s_branch_or_jal_addr            when "01", -- PC <- Endereço de Branch ou JAL
+                            s_alu_result(31 downto 1) & '0' when "10", -- PC <- Endereço do JALR (rs1 + imm)
                             (others => 'X')        when others;
 
 end architecture; -- rtl
