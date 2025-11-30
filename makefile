@@ -15,6 +15,7 @@ GTKWAVE   = gtkwave
 #    Diretórios
 # ========================================================================================
 BUILD_DIR  = build
+PKG_DIR    = pkg
 RTL_DIR    = rtl
 SIM_DIR    = sim
 SW_SRC_DIR = sw/src
@@ -23,6 +24,10 @@ SW_DIR     = sw
 # ========================================================================================
 # Fontes VHDL
 # ========================================================================================
+
+PKG_SRCS := \
+  $(PKG_DIR)/memory_loader_pkg.vhd
+
 RTL_SRCS := \
   $(RTL_DIR)/alu.vhd \
   $(RTL_DIR)/alu_control.vhd \
@@ -95,6 +100,7 @@ sim:
 
 	@echo ">>> Analisando e compilando VHDL..."
 	@$(GHDL) -a $(GHDLFLAGS) --workdir=$(BUILD_DIR)/rtl \
+		$(PKG_SRCS) \
 		$(RTL_SRCS) \
 		$(wildcard $(SIM_DIR)/*.vhd)
 
@@ -117,6 +123,7 @@ comp:
 	@mkdir -p $(BUILD_DIR)/rtl
 	@echo ">>> Analisando e compilando componente..."
 	@$(GHDL) -a $(GHDLFLAGS) --workdir=$(BUILD_DIR)/rtl \
+		$(PKG_SRCS) \
 		$(RTL_SRCS) \
 		$(SIM_DIR)/$(TB).vhd
 
