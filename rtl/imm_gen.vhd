@@ -21,6 +21,7 @@
 library ieee;                     -- Biblioteca padrão IEEE
 use ieee.std_logic_1164.all;      -- Tipos lógicos (std_logic, std_logic_vector)
 use ieee.numeric_std.all;         -- Biblioteca para operações aritméticas com vetores lógicos (signed, unsigned)
+use work.riscv_pkg.all;           -- Contém todas as definições de constantes
 
 -------------------------------------------------------------------------------------------------------------------
 -- ENTIDADE: Definição da interface do gerador de imediatos
@@ -45,17 +46,6 @@ end entity imm_gen;
 -------------------------------------------------------------------------------------------------------------------
 
 architecture rtl of imm_gen is
-
-    -- Constantes para os opcodes dos formatos de instrução
-    constant c_OPCODE_LOAD     : std_logic_vector(6 downto 0) := "0000011"; -- I-Type
-    constant c_OPCODE_IMM      : std_logic_vector(6 downto 0) := "0010011"; -- I-Type
-    constant c_OPCODE_JALR     : std_logic_vector(6 downto 0) := "1100111"; -- I-Type
-    constant c_OPCODE_STORE    : std_logic_vector(6 downto 0) := "0100011"; -- S-Type
-    constant c_OPCODE_BRANCH   : std_logic_vector(6 downto 0) := "1100011"; -- B-Type
-    constant c_OPCODE_LUI      : std_logic_vector(6 downto 0) := "0110111"; -- U-Type
-    constant c_OPCODE_AUIPC    : std_logic_vector(6 downto 0) := "0010111"; -- U-Type
-    constant c_OPCODE_JAL      : std_logic_vector(6 downto 0) := "1101111"; -- J-Type
-
 begin
 
     -- Formatos de instrução RISC-V:
@@ -95,7 +85,7 @@ begin
         case Instruction_i(6 downto 0) is
 
             -- Formato I: LOAD, IMM, JALR
-            when c_OPCODE_LOAD | c_OPCODE_IMM | c_OPCODE_JALR =>
+            when c_OPCODE_LOAD | c_OPCODE_I_TYPE | c_OPCODE_JALR =>
                 v_imm12 := Instruction_i(31 downto 20);
                 Immediate_o <= std_logic_vector(resize(signed(v_imm12), 32));
 

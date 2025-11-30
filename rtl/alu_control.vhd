@@ -22,6 +22,7 @@
 library ieee;                     -- Biblioteca padrão IEEE
 use ieee.std_logic_1164.all;      -- Tipos lógicos (std_logic, std_logic_vector)
 use ieee.numeric_std.all;         -- Biblioteca para operações aritméticas com vetores lógicos (signed, unsigned)
+use work.riscv_pkg.all;           -- Contém todas as definições de constantes
 
 -------------------------------------------------------------------------------------------------------------------
 -- ENTIDADE: Definição da interface da unidade de controle da unidade lógica e aritmética (ALU)
@@ -48,19 +49,6 @@ end alu_control ;
 -------------------------------------------------------------------------------------------------------------------
 
 architecture rtl of alu_control is
-
-    -- Constantes para os códigos de operação da ALU (4 bits)
-    constant c_ALU_ADD  : std_logic_vector(3 downto 0) := "0000";
-    constant c_ALU_SUB  : std_logic_vector(3 downto 0) := "1000";
-    constant c_ALU_SLT  : std_logic_vector(3 downto 0) := "0010";
-    constant c_ALU_SLTU : std_logic_vector(3 downto 0) := "0011";
-    constant c_ALU_XOR  : std_logic_vector(3 downto 0) := "0100";
-    constant c_ALU_OR   : std_logic_vector(3 downto 0) := "0110";
-    constant c_ALU_AND  : std_logic_vector(3 downto 0) := "0111";
-    constant c_ALU_SLL  : std_logic_vector(3 downto 0) := "0001";
-    constant c_ALU_SRL  : std_logic_vector(3 downto 0) := "0101";
-    constant c_ALU_SRA  : std_logic_vector(3 downto 0) := "1101";
-
 begin
 
     DECODER: process(all)

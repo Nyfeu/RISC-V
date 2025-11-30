@@ -13,6 +13,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
+use work.riscv_pkg.all;
 
 -- A entidade de um testbench é sempre vazia.
 entity imm_gen_tb is
@@ -40,13 +41,6 @@ architecture test of imm_gen_tb is
     -- Sinais para conectar ao DUT
     signal s_instruction     : std_logic_vector(31 downto 0);
     signal s_immediate       : std_logic_vector(31 downto 0);
-
-    -- Constantes para campos de instrução comuns
-    constant c_OPCODE_IMM    : std_logic_vector(6 downto 0) := "0010011";
-    constant c_OPCODE_STORE  : std_logic_vector(6 downto 0) := "0100011";
-    constant c_OPCODE_BRANCH : std_logic_vector(6 downto 0) := "1100011";
-    constant c_OPCODE_LUI    : std_logic_vector(6 downto 0) := "0110111";
-    constant c_OPCODE_JAL    : std_logic_vector(6 downto 0) := "1101111";
     
     -- Constantes para registradores
     constant c_RD_X5         : std_logic_vector(4 downto 0) := "00101";
@@ -103,7 +97,7 @@ begin
         -- Teste I-Type (addi x5, x6, -100)
         report "TESTE: Formato I (imm=-100)" severity note;
         s_instruction  <= c_IMM_I_NEG_slv & c_RS1_X6 & c_FUNCT3_ADDI & 
-            c_RD_X5 & c_OPCODE_IMM;
+            c_RD_X5 & c_OPCODE_I_TYPE;
         v_expected_imm := std_logic_vector(to_signed(-100, 32));
         wait for 1 ns;
         ASSERT s_immediate = v_expected_imm REPORT "ERRO [I-Type]" SEVERITY error;
@@ -145,14 +139,14 @@ begin
 
         -- Teste: Formato I (Máximo Positivo: +2047)
         report "TESTE: Formato I (imm=+2047)" severity note;
-        s_instruction  <= std_logic_vector(c_IMM_I_MAX_POS) & c_RS1_X6 & c_FUNCT3_ADDI & c_RD_X5 & c_OPCODE_IMM;
+        s_instruction  <= std_logic_vector(c_IMM_I_MAX_POS) & c_RS1_X6 & c_FUNCT3_ADDI & c_RD_X5 & c_OPCODE_I_TYPE;
         v_expected_imm := std_logic_vector(resize(c_IMM_I_MAX_POS, 32));
         wait for 1 ns;
         ASSERT s_immediate = v_expected_imm REPORT "ERRO [LIMITE-I-POS]" SEVERITY error;
 
         -- Teste: Formato I (Mínimo Negativo: -2048) 
         report "TESTE: Formato I (imm=-2048)" severity note;
-        s_instruction  <= std_logic_vector(c_IMM_I_MIN_NEG) & c_RS1_X6 & c_FUNCT3_ADDI & c_RD_X5 & c_OPCODE_IMM;
+        s_instruction  <= std_logic_vector(c_IMM_I_MIN_NEG) & c_RS1_X6 & c_FUNCT3_ADDI & c_RD_X5 & c_OPCODE_I_TYPE;
         v_expected_imm := std_logic_vector(resize(c_IMM_I_MIN_NEG, 32));
         wait for 1 ns;
         ASSERT s_immediate = v_expected_imm REPORT "ERRO [LIMITE-I-NEG]" SEVERITY error;

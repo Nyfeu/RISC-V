@@ -19,6 +19,7 @@
 library ieee;                     -- Biblioteca padrão IEEE
 use ieee.std_logic_1164.all;      -- Tipos lógicos (std_logic, std_logic_vector)
 use ieee.numeric_std.all;         -- Biblioteca para operações aritméticas com vetores lógicos (signed, unsigned)
+use work.riscv_pkg.all;           -- Contém todas as definições de constantes
 
 -------------------------------------------------------------------------------------------------------------------
 -- ENTIDADE: Definição da interface da Unidade de Armazenamento
@@ -49,10 +50,7 @@ end entity store_unit;
 
 architecture rtl of store_unit is
 
-    -- Constantes para os valores de funct3
-    constant c_SB : std_logic_vector(2 downto 0) := "000"; -- Store Byte
-    constant c_SH : std_logic_vector(2 downto 0) := "001"; -- Store Half-word
-    constant c_SW : std_logic_vector(2 downto 0) := "010"; -- Store Word
+    
 
 begin
 

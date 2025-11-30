@@ -12,6 +12,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
+use work.riscv_pkg.all;
 
 -- A entidade de um testbench é sempre vazia.
 entity branch_unit_tb is
@@ -42,14 +43,6 @@ architecture test of branch_unit_tb is
     signal s_alu_zero_i     : std_logic;
     signal s_alu_negative_i : std_logic;
     signal s_branch_taken_o : std_logic;
-
-    -- Constantes para os valores de funct3
-    constant c_FUNCT3_BEQ  : std_logic_vector(2 downto 0) := "000";
-    constant c_FUNCT3_BNE  : std_logic_vector(2 downto 0) := "001";
-    constant c_FUNCT3_BLT  : std_logic_vector(2 downto 0) := "100";
-    constant c_FUNCT3_BGE  : std_logic_vector(2 downto 0) := "101";
-    constant c_FUNCT3_BLTU : std_logic_vector(2 downto 0) := "110";
-    constant c_FUNCT3_BGEU : std_logic_vector(2 downto 0) := "111";
 
 begin
 

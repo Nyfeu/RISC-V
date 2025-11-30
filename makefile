@@ -26,6 +26,7 @@ SW_DIR     = sw
 # ========================================================================================
 
 PKG_SRCS := \
+  $(PKG_DIR)/riscv_pkg.vhd \
   $(PKG_DIR)/memory_loader_pkg.vhd
 
 RTL_SRCS := \

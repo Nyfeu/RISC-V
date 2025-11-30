@@ -28,6 +28,7 @@
 library ieee;                     -- Biblioteca padrão IEEE
 use ieee.std_logic_1164.all;      -- Tipos lógicos (std_logic, std_logic_vector)
 use ieee.numeric_std.all;         -- Biblioteca para operações aritméticas com vetores lógicos (signed, unsigned)
+use work.riscv_pkg.all;           -- Contém todas as definições de constantes
 
 -------------------------------------------------------------------------------------------------------------------
 -- ENTIDADE: Definição da interface da unidade decodificadora
@@ -89,17 +90,6 @@ architecture rtl of decoder is
     -- - Formato J (jump): salto incondicional
     --     opcode = 1101111 (JAL)
     ---------------------------------------------------------------------------------------------------------------
-
-    -- Constantes para os opcodes das instruções RISC-V
-    constant c_OPCODE_R_TYPE : std_logic_vector(6 downto 0) := "0110011"; -- Operações entre registradores
-    constant c_OPCODE_I_TYPE : std_logic_vector(6 downto 0) := "0010011"; -- Operações imediato
-    constant c_OPCODE_LOAD   : std_logic_vector(6 downto 0) := "0000011";
-    constant c_OPCODE_STORE  : std_logic_vector(6 downto 0) := "0100011";
-    constant c_OPCODE_BRANCH : std_logic_vector(6 downto 0) := "1100011";
-    constant c_OPCODE_JAL    : std_logic_vector(6 downto 0) := "1101111";
-    constant c_OPCODE_JALR   : std_logic_vector(6 downto 0) := "1100111";
-    constant c_OPCODE_LUI    : std_logic_vector(6 downto 0) := "0110111";
-    constant c_OPCODE_AUIPC  : std_logic_vector(6 downto 0) := "0010111";
 
 begin
 

@@ -13,6 +13,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
+use work.riscv_pkg.all;
 
 -- A entidade de um testbench é sempre vazia.
 entity alu_control_tb is
@@ -35,7 +36,7 @@ architecture test of alu_control_tb is
     end component alu_control;
 
 -------------------------------------------------------------------------------------------------------------------
-    -- 2. Constantes e Sinais para o Teste
+    -- 2. Sinais para o Teste
 -------------------------------------------------------------------------------------------------------------------
 
     -- Sinais para conectar ao DUT
@@ -43,18 +44,6 @@ architecture test of alu_control_tb is
     signal s_funct3_i     : std_logic_vector(2 downto 0);
     signal s_funct7_i     : std_logic_vector(6 downto 0);
     signal s_alucontrol_o : std_logic_vector(3 downto 0);
-    
-    -- Constantes para os códigos de operação da ULA (os resultados esperados)
-    constant c_ALU_ADD  : std_logic_vector(3 downto 0) := "0000";
-    constant c_ALU_SUB  : std_logic_vector(3 downto 0) := "1000";
-    constant c_ALU_SLT  : std_logic_vector(3 downto 0) := "0010";
-    constant c_ALU_SLTU : std_logic_vector(3 downto 0) := "0011";
-    constant c_ALU_XOR  : std_logic_vector(3 downto 0) := "0100";
-    constant c_ALU_OR   : std_logic_vector(3 downto 0) := "0110";
-    constant c_ALU_AND  : std_logic_vector(3 downto 0) := "0111";
-    constant c_ALU_SLL  : std_logic_vector(3 downto 0) := "0001";
-    constant c_ALU_SRL  : std_logic_vector(3 downto 0) := "0101";
-    constant c_ALU_SRA  : std_logic_vector(3 downto 0) := "1101";
 
 begin
 

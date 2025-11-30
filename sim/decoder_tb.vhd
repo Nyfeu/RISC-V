@@ -13,6 +13,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
+use work.riscv_pkg.all;
 
 -- A entidade de um testbench é sempre vazia.
 entity decoder_tb is
@@ -40,7 +41,7 @@ architecture test of decoder_tb is
     end component decoder;
 
 -------------------------------------------------------------------------------------------------------------------
-    -- 2. Constantes e Sinais para o Teste
+    -- 2. Sinais para o Teste
 -------------------------------------------------------------------------------------------------------------------
 
     -- Sinais para conectar ao DUT
@@ -55,18 +56,6 @@ architecture test of decoder_tb is
     signal s_jump_o              : std_logic;
     signal s_aluop_o             : std_logic_vector(1 downto 0);
     signal s_write_data_source_o : std_logic;
-
-    -- Constantes para os opcodes a serem testados
-    constant c_OPCODE_R_TYPE : std_logic_vector(6 downto 0) := "0110011";
-    constant c_OPCODE_LOAD   : std_logic_vector(6 downto 0) := "0000011";
-    constant c_OPCODE_STORE  : std_logic_vector(6 downto 0) := "0100011";
-    constant c_OPCODE_BRANCH : std_logic_vector(6 downto 0) := "1100011";
-    constant c_OPCODE_IMM    : std_logic_vector(6 downto 0) := "0010011";
-    constant c_OPCODE_JAL    : std_logic_vector(6 downto 0) := "1101111";
-    constant c_OPCODE_JALR   : std_logic_vector(6 downto 0) := "1100111";
-    constant c_OPCODE_LUI    : std_logic_vector(6 downto 0) := "0110111";
-    constant c_OPCODE_SYSTEM : std_logic_vector(6 downto 0) := "1110011";
-    constant c_OPCODE_FENCE  : std_logic_vector(6 downto 0) := "0001111";
 
 begin
 
@@ -129,7 +118,7 @@ begin
             
         -- Teste 5: I-Type (addi)
         report "TESTE: Opcode I-Type (addi, etc.)" severity note;
-        s_opcode_i <= c_OPCODE_IMM;
+        s_opcode_i <= c_OPCODE_I_TYPE;
         wait for 1 ns;
         ASSERT s_reg_write_o = '1' and s_ALUSrcB_o = '1' and s_memtoreg_o = '0' and s_memread_o = '0' and s_memwrite_o = '0' and s_branch_o = '0' and s_jump_o = '0' and s_aluop_o = "11"
             REPORT "ERRO: Sinais de controle incorretos para I-Type!" SEVERITY error;

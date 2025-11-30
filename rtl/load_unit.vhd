@@ -61,6 +61,7 @@
 library ieee;                     -- Biblioteca padrão IEEE
 use ieee.std_logic_1164.all;      -- Tipos lógicos (std_logic, std_logic_vector)
 use ieee.numeric_std.all;         -- Biblioteca para operações aritméticas com vetores lógicos (signed, unsigned)
+use work.riscv_pkg.all;           -- Contém todas as definições de constantes
 
 --------------------------------------------------------------------------------------------------------------------------------------------------
 -- ENTIDADE: Definição da interface da unidade de carregamento (load_unit)
@@ -87,14 +88,6 @@ end entity load_unit;
 --------------------------------------------------------------------------------------------------------------------------------------------------
 
 architecture rtl of load_unit is
-
-    -- Constantes para os valores de funct3 para as instruções de Load
-    constant c_LB  : std_logic_vector(2 downto 0) := "000"; -- Load Byte (com sinal)
-    constant c_LH  : std_logic_vector(2 downto 0) := "001"; -- Load Half-word (com sinal)
-    constant c_LW  : std_logic_vector(2 downto 0) := "010"; -- Load Word
-    constant c_LBU : std_logic_vector(2 downto 0) := "100"; -- Load Byte Unsigned (sem sinal)
-    constant c_LHU : std_logic_vector(2 downto 0) := "101"; -- Load Half-word Unsigned (sem sinal)
-
 begin
 
     -- Processo combinacional que seleciona e estende o dado correto

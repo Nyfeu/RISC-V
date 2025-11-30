@@ -13,6 +13,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
+use work.riscv_pkg.all;
 
 -- A entidade de um testbench é sempre vazia.
 entity load_unit_tb is
@@ -33,20 +34,13 @@ architecture test of load_unit_tb is
     end component load_unit;
 
 -------------------------------------------------------------------------------------------------------------------
-    -- 2. Constantes e Sinais para o Teste
+    -- 2. Sinais para o Teste
 -------------------------------------------------------------------------------------------------------------------
     -- Sinais para conectar ao DUT
     signal s_dmem_data_i : std_logic_vector(31 downto 0);
     signal s_addr_lsb_i  : std_logic_vector(1 downto 0);
     signal s_funct3_i    : std_logic_vector(2 downto 0);
     signal s_data_o      : std_logic_vector(31 downto 0);
-
-    -- Constantes para os valores de funct3
-    constant c_LB  : std_logic_vector(2 downto 0) := "000";
-    constant c_LH  : std_logic_vector(2 downto 0) := "001";
-    constant c_LW  : std_logic_vector(2 downto 0) := "010";
-    constant c_LBU : std_logic_vector(2 downto 0) := "100";
-    constant c_LHU : std_logic_vector(2 downto 0) := "101";
 
 begin
 -------------------------------------------------------------------------------------------------------------------
