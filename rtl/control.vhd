@@ -24,6 +24,7 @@
 library ieee;                     -- Biblioteca padrão IEEE
 use ieee.std_logic_1164.all;      -- Tipos lógicos (std_logic, std_logic_vector)
 use ieee.numeric_std.all;         -- Biblioteca para operações aritméticas com vetores lógicos (signed, unsigned)
+use work.riscv_pkg.all;           -- Contém todas as definições de constantes e tipos
 
 -------------------------------------------------------------------------------------------------------------------
 -- ENTIDADE: Definição da interface da Unidade de Controle
@@ -45,15 +46,9 @@ entity control is
         
         -- Saídas (Sinais de Controle para o Datapath)
 
-            RegWrite_o        : out std_logic;                    -- Habilita escrita no Banco de Registradores
-            ALUSrcA_o         : out std_logic_vector(1 downto 0); -- Seleciona a 1ª fonte da ALU
-            ALUSrcB_o         : out std_logic;                    -- Seleciona a 2ª fonte da ALU (Reg vs Imm)
-            MemtoReg_o        : out std_logic;                    -- Seleciona a fonte de escrita no registrador (ALU vs Mem)
-            MemRead_o         : out std_logic;                    -- Habilita leitura na DMEM
-            MemWrite_o        : out std_logic;                    -- Habilita escrita na DMEM
-            WriteDataSource_o : out std_logic;                    -- Essencial para JAL/JALR
-            PCSrc_o           : out std_logic_vector(1 downto 0); -- Seleciona o PC (program counter)
-            ALUControl_o      : out std_logic_vector(3 downto 0)  -- Código de 4 bits para a operação da ALU
+            Control_o      : out t_control;                       -- Record com todos os sinais do decoder
+            PCSrc_o        : out std_logic_vector(1 downto 0);    -- Seleciona o PC (program counter)
+            ALUControl_o   : out std_logic_vector(3 downto 0)     -- Código de 4 bits para a operação da ALU
 
     );
 
@@ -61,14 +56,15 @@ end entity;
 
 architecture rtl of control is
 
+    -- Sinais internos
     signal s_opcode : std_logic_vector(6 downto 0) := (others => '0');
     signal s_funct3 : std_logic_vector(2 downto 0) := (others => '0');
     signal s_funct7 : std_logic_vector(6 downto 0) := (others => '0');
 
-    signal s_aluop  : std_logic_vector(1 downto 0) := (others => '0');
+    -- Sinal para armazenar o pacote de controle vindo do Decoder
+    signal s_ctrl : t_control;
 
-    signal s_branch : std_logic := '0';
-    signal s_jump   : std_logic := '0';
+    -- Sinal interno para lógica de branch
     signal s_branch_condition_met : std_logic := '0'; 
 
 begin
@@ -94,18 +90,12 @@ begin
 
             U_CONTROL: entity work.decoder
                 port map (
-                    Opcode_i           => s_opcode,
-                    RegWrite_o         => RegWrite_o,
-                    ALUSrcA_o          => ALUSrcA_o,
-                    AluSrcB_o          => AluSrcB_o,
-                    MemtoReg_o         => MemtoReg_o,
-                    MemRead_o          => MemRead_o,
-                    MemWrite_o         => MemWrite_o,
-                    Branch_o           => s_branch,
-                    Jump_o             => s_jump,
-                    ALUOp_o            => s_aluop,
-                    WriteDataSource_o  => WriteDataSource_o
+                    Opcode_i       => s_opcode,
+                    Control_o      => s_ctrl
                 );
+
+        -- Repassa os sinais estáticos diretamente para a saída da entidade control
+        Control_o <= s_ctrl;
 
     -- Unidade de Controle da ALU
 
@@ -114,10 +104,10 @@ begin
     
             U_ALU_CONTROL: entity work.alu_control
                 port map (
-                    ALUOp_i            => s_aluop,
-                    Funct3_i           => s_funct3,
-                    Funct7_i           => s_funct7,
-                    ALUControl_o       => ALUControl_o
+                    ALUOp_i        => s_ctrl.alu_op,
+                    Funct3_i       => s_funct3,
+                    Funct7_i       => s_funct7,
+                    ALUControl_o   => ALUControl_o
                 );
 
     -- Lógica para o sinal PCSrc_o
@@ -125,7 +115,7 @@ begin
         -- Usa funct3 para decidir qual condição verificar
             U_BRANCH_UNIT: entity work.branch_unit
                 port map (
-                    Branch_i       => s_branch,              -- Sinal vindo do decoder principal
+                    Branch_i       => s_ctrl.branch,         -- Sinal vindo do decoder principal
                     Funct3_i       => s_funct3,              -- Campo funct3 da instrução
                     ALU_Zero_i     => ALU_Zero_i,            -- Flag Zero vinda do datapath
                     ALU_Negative_i => ALU_Negative_i,        -- Flag Negative vinda do datapath
@@ -134,9 +124,9 @@ begin
 
         -- O desvio é tomado se a instrução for um Branch E a condição Zero for atendida.
 
-            PCSrc_o <= "10" when (s_jump = '1' and s_opcode = "1100111") else -- JALR
-               "01" when (s_jump = '1' and s_opcode = "1101111") else -- JAL
-               "01" when (s_branch = '1' and s_branch_condition_met = '1') else -- Branch Tomado
+            PCSrc_o <= "10" when (s_ctrl.jump = '1' and s_opcode = "1100111") else -- JALR
+               "01" when (s_ctrl.jump = '1' and s_opcode = "1101111") else -- JAL
+               "01" when (s_ctrl.branch = '1' and s_branch_condition_met = '1') else -- Branch Tomado
                "00"; -- Padrão (PC + 4)
 
 end architecture; -- rtl

@@ -42,16 +42,7 @@ entity decoder is
     Opcode_i      : in  std_logic_vector(6 downto 0);    -- Opcode da instrução (bits [6:0])
 
     -- Saídas
-    RegWrite_o    : out std_logic;                       -- Habilita escrita no banco de registradores
-    ALUSrcA_o     : out std_logic_vector(1 downto 0);    -- Seleciona a fonte do primeiro operando da ALU
-    ALUSrcB_o     : out std_logic;                       -- Seleciona a fonte do segundo operando da ALU (0=registrador, 1=imediato)
-    MemtoReg_o    : out std_logic;                       -- Seleciona a fonte dos dados a serem escritos no registrador (0=ALU, 1=Memória)
-    MemRead_o     : out std_logic;                       -- Habilita leitura da memória
-    MemWrite_o    : out std_logic;                       -- Habilita escrita na memória
-    Branch_o      : out std_logic;                       -- Indica desvio condicional
-    Jump_o        : out std_logic;                       -- Indica salto incondicional
-    ALUOp_o       : out std_logic_vector(1 downto 0);    -- Código de operação da ALU (2 bits)
-    WriteDataSource_o : out std_logic                    -- Habilita PC+4 como fonte de escrita
+    Control_o     : out t_control                        -- Pacote com todos os sinais de controle
 
   ) ;
 
@@ -98,7 +89,7 @@ begin
     --------------------------------------------------------------------------------------------------------------
     -- Processo de decodificação do OPCODE
     -- 
-    -- Observação: ALUOp_o é um código "resumido":
+    -- Observação: alu_op é um código "resumido":
     --
     --   "00" → operações de soma (load/store, endereçamento, jalr, auipc)
     --   "01" → operações de comparação (branch)
@@ -114,16 +105,7 @@ begin
 
         -- Valores padrão (NOP)
 
-        RegWrite_o        <= '0'  ;
-        ALUSrcA_o         <= "00" ;
-        AluSrcB_o         <= '0'  ;
-        MemtoReg_o        <= '0'  ;
-        MemRead_o         <= '0'  ;
-        MemWrite_o        <= '0'  ;
-        Branch_o          <= '0'  ;
-        Jump_o            <= '0'  ;
-        ALUOp_o           <= "00" ;
-        WriteDataSource_o <= '0'  ;
+        Control_o <= c_CONTROL_NOP;
 
         case Opcode_i is
 
@@ -131,74 +113,74 @@ begin
             -- Formato R (ex: ADD, SUB...)
             -- ===================================================================================================
             when c_OPCODE_R_TYPE =>
-                RegWrite_o <= '1';
-                AluSrcB_o   <= '0';
-                ALUOp_o    <= "10";
+                Control_o.reg_write            <= '1';
+                Control_o.alu_src_b            <= '0';
+                Control_o.alu_op               <= "10";
 
             -- ===================================================================================================
             -- Formato I (imediato ALU)
             -- ===================================================================================================
             when c_OPCODE_I_TYPE =>
-                RegWrite_o <= '1';
-                AluSrcB_o   <= '1';
-                ALUOp_o    <= "11";
+                Control_o.reg_write            <= '1';
+                Control_o.alu_src_b            <= '1';
+                Control_o.alu_op               <= "11";
 
             -- ===================================================================================================
             -- LOAD (ex: LW)
             -- ===================================================================================================
             when c_OPCODE_LOAD =>
-                RegWrite_o <= '1';
-                AluSrcB_o   <= '1';
-                MemtoReg_o <= '1';
-                MemRead_o  <= '1';
-                ALUOp_o    <= "00"; -- soma para endereçamento
+                Control_o.reg_write            <= '1';
+                Control_o.alu_src_b            <= '1';
+                Control_o.mem_to_reg           <= '1';
+                Control_o.mem_read             <= '1';
+                Control_o.alu_op               <= "00"; -- soma para endereçamento
 
             -- ===================================================================================================
             -- STORE (ex: SW)
             -- ===================================================================================================
             when c_OPCODE_STORE =>
-                AluSrcB_o   <= '1';
-                MemWrite_o <= '1';
-                ALUOp_o    <= "00"; -- soma para endereçamento
+                Control_o.alu_src_b            <= '1';
+                Control_o.mem_write            <= '1';
+                Control_o.alu_op               <= "00"; -- soma para endereçamento
 
             -- ===================================================================================================
             -- BRANCH (ex: BEQ)
             -- ===================================================================================================
             when c_OPCODE_BRANCH =>
-                Branch_o   <= '1';
-                ALUOp_o    <= "01"; -- subtração para comparação
+                Control_o.branch               <= '1';
+                Control_o.alu_op               <= "01"; -- subtração para comparação
 
             -- ===================================================================================================
             -- JUMP (JAL)
             -- ===================================================================================================
             when c_OPCODE_JAL =>
-                RegWrite_o        <= '1';
-                Jump_o            <= '1';
-                WriteDataSource_o <= '1'; -- grava PC+4 no rd
+                Control_o.reg_write            <= '1';
+                Control_o.jump                 <= '1';
+                Control_o.write_data_src       <= '1'; -- grava PC+4 no rd
 
             -- ===================================================================================================
             -- JUMP (JALR)
             -- ===================================================================================================
             when c_OPCODE_JALR =>
-                RegWrite_o        <= '1';
-                AluSrcB_o          <= '1';
-                Jump_o            <= '1';
-                WriteDataSource_o <= '1';
+                Control_o.reg_write            <= '1';
+                Control_o.alu_src_b            <= '1';
+                Control_o.jump                 <= '1';
+                Control_o.write_data_src       <= '1';
 
             -- ===================================================================================================
             -- U-Type (LUI, AUIPC)
             -- ===================================================================================================
             when c_OPCODE_LUI =>
-                RegWrite_o <= '1' ;
-                ALUSrcA_o  <= "10"; 
-                AluSrcB_o  <= '1' ;
-                ALUOp_o    <= "00";
+                Control_o.reg_write            <= '1' ;
+                Control_o.alu_src_a            <= "10"; 
+                Control_o.alu_src_b            <= '1' ;
+                Control_o.alu_op               <= "00";
 
             when c_OPCODE_AUIPC =>
-                RegWrite_o <= '1' ;
-                ALUSrcA_o  <= "01"; 
-                AluSrcB_o  <= '1' ;
-                ALUOp_o    <= "00";
+                Control_o.reg_write            <= '1' ;
+                Control_o.alu_src_a            <= "01"; 
+                Control_o.alu_src_b            <= '1' ;
+                Control_o.alu_op               <= "00";
 
             -- ===================================================================================================
             -- OPCODE desconhecido → NOP

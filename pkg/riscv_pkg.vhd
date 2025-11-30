@@ -57,4 +57,34 @@ package riscv_pkg is
     constant c_ALU_SRL  : std_logic_vector(3 downto 0) := "0101";
     constant c_ALU_SRA  : std_logic_vector(3 downto 0) := "1101";
 
+    -- === TIPO DE REGISTRO DE CONTROLE ===
+
+    type t_control is record
+        reg_write         : std_logic;                                -- Habilita escrita no banco de registradores
+        alu_src_a         : std_logic_vector(1 downto 0);             -- Seleciona a fonte do primeiro operando da ALU
+        alu_src_b         : std_logic;                                -- Seleciona a fonte do segundo operando da ALU (0=registrador, 1=imediato)
+        mem_to_reg        : std_logic;                                -- Seleciona a fonte dos dados a serem escritos no registrador (0=ALU, 1=Memória)
+        mem_read          : std_logic;                                -- Habilita leitura da memória
+        mem_write         : std_logic;                                -- Habilita escrita na memória
+        branch            : std_logic;                                -- Indica desvio condicional
+        jump              : std_logic;                                -- Indica salto incondicional
+        alu_op            : std_logic_vector(1 downto 0);             -- Código de operação da ALU (2 bits)
+        write_data_src    : std_logic;                                -- Habilita PC+4 como fonte de escrita
+    end record;
+
+    -- Constante para "zerar" tudo em t_control (NOP)
+
+    constant c_CONTROL_NOP : t_control := (
+        reg_write      => '0', 
+        alu_src_a      => "00", 
+        alu_src_b      => '0',
+        mem_to_reg     => '0', 
+        mem_read       => '0', 
+        mem_write      => '0',
+        branch         => '0', 
+        jump           => '0', 
+        alu_op         => "00", 
+        write_data_src => '0'
+    );
+
 end package riscv_pkg;

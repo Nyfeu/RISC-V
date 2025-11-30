@@ -43,6 +43,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
+use work.riscv_pkg.all;
 
 -- ==| PROCESSOR_TOP |============================================================================================================================
 
@@ -84,17 +85,20 @@ architecture rtl of processor_top is
         -- Estes sinais conectam controlpath ao datapath, 
         -- indicando o que deve ser feito a cada ciclo de clock.
 
-            signal s_alu_zero, s_alu_negative, s_reg_write, s_alusrc_b, s_memtoreg, s_memread, s_memwrite, s_branch, s_jump, 
-                s_wdatasrc : std_logic := '0';
+        -- 1. Pacote de Controle (Substitui RegWrite, ALUSrc, MemWrite, etc.)
+        
+            signal s_ctrl : t_control; 
 
-            signal s_alusrc_a : std_logic_vector(1 downto 0);
+        -- 2. Sinais Dinâmicos (Calculados pelo Control a partir do estado)
 
             signal s_pc_src     : std_logic_vector(1 downto 0) := (others => '0');
             signal s_alucontrol : std_logic_vector(3 downto 0) := (others => '0');
 
-        -- Sinal para transmissão da instrução entre os caminhos...
+        -- 3. Feedback do Datapath para o Control
 
-            signal s_instruction_to_ctrl : std_logic_vector(31 downto 0) := (others => '0'); 
+            signal s_alu_zero     : std_logic := '0';
+            signal s_alu_negative : std_logic := '0';
+            signal s_instruction  : std_logic_vector(31 downto 0) := (others => '0');
 
 begin
 
@@ -105,18 +109,12 @@ begin
 
             U_CONTROLPATH: entity work.control
                 port map (
-                    Instruction_i     => s_instruction_to_ctrl,  -- Instrução buscada na memória
-                    ALU_Zero_i        => s_alu_zero,
-                    ALU_Negative_i    => s_alu_negative,
-                    RegWrite_o        => s_reg_write,
-                    ALUSrcA_o         => s_alusrc_a,
-                    ALUSrcB_o         => s_alusrc_b,
-                    MemtoReg_o        => s_memtoreg,
-                    MemRead_o         => s_memread,
-                    MemWrite_o        => s_memwrite,
-                    PCSrc_o           => s_pc_src,
-                    WriteDataSource_o => s_wdatasrc,
-                    ALUControl_o      => s_alucontrol
+                    Instruction_i      => s_instruction,  -- Instrução buscada na memória
+                    ALU_Zero_i         => s_alu_zero,
+                    ALU_Negative_i     => s_alu_negative,
+                    Control_o          => s_ctrl,         -- Sinais de controle do decodificador
+                    PCSrc_o            => s_pc_src,       -- Lógica de Branch/Jump resolvida
+                    ALUControl_o       => s_alucontrol    -- Decodificação da ALU resolvida
                 );
 
     -- ============== DATAPATH =============================
@@ -126,25 +124,20 @@ begin
 
             U_DATAPATH: entity work.datapath
                 port map (
-                    CLK_i       => CLK_i,
-                    Reset_i     => Reset_i,
-                    IMem_addr_o => IMem_addr_o,
-                    IMem_data_i => IMem_data_i,
-                    DMem_addr_o => DMem_addr_o,
-                    DMem_data_o => DMem_data_o,
-                    DMem_data_i => DMem_data_i,
+                    CLK_i              => CLK_i,
+                    Reset_i            => Reset_i,
+                    IMem_addr_o        => IMem_addr_o,
+                    IMem_data_i        => IMem_data_i,
+                    DMem_addr_o        => DMem_addr_o,
+                    DMem_data_o        => DMem_data_o,
+                    DMem_data_i        => DMem_data_i,
                     DMem_writeEnable_o => DMem_writeEnable_o,
-                    RegWrite_i  => s_reg_write,
-                    ALUSrcA_i   => s_alusrc_a,
-                    ALUSrcB_i   => s_alusrc_b,
-                    MemtoReg_i  => s_memtoreg,
-                    MemWrite_i  => s_memwrite,
-                    PCSrc_i     => s_pc_src, 
-                    ALUControl_i => s_alucontrol,
-                    WriteDataSource_i  => s_wdatasrc,
-                    Instruction_o => s_instruction_to_ctrl,
-                    ALU_Zero_o => s_alu_zero,
-                    ALU_Negative_o => s_alu_negative
+                    Control_i          => s_ctrl,
+                    PCSrc_i            => s_pc_src, 
+                    ALUControl_i       => s_alucontrol,
+                    Instruction_o      => s_instruction,
+                    ALU_Zero_o         => s_alu_zero,
+                    ALU_Negative_o     => s_alu_negative
                 );
 
 end architecture rtl; -- rtl

@@ -24,6 +24,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all; 
+use work.riscv_pkg.all;
 
 -------------------------------------------------------------------------------------------------------------------
 -- ENTIDADE: Definição da interface do Caminho de Dados (datapath)
@@ -60,14 +61,9 @@ entity datapath is
 
         -- Entradas
 
-        RegWrite_i         : in std_logic;                            -- Habilita escrita no Banco de Registradores
-        ALUSrcA_i          : in std_logic_vector(1 downto 0);         -- Seleciona a 1ª fonte da ALU
-        ALUSrcB_i          : in std_logic;                            -- Seleciona a 2ª fonte da ALU (Reg vs Imm)
-        MemtoReg_i         : in std_logic;                            -- Seleciona a fonte de escrita no registrador (ALU vs Mem)
-        MemWrite_i         : in std_logic;                            -- Habilita escrita na memória (DMEM)
+        Control_i          : in  t_control;                           -- Recebe todos os sinais do decoder
         PCSrc_i            : in std_logic_vector(1 downto 0);         -- Comando para o MUX do PC
         ALUControl_i       : in std_logic_vector(3 downto 0);         -- Código de 4 bits para a operação da ALU
-        WriteDataSource_i  : in std_logic;                            -- Habilita PC+4 como fonte de escrita (para JAL/JALR)
 
         -- Saídas
 
@@ -108,8 +104,8 @@ begin
 
     -- Saídas para o control path
 
-        Instruction_o <= s_instruction;
-        ALU_Zero_o    <= s_alu_zero;
+        Instruction_o  <= s_instruction;
+        ALU_Zero_o     <= s_alu_zero;
         ALU_Negative_o <= s_alu_negative;
 
     -- ============== Estágio de Busca (FETCH) ===============================================
@@ -147,7 +143,7 @@ begin
             U_REG_FILE: entity work.reg_file
                 port map (
                     clk_i        => CLK_i,                            -- Clock do processador
-                    RegWrite_i   => RegWrite_i,                       -- Habilita escrita no banco de registradores
+                    RegWrite_i   => Control_i.reg_write,              -- Habilita escrita no banco de registradores
                     ReadAddr1_i  => s_instruction(19 downto 15),      -- rs1 (bits [19:15]) - 5 bits
                     ReadAddr2_i  => s_instruction(24 downto 20),      -- rs2 (bits [24:20]) - 5 bits
                     WriteAddr_i  => s_instruction(11 downto 7),       -- rd  (bits [11: 7]) - 5 bits
@@ -161,14 +157,14 @@ begin
         -- O Mux ALUSrcB seleciona a segunda entrada da ULA:
         -- Se s_alusrc_b='0' (R-Type, Branch), usa o valor do registrador s_read_data_2.
         -- Se s_alusrc_b='1' (I-Type, Load, Store), usa a constante s_immediate.
-    
-            s_alu_in_b <= s_read_data_2 when ALUSrcB_i = '0' else s_immediate;
 
-            with ALUSrcA_i select
-                s_alu_in_a <= s_read_data_1    when "00", -- Padrão (rs1)
-                            s_pc_current     when "01",   -- AUIPC (PC)
-                            x"00000000"      when "10",   -- LUI (Zero)
-                            s_read_data_1    when others;
+            with Control_i.alu_src_a select
+                s_alu_in_a <= s_read_data_1 when "00",   -- Padrão (rs1)
+                            s_pc_current    when "01",   -- AUIPC (PC)
+                            x"00000000"     when "10",   -- LUI (Zero)
+                            s_read_data_1   when others;
+
+            s_alu_in_b <= s_read_data_2 when Control_i.alu_src_b = '0' else s_immediate;
 
         -- A ULA executa a operação comandada pelo s_alu_control.
         -- O resultado (s_alu_result) pode ser um valor aritmético, um endereço de memória ou um resultado de comparação.
@@ -198,7 +194,7 @@ begin
     
         -- - O sinal de escrita na memória vem da unidade de controle.
 
-            DMem_writeEnable_o <= MemWrite_i;
+            DMem_writeEnable_o <= Control_i.mem_write;
 
         -- Instanciação da Unidade de Carga
 
@@ -223,8 +219,8 @@ begin
 
         -- Mux MemtoReg: decide o que será escrito de volta no registrador
     
-            s_write_back_data <= s_pc_plus_4 when WriteDataSource_i = '1' else
-                s_load_unit_out when MemtoReg_i = '1' else
+            s_write_back_data <= s_pc_plus_4 when Control_i.write_data_src = '1' else
+                s_load_unit_out when Control_i.mem_to_reg = '1' else
                 s_alu_result;
 
     -- ============== Lógica de Cálculo do Próximo PC ======================================
