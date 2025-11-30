@@ -84,8 +84,10 @@ architecture rtl of processor_top is
         -- Estes sinais conectam controlpath ao datapath, 
         -- indicando o que deve ser feito a cada ciclo de clock.
 
-            signal s_alu_zero, s_alu_negative, s_reg_write, s_alusrc, s_memtoreg, s_memread, s_memwrite, s_branch, s_jump, 
+            signal s_alu_zero, s_alu_negative, s_reg_write, s_alusrc_b, s_memtoreg, s_memread, s_memwrite, s_branch, s_jump, 
                 s_wdatasrc : std_logic := '0';
+
+            signal s_alusrc_a : std_logic_vector(1 downto 0);
 
             signal s_pc_src     : std_logic_vector(1 downto 0) := (others => '0');
             signal s_alucontrol : std_logic_vector(3 downto 0) := (others => '0');
@@ -103,17 +105,18 @@ begin
 
             U_CONTROLPATH: entity work.control
                 port map (
-                    Instruction_i => s_instruction_to_ctrl,                 -- Instrução buscada na memória
-                    ALU_Zero_i    => s_alu_zero,
-                    ALU_Negative_i => s_alu_negative,
-                    RegWrite_o    => s_reg_write,
-                    ALUSrc_o      => s_alusrc,
-                    MemtoReg_o    => s_memtoreg,
-                    MemRead_o     => s_memread,
-                    MemWrite_o    => s_memwrite,
-                    PCSrc_o       => s_pc_src,
+                    Instruction_i     => s_instruction_to_ctrl,  -- Instrução buscada na memória
+                    ALU_Zero_i        => s_alu_zero,
+                    ALU_Negative_i    => s_alu_negative,
+                    RegWrite_o        => s_reg_write,
+                    ALUSrcA_o         => s_alusrc_a,
+                    ALUSrcB_o         => s_alusrc_b,
+                    MemtoReg_o        => s_memtoreg,
+                    MemRead_o         => s_memread,
+                    MemWrite_o        => s_memwrite,
+                    PCSrc_o           => s_pc_src,
                     WriteDataSource_o => s_wdatasrc,
-                    ALUControl_o  => s_alucontrol
+                    ALUControl_o      => s_alucontrol
                 );
 
     -- ============== DATAPATH =============================
@@ -132,7 +135,8 @@ begin
                     DMem_data_i => DMem_data_i,
                     DMem_writeEnable_o => DMem_writeEnable_o,
                     RegWrite_i  => s_reg_write,
-                    ALUSrc_i    => s_alusrc,
+                    ALUSrcA_i   => s_alusrc_a,
+                    ALUSrcB_i   => s_alusrc_b,
                     MemtoReg_i  => s_memtoreg,
                     MemWrite_i  => s_memwrite,
                     PCSrc_i     => s_pc_src, 

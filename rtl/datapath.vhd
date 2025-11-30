@@ -61,7 +61,8 @@ entity datapath is
         -- Entradas
 
         RegWrite_i         : in std_logic;                            -- Habilita escrita no Banco de Registradores
-        ALUSrc_i           : in std_logic;                            -- Seleciona a 2ª fonte da ALU (Reg vs Imm)
+        ALUSrcA_i          : in std_logic_vector(1 downto 0);         -- Seleciona a 1ª fonte da ALU
+        ALUSrcB_i          : in std_logic;                            -- Seleciona a 2ª fonte da ALU (Reg vs Imm)
         MemtoReg_i         : in std_logic;                            -- Seleciona a fonte de escrita no registrador (ALU vs Mem)
         MemWrite_i         : in std_logic;                            -- Habilita escrita na memória (DMEM)
         PCSrc_i            : in std_logic_vector(1 downto 0);         -- Comando para o MUX do PC
@@ -93,6 +94,7 @@ architecture rtl of datapath is
     signal s_read_data_1          : std_logic_vector(31 downto 0) := (others => '0');     -- Dados lidos do primeiro registrador (rs1)
     signal s_read_data_2          : std_logic_vector(31 downto 0) := (others => '0');     -- Dados lidos do segundo registrador (rs2)
     signal s_immediate            : std_logic_vector(31 downto 0) := (others => '0');     -- Imediato estendido (32 bits)
+    signal s_alu_in_a             : std_logic_vector(31 downto 0) := (others => '0');     -- Primeiro operando da ALU
     signal s_alu_in_b             : std_logic_vector(31 downto 0) := (others => '0');     -- Segundo operando da ALU (registrador ou imediato)
     signal s_alu_result           : std_logic_vector(31 downto 0) := (others => '0');     -- Resultado da ALU (32 bits)
     signal s_write_back_data      : std_logic_vector(31 downto 0) := (others => '0');     -- Dados a serem escritos de volta no banco de registradores
@@ -156,18 +158,24 @@ begin
 
     -- ============== Estágio de Execução (EXECUTE) ==========================================
 
-        -- O Mux ALUSrc seleciona a segunda entrada da ULA:
-        -- Se s_alusrc='0' (R-Type, Branch), usa o valor do registrador s_read_data_2.
-        -- Se s_alusrc='1' (I-Type, Load, Store), usa a constante s_immediate.
+        -- O Mux ALUSrcB seleciona a segunda entrada da ULA:
+        -- Se s_alusrc_b='0' (R-Type, Branch), usa o valor do registrador s_read_data_2.
+        -- Se s_alusrc_b='1' (I-Type, Load, Store), usa a constante s_immediate.
     
-            s_alu_in_b <= s_read_data_2 when ALUSrc_i = '0' else s_immediate;
+            s_alu_in_b <= s_read_data_2 when ALUSrcB_i = '0' else s_immediate;
+
+            with ALUSrcA_i select
+                s_alu_in_a <= s_read_data_1    when "00", -- Padrão (rs1)
+                            s_pc_current     when "01",   -- AUIPC (PC)
+                            x"00000000"      when "10",   -- LUI (Zero)
+                            s_read_data_1    when others;
 
         -- A ULA executa a operação comandada pelo s_alu_control.
         -- O resultado (s_alu_result) pode ser um valor aritmético, um endereço de memória ou um resultado de comparação.
 
             U_ALU: entity work.alu
                 port map (
-                    A_i => s_read_data_1,
+                    A_i => s_alu_in_a,
                     B_i => s_alu_in_b,
                     ALUControl_i => ALUControl_i,
                     Result_o => s_alu_result,

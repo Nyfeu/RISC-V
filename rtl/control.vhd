@@ -46,7 +46,8 @@ entity control is
         -- Saídas (Sinais de Controle para o Datapath)
 
             RegWrite_o        : out std_logic;                    -- Habilita escrita no Banco de Registradores
-            ALUSrc_o          : out std_logic;                    -- Seleciona a 2ª fonte da ALU (Reg vs Imm)
+            ALUSrcA_o         : out std_logic_vector(1 downto 0); -- Seleciona a 1ª fonte da ALU
+            ALUSrcB_o         : out std_logic;                    -- Seleciona a 2ª fonte da ALU (Reg vs Imm)
             MemtoReg_o        : out std_logic;                    -- Seleciona a fonte de escrita no registrador (ALU vs Mem)
             MemRead_o         : out std_logic;                    -- Habilita leitura na DMEM
             MemWrite_o        : out std_logic;                    -- Habilita escrita na DMEM
@@ -95,14 +96,15 @@ begin
                 port map (
                     Opcode_i           => s_opcode,
                     RegWrite_o         => RegWrite_o,
-                    ALUSrc_o           => ALUSrc_o,
+                    ALUSrcA_o          => ALUSrcA_o,
+                    AluSrcB_o          => AluSrcB_o,
                     MemtoReg_o         => MemtoReg_o,
                     MemRead_o          => MemRead_o,
                     MemWrite_o         => MemWrite_o,
                     Branch_o           => s_branch,
                     Jump_o             => s_jump,
                     ALUOp_o            => s_aluop,
-                    WriteDataSource_o => WriteDataSource_o
+                    WriteDataSource_o  => WriteDataSource_o
                 );
 
     -- Unidade de Controle da ALU
