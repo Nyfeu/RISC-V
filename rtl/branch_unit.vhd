@@ -61,11 +61,12 @@ begin
                     else BranchTaken_o <= '0'; end if;
 
                 when "100" => -- BLT (A < B, com sinal)
-                    if ALU_Negative_i = '1' then BranchTaken_o <= '1';
+                    if ALU_Zero_i = '0' then BranchTaken_o <= '1'; 
                     else BranchTaken_o <= '0'; end if;
 
                 when "101" => -- BGE (A >= B, com sinal)
-                    if ALU_Negative_i = '0' then BranchTaken_o <= '1';
+
+                    if ALU_Zero_i = '1' then BranchTaken_o <= '1';
                     else BranchTaken_o <= '0'; end if;
 
                 when "110" => -- BLTU (A < B, sem sinal) -> ALU fez SLTU. Resultado é 1 (não-zero) se A < B.

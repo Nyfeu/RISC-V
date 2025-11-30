@@ -81,9 +81,12 @@ begin
                 -- NÍVEL 2: Decodificação com base em funct3
                 --------------------------------------------------------------------------------------------------
                 case Funct3_i is
-                    -- Para BEQ, BNE, BLT, BGE, a subtração é suficiente
-                    when "000" | "001" | "100" | "101" =>
+                    -- Para BEQ e BNE a subtração é suficiente
+                    when "000" | "001" =>
                         ALUControl_o <= c_ALU_SUB;
+                    -- Para BLT e BGE usa SLT ao invés de SUB
+                    when "100" | "101" =>
+                        ALUControl_o <= c_ALU_SLT;
                     -- Para BLTU, BGEU, precisamos de uma comparação sem sinal
                     when "110" | "111" =>
                         ALUControl_o <= c_ALU_SLTU;
