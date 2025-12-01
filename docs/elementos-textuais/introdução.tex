@@ -1,0 +1,78 @@
+\chapter{Introdução}
+\label{cap:introducao}
+
+A computação moderna é construída sobre camadas de abstração. Do clique de um mouse à 
+execução de uma inteligência artificial, existem bilhões de transistores operando em uma 
+sinfonia lógica precisa. No entanto, para a maioria dos profissionais da área, essa base 
+opera como uma "caixa-preta". O hardware tornou-se algo que se usa, mas não necessariamente 
+se compreende.
+
+Este trabalho propõe romper com essa visão utilitária. O projeto aqui documentado não é apenas 
+a construção de um microprocessador, mas, uma investigação prática sobre os fundamentos que 
+sustentam toda a era digital. Ao projetar, implementar e validar um sistema computacional 
+completo, buscamos resgatar o domínio sobre a camada de hardware subjacente.
+
+A arquitetura escolhida para guiar esta jornada é o RISC-V, um conjunto de instruções (ISA) 
+aberto que, por sua simplicidade e modularidade, serve como o veículo perfeito para o estudo de 
+arquitetura e organização de computadores.
+
+\section{Motivação}
+
+Por que, na era da computação em nuvem e linguagens de altíssimo nível, um engenheiro deve 
+despender tempo entendendo barramentos, datapaths e sinais de controle? A despeito do avanço das 
+abstrações oferecidas por linguagens modernas, frameworks e plataformas em nuvem, os sistemas 
+computacionais continuam fundamentados em princípios microarquiteturais que determinam seu 
+desempenho, seu comportamento e suas limitações. Esses conhecimentos permanecem essenciais porque 
+tais componentes constituem o nível de base sobre o qual todas as abstrações são 
+construídas. Sem essa compreensão, o engenheiro passa a operar máquinas sem entender suas 
+características - tais como: latência, gargalos, paralelismo, hierarquia de memória e restrições — 
+que afetam diretamente a eficiência e a confiabilidade de qualquer solução de software ou hardware 
+desenvolvida.
+
+Do ponto de vista formativo, a familiaridade com os elementos internos do processador também 
+capacita o engenheiro a compreender o funcionamento da cadeia completa de execução — da 
+especificação de uma instrução ao seu efeito no hardware físico. Essa visão abrangente é 
+indispensável em áreas como sistemas embarcados, computação de alto desempenho, aceleradores 
+especializados, dispositivos IoT, aplicações críticas e de tempo real, nas quais a interação 
+direta com o hardware é frequente e decisiva.
+
+Em suma, mesmo em um cenário em que as abstrações se tornam cada vez mais sofisticadas, a 
+compreensão do nível fundamental da computação permite que o engenheiro avalie limitações, 
+explore otimizações, antecipe comportamentos do sistema e desenvolva soluções mais robustas e 
+eficientes. Assim, o estudo desses conceitos continua sendo um elemento central na formação e 
+na prática da engenharia moderna.
+
+\section{Objetivos do Projeto}
+
+O objetivo central deste trabalho é suprir o abismo entre estudar diagramas de livros-texto e 
+fazer um sinal elétrico acender um pixel na tela. Para tal, projetando um System-on-Chip (SoC) 
+baseado na arquitetura RISC-V, validando os conceitos teóricos de organização de computadores 
+através de uma aplicação prática. 
+
+Portanto, visando prover uma experiência prática acerca dos tópicos estudados, os objetivos 
+específicos desse projeto são:
+
+\begin{enumerate}
+    \item \textbf{Microarquitetura}: Implementar um núcleo de processamento funcional, detalhando o 
+    fluxo de dados e a lógica de controle.
+    \item \textbf{Organização de Sistemas}: Desenvolver uma infraestrutura de comunicação 
+    (Barramento) que demonstre na prática o conceito de Mapeamento de Memória (MMIO), permitindo 
+    que a CPU interaja com o mundo externo.
+    \item \textbf{Interface Hardware/Software}: Construir o ecossistema necessário para executar 
+    código C em um ambiente sem sistema operacional (\textit{bare-metal}), desmistificando o funcionamento 
+    de bibliotecas padrão.
+\end{enumerate}
+
+\section{Organização do Documento}
+
+Este documento está organizado de forma a acompanhar evolução do projeto - abordando a concepção 
+da arquitetura e desenvolvimento da microarquitetura, organização do sistema, até a execução de 
+aplicações e simulações:
+
+\begin{enumerate}
+    \item O \textbf{Capítulo 2} fundamenta as escolhas de arquitetura (RISC-V) e ferramentas.
+    \item O \textbf{Capítulo 3} descreve o coração do sistema: o processador e sua microarquitetura.
+    \item O \textbf{Capítulo 4} expande o horizonte para o sistema completo, detalhando o Barramento e a organização da memória.
+    \item O \textbf{Capítulo 5} aborda a camada invisível de software que torna o hardware utilizável.
+    \item O \textbf{Capítulo 6} apresenta a implementação em um hardware real, através de uma placa FPGA, consolidando todos os conceitos em uma aplicação real.
+\end{enumerate}
