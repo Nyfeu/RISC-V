@@ -69,7 +69,7 @@ begin
     -- -- [ imm[20|10:1|11|19:12] | rd | opcode ]
 
     -- Processo combinacional ÚNICO para toda a lógica
-    IMM_GEN_PROCESS: process(all)
+    IMM_GEN_PROCESS: process(Instruction_i)
 
         -- Variável para o imediato de 12 bits (Formatos I e S)
         variable v_imm12 : std_logic_vector(11 downto 0);

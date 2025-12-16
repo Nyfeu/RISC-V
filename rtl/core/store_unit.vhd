@@ -49,12 +49,9 @@ end entity store_unit;
 -------------------------------------------------------------------------------------------------------------------
 
 architecture rtl of store_unit is
-
-    
-
 begin
 
-    STORE_UNIT_PROC: process(all)
+    STORE_UNIT_PROC: process(Data_from_DMEM_i, WriteData_i, Addr_LSB_i, Funct3_i)
 
         variable v_data_to_write : std_logic_vector(31 downto 0);
 

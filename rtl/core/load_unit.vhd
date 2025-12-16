@@ -91,7 +91,7 @@ architecture rtl of load_unit is
 begin
 
     -- Processo combinacional que seleciona e estende o dado correto
-    LOAD_UNIT_PROC: process(all)
+    LOAD_UNIT_PROC: process(DMem_data_i, Addr_LSB_i, Funct3_i)
 
         variable v_byte : std_logic_vector(7 downto 0);
         variable v_half : std_logic_vector(15 downto 0);

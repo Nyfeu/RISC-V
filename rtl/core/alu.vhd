@@ -72,12 +72,15 @@ end entity alu;
 -------------------------------------------------------------------------------------------------------------------
 
 architecture rtl of alu is
+
+    signal result_int : std_logic_vector(31 downto 0);
+
 begin
 
     -- A lista de sensibilidade "all" indica que o processo será executado sempre que qualquer sinal de entrada mudar
     -- Isso é adequado para uma ALU, que deve reagir imediatamente a mudanças nos operandos ou no controle
 
-    OPERATIONS: process(all)
+    OPERATIONS: process(A_i, B_i, ALUControl_i)
 
         -- Variável para armazenar o resultado temporariamente
         variable v_result : std_logic_vector(31 downto 0);
@@ -120,15 +123,17 @@ begin
         end case ;
 
         -- Atribuição do resultado final à saída Result_o
-        Result_o <= v_result;
+        result_int <= v_result;
 
     end process OPERATIONS;
 
     -- Atribuição da flag Zero_o: '1' se o resultado for zero, caso contrário '0'
-    Zero_o <= '1' when Result_o = x"00000000" else '0';
+    Zero_o <= '1' when result_int = x"00000000" else '0';
 
     -- Atribuição da flag Negative_o: '1' se o resultado for negativo, caso contrário '0'
-    Negative_o <= Result_o(31);
+    Negative_o <= result_int(31);
+    
+    Result_o <= result_int;
 
 end architecture rtl;
 

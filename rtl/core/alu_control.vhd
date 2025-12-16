@@ -51,7 +51,7 @@ end alu_control ;
 architecture rtl of alu_control is
 begin
 
-    DECODER: process(all)
+    DECODER: process(ALUOp_i, Funct3_i, Funct7_i)
     begin
 
         ----------------------------------------------------------------------------------------------------------

@@ -48,7 +48,7 @@ end entity branch_unit ;
 architecture rtl of branch_unit  is
 begin
 
-    BRANCH_CONDITION_LOGIC: process(all)
+    BRANCH_CONDITION_LOGIC: process(Branch_i, Funct3_i, ALU_Zero_i, ALU_Negative_i)
     begin
         if Branch_i = '1' then
             case Funct3_i is
