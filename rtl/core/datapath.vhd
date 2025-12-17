@@ -66,8 +66,7 @@ entity datapath is
         -- Saídas
 
         Instruction_o  : out std_logic_vector(31 downto 0);           -- Envia a instrução para o controle
-        ALU_Zero_o     : out std_logic;                               -- Envia a flag Zero para o controle
-        ALU_Negative_o : out std_logic                                -- Envia a flag Negative para o controle
+        ALU_Zero_o     : out std_logic                                -- Envia a flag Zero para o controle
     
     );
 
@@ -101,7 +100,6 @@ architecture rtl of datapath is
     signal s_load_unit_out        : std_logic_vector(31 downto 0) := (others => '0');     -- Sinal de saida da load_unit
     signal s_alu_zero             : std_logic := '0';                                     -- Flag "Zero" da ALU
     signal s_branch_or_jal_addr   : std_logic_vector(31 downto 0) := (others => '0');     -- Endereço para Branch e JAL
-    signal s_alu_negative         : std_logic := '0';                                     -- Flag "Negative" da ALU
     signal s_store_unit_out       : std_logic_vector(31 downto 0) := (others => '0');     -- Dado preparado para DMEM
 
 begin
@@ -116,7 +114,6 @@ begin
 
         Instruction_o  <= s_instruction;
         ALU_Zero_o     <= s_alu_zero;
-        ALU_Negative_o <= s_alu_negative;
 
     -- ============== Estágio de Busca (FETCH) ===============================================
 
@@ -185,8 +182,7 @@ begin
                     B_i => s_alu_in_b,
                     ALUControl_i => s_alucontrol,
                     Result_o => s_alu_result,
-                    Zero_o => s_alu_zero,
-                    Negative_o => s_alu_negative
+                    Zero_o => s_alu_zero
                 );
 
     -- ============== Estágio de Acesso à Memória (MEMORY) ==================================

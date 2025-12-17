@@ -42,7 +42,6 @@ entity control is
 
             Instruction_i  : in  std_logic_vector(31 downto 0);   -- A instrução para decodificação
             ALU_Zero_i     : in  std_logic;                       -- Flag 'Zero' vinda do Datapath
-            ALU_Negative_i : in  std_logic;                       -- Flag 'Negative' vinda do Datapath
         
         -- Saídas (Sinais de Controle para o Datapath)
 

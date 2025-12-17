@@ -92,7 +92,6 @@ architecture rtl of processor_top is
         -- 2. Feedback do Datapath para o Control
 
             signal s_alu_zero     : std_logic := '0';
-            signal s_alu_negative : std_logic := '0';
             signal s_instruction  : std_logic_vector(31 downto 0) := (others => '0');
 
 begin
@@ -106,7 +105,6 @@ begin
                 port map (
                     Instruction_i      => s_instruction,  -- Instrução buscada na memória
                     ALU_Zero_i         => s_alu_zero,
-                    ALU_Negative_i     => s_alu_negative,
                     Control_o          => s_ctrl          -- Todos os sinais de controle embalados
                 );
 
@@ -127,8 +125,7 @@ begin
                     DMem_writeEnable_o => DMem_writeEnable_o,
                     Control_i          => s_ctrl,
                     Instruction_o      => s_instruction,
-                    ALU_Zero_o         => s_alu_zero,
-                    ALU_Negative_o     => s_alu_negative
+                    ALU_Zero_o         => s_alu_zero
                 );
 
 end architecture rtl; -- rtl

@@ -58,10 +58,7 @@ entity alu is
         Result_o      : out std_logic_vector(31 downto 0);    
 
         -- Flag "Zero": ativo em '1' quando o resultado for igual a zero
-        Zero_o        : out std_logic;
-
-        -- Flag "Negative" : ativo em '1' quando o resultado for negativo
-        Negative_o    : out std_logic
+        Zero_o        : out std_logic
 
     );
 
@@ -129,10 +126,8 @@ begin
 
     -- Atribuição da flag Zero_o: '1' se o resultado for zero, caso contrário '0'
     Zero_o <= '1' when result_int = x"00000000" else '0';
-
-    -- Atribuição da flag Negative_o: '1' se o resultado for negativo, caso contrário '0'
-    Negative_o <= result_int(31);
     
+    -- Atribuição do resultado final à saída Result_o
     Result_o <= result_int;
 
 end architecture rtl;
