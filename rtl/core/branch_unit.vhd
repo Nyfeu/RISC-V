@@ -32,7 +32,6 @@ entity branch_unit  is
         Branch_i       : in  std_logic;                     -- Sinal do decoder principal que indica uma instrução de branch
         Funct3_i       : in  std_logic_vector(2 downto 0);  -- Campo Funct3 para identificar o tipo de branch
         ALU_Zero_i     : in  std_logic;                     -- Flag 'Zero' vinda da ALU
-        ALU_Negative_i : in  std_logic;                     -- Flag 'Negative' vinda da ALU
 
         -- Saída
         BranchTaken_o  : out std_logic                      -- '1' se a condição do branch for atendida 
@@ -48,7 +47,7 @@ end entity branch_unit ;
 architecture rtl of branch_unit  is
 begin
 
-    BRANCH_CONDITION_LOGIC: process(Branch_i, Funct3_i, ALU_Zero_i, ALU_Negative_i)
+    BRANCH_CONDITION_LOGIC: process(Branch_i, Funct3_i, ALU_Zero_i)
     begin
         if Branch_i = '1' then
             case Funct3_i is

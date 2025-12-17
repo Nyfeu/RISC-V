@@ -29,7 +29,6 @@ architecture test of branch_unit_tb is
             Branch_i       : in  std_logic;
             Funct3_i       : in  std_logic_vector(2 downto 0);
             ALU_Zero_i     : in  std_logic;
-            ALU_Negative_i : in  std_logic;
             BranchTaken_o  : out std_logic
         );
     end component branch_unit;
@@ -41,7 +40,6 @@ architecture test of branch_unit_tb is
     signal s_branch_i       : std_logic;
     signal s_funct3_i       : std_logic_vector(2 downto 0);
     signal s_alu_zero_i     : std_logic;
-    signal s_alu_negative_i : std_logic;
     signal s_branch_taken_o : std_logic;
 
 begin
@@ -54,7 +52,6 @@ begin
             Branch_i       => s_branch_i,
             Funct3_i       => s_funct3_i,
             ALU_Zero_i     => s_alu_zero_i,
-            ALU_Negative_i => s_alu_negative_i,
             BranchTaken_o  => s_branch_taken_o
         );
 
@@ -70,7 +67,6 @@ begin
         s_branch_i <= '0';
         s_funct3_i <= "---"; -- Irrelevante
         s_alu_zero_i <= '1'; -- Irrelevante
-        s_alu_negative_i <= '1'; -- Irrelevante
         wait for 1 ns;
         ASSERT s_branch_taken_o = '0' REPORT "ERRO: Desvio tomado quando Branch_i='0'!" SEVERITY error;
 
@@ -104,32 +100,27 @@ begin
         -- Teste 4: BLT (Branch if Less Than)
         report "TESTE: BLT (N=1)" severity note;
         s_funct3_i <= c_FUNCT3_BLT;
-        s_alu_negative_i <= '1';
         wait for 1 ns;
         ASSERT s_branch_taken_o = '1' REPORT "ERRO [BLT taken]: Desvio não foi tomado!" SEVERITY error;
 
         report "TESTE: BLT (N=0)" severity note;
-        s_alu_negative_i <= '0';
         wait for 1 ns;
         ASSERT s_branch_taken_o = '0' REPORT "ERRO [BLT not taken]: Desvio foi tomado indevidamente!" SEVERITY error;
 
         -- Teste 5: BGE (Branch if Greater or Equal)
         report "TESTE: BGE (N=0)" severity note;
         s_funct3_i <= c_FUNCT3_BGE;
-        s_alu_negative_i <= '0';
         wait for 1 ns;
         ASSERT s_branch_taken_o = '1' REPORT "ERRO [BGE taken]: Desvio não foi tomado!" SEVERITY error;
 
         report "TESTE: BGE (N=1)" severity note;
-        s_alu_negative_i <= '1';
         wait for 1 ns;
         ASSERT s_branch_taken_o = '0' REPORT "ERRO [BGE not taken]: Desvio foi tomado indevidamente!" SEVERITY error;
 
         -- Teste 6: BLTU (Branch if Less Than Unsigned)
         report "TESTE: BLTU (Resultado SLTU = 1 => Z=0)" severity note;
         s_funct3_i <= c_FUNCT3_BLTU;
-        s_alu_zero_i <= '0'; -- Simula resultado 1 da ULA (A < B)
-        s_alu_negative_i <= '0'; -- Irrelevante, mas bom definir
+        s_alu_zero_i <= '0'; -- Simula resultado 1 da ULA (A < B) 
         wait for 1 ns;
         ASSERT s_branch_taken_o = '1' REPORT "ERRO [BLTU taken]: Desvio não foi tomado!" SEVERITY error;
 

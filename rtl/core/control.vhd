@@ -116,10 +116,9 @@ begin
             U_BRANCH_UNIT: entity work.branch_unit
                 port map (
                     Branch_i       => s_decoder.branch,       -- Sinal decodificado do decoder
-                    Funct3_i       => s_funct3,            -- Campo funct3 da instrução
-                    ALU_Zero_i     => ALU_Zero_i,          -- Flag Zero vinda do datapath
-                    ALU_Negative_i => ALU_Negative_i,      -- Flag Negative vinda do datapath
-                    BranchTaken_o  => s_branch_condition_met -- Saída que indica se o desvio deve ser tomado
+                    Funct3_i       => s_funct3,               -- Campo funct3 da instrução
+                    ALU_Zero_i     => ALU_Zero_i,             -- Flag Zero vinda do datapath
+                    BranchTaken_o  => s_branch_condition_met  -- Saída que indica se o desvio deve ser tomado
                 );
 
         -- Calcula o valor de pcsrc baseado na lógica de branch e jump
