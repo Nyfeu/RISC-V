@@ -46,9 +46,8 @@ entity control is
         
         -- Saídas (Sinais de Controle para o Datapath)
 
-            Control_o      : out t_control;                       -- Record com todos os sinais do decoder
-            PCSrc_o        : out std_logic_vector(1 downto 0);    -- Seleciona o PC (program counter)
-            ALUControl_o   : out std_logic_vector(3 downto 0)     -- Código de 4 bits para a operação da ALU
+            Control_o      : out t_control                        -- Barramento com todos os sinais de controle 
+                                                                  -- (decoder, pcsrc, alucontrol)
 
     );
 
@@ -57,12 +56,16 @@ end entity;
 architecture rtl of control is
 
     -- Sinais internos
-    signal s_opcode : std_logic_vector(6 downto 0) := (others => '0');
-    signal s_funct3 : std_logic_vector(2 downto 0) := (others => '0');
-    signal s_funct7 : std_logic_vector(6 downto 0) := (others => '0');
+    signal s_opcode               : std_logic_vector(6 downto 0) := (others => '0');
+    signal s_funct3               : std_logic_vector(2 downto 0) := (others => '0');
+    signal s_funct7               : std_logic_vector(6 downto 0) := (others => '0');
 
     -- Sinal para armazenar o pacote de controle vindo do Decoder
-    signal s_ctrl : t_control;
+    signal s_decoder              : t_decoder := c_DECODER_NOP;
+
+    -- Sinais internos para lógica de control (extraídos de s_decoder)
+    signal s_alucontrol           : std_logic_vector(3 downto 0) := (others => '0');
+    signal s_pcsrc                : std_logic_vector(1 downto 0) := (others => '0');
 
     -- Sinal interno para lógica de branch
     signal s_branch_condition_met : std_logic := '0'; 
@@ -91,11 +94,8 @@ begin
             U_CONTROL: entity work.decoder
                 port map (
                     Opcode_i       => s_opcode,
-                    Control_o      => s_ctrl
+                    Decoder_o      => s_decoder
                 );
-
-        -- Repassa os sinais estáticos diretamente para a saída da entidade control
-        Control_o <= s_ctrl;
 
     -- Unidade de Controle da ALU
 
@@ -104,30 +104,38 @@ begin
     
             U_ALU_CONTROL: entity work.alu_control
                 port map (
-                    ALUOp_i        => s_ctrl.alu_op,
+                    ALUOp_i        => s_decoder.alu_op,
                     Funct3_i       => s_funct3,
                     Funct7_i       => s_funct7,
-                    ALUControl_o   => ALUControl_o
+                    ALUControl_o   => s_alucontrol
                 );
 
-    -- Lógica para o sinal PCSrc_o
+    -- Lógica para o sinal PCSrc
     
         -- Usa funct3 para decidir qual condição verificar
             U_BRANCH_UNIT: entity work.branch_unit
                 port map (
-                    Branch_i       => s_ctrl.branch,         -- Sinal vindo do decoder principal
-                    Funct3_i       => s_funct3,              -- Campo funct3 da instrução
-                    ALU_Zero_i     => ALU_Zero_i,            -- Flag Zero vinda do datapath
-                    ALU_Negative_i => ALU_Negative_i,        -- Flag Negative vinda do datapath
+                    Branch_i       => s_decoder.branch,       -- Sinal decodificado do decoder
+                    Funct3_i       => s_funct3,            -- Campo funct3 da instrução
+                    ALU_Zero_i     => ALU_Zero_i,          -- Flag Zero vinda do datapath
+                    ALU_Negative_i => ALU_Negative_i,      -- Flag Negative vinda do datapath
                     BranchTaken_o  => s_branch_condition_met -- Saída que indica se o desvio deve ser tomado
                 );
 
-        -- O desvio é tomado se a instrução for um Branch E a condição Zero for atendida.
+        -- Calcula o valor de pcsrc baseado na lógica de branch e jump
 
-            PCSrc_o <= "10" when (s_ctrl.jump = '1' and s_opcode = "1100111") else -- JALR
-               "01" when (s_ctrl.jump = '1' and s_opcode = "1101111") else -- JAL
-               "01" when (s_ctrl.branch = '1' and s_branch_condition_met = '1') else -- Branch Tomado
+            s_pcsrc <= "10" when (s_decoder.jump = '1' and s_opcode = "1100111") else -- JALR
+               "01" when (s_decoder.jump = '1' and s_opcode = "1101111") else -- JAL
+               "01" when (s_decoder.branch = '1' and s_branch_condition_met = '1') else -- Branch Tomado
                "00"; -- Padrão (PC + 4)
+
+    -- Monta o pacote de controle (t_control) com todos os sinais
+    
+            Control_o <= (
+                decoder    => s_decoder,
+                pcsrc      => s_pcsrc,
+                alucontrol => s_alucontrol
+            );
 
 end architecture; -- rtl
 

@@ -61,9 +61,7 @@ entity datapath is
 
         -- Entradas
 
-        Control_i          : in  t_control;                           -- Recebe todos os sinais do decoder
-        PCSrc_i            : in std_logic_vector(1 downto 0);         -- Comando para o MUX do PC
-        ALUControl_i       : in std_logic_vector(3 downto 0);         -- Código de 4 bits para a operação da ALU
+        Control_i          : in  t_control;                           -- Recebe todos os sinais de controle (decoder, pcsrc, alucontrol)
 
         -- Saídas
 
@@ -83,6 +81,12 @@ architecture rtl of datapath is
 
     -- ============== DECLARAÇÃO DOS SINAIS INTERNOS DO DATAPATH ==============
 
+    -- Sinais para desempacotar Control_i
+    signal s_ctrl                 : t_decoder;
+    signal s_pc_src               : std_logic_vector(1 downto 0);
+    signal s_alucontrol           : std_logic_vector(3 downto 0);
+
+    -- Sinais internos do datapath
     signal s_pc_current           : std_logic_vector(31 downto 0) := (others => '0');     -- Contador de Programa (PC) atual
     signal s_pc_next              : std_logic_vector(31 downto 0) := (others => '0');     -- Próximo valor do PC
     signal s_pc_plus_4            : std_logic_vector(31 downto 0) := (others => '0');     -- PC + 4 (endereço da próxima instrução)
@@ -101,6 +105,12 @@ architecture rtl of datapath is
     signal s_store_unit_out       : std_logic_vector(31 downto 0) := (others => '0');     -- Dado preparado para DMEM
 
 begin
+
+    -- Desempacota os sinais de Control_i (vindos da unidade de controle)
+
+        s_ctrl       <= Control_i.decoder;
+        s_pc_src     <= Control_i.pcsrc;
+        s_alucontrol <= Control_i.alucontrol;
 
     -- Saídas para o control path
 
@@ -143,7 +153,7 @@ begin
             U_REG_FILE: entity work.reg_file
                 port map (
                     clk_i        => CLK_i,                            -- Clock do processador
-                    RegWrite_i   => Control_i.reg_write,              -- Habilita escrita no banco de registradores
+                    RegWrite_i   => s_ctrl.reg_write,                 -- Habilita escrita no banco de registradores
                     ReadAddr1_i  => s_instruction(19 downto 15),      -- rs1 (bits [19:15]) - 5 bits
                     ReadAddr2_i  => s_instruction(24 downto 20),      -- rs2 (bits [24:20]) - 5 bits
                     WriteAddr_i  => s_instruction(11 downto 7),       -- rd  (bits [11: 7]) - 5 bits
@@ -158,13 +168,13 @@ begin
         -- Se s_alusrc_b='0' (R-Type, Branch), usa o valor do registrador s_read_data_2.
         -- Se s_alusrc_b='1' (I-Type, Load, Store), usa a constante s_immediate.
 
-            with Control_i.alu_src_a select
+            with s_ctrl.alu_src_a select
                 s_alu_in_a <= s_read_data_1 when "00",   -- Padrão (rs1)
                             s_pc_current    when "01",   -- AUIPC (PC)
                             x"00000000"     when "10",   -- LUI (Zero)
                             s_read_data_1   when others;
 
-            s_alu_in_b <= s_read_data_2 when Control_i.alu_src_b = '0' else s_immediate;
+            s_alu_in_b <= s_read_data_2 when s_ctrl.alu_src_b = '0' else s_immediate;
 
         -- A ULA executa a operação comandada pelo s_alu_control.
         -- O resultado (s_alu_result) pode ser um valor aritmético, um endereço de memória ou um resultado de comparação.
@@ -173,7 +183,7 @@ begin
                 port map (
                     A_i => s_alu_in_a,
                     B_i => s_alu_in_b,
-                    ALUControl_i => ALUControl_i,
+                    ALUControl_i => s_alucontrol,
                     Result_o => s_alu_result,
                     Zero_o => s_alu_zero,
                     Negative_o => s_alu_negative
@@ -194,7 +204,7 @@ begin
     
         -- - O sinal de escrita na memória vem da unidade de controle.
 
-            DMem_writeEnable_o <= Control_i.mem_write;
+            DMem_writeEnable_o <= s_ctrl.mem_write;
 
         -- Instanciação da Unidade de Carga
 
@@ -219,8 +229,8 @@ begin
 
         -- Mux MemtoReg: decide o que será escrito de volta no registrador
     
-            s_write_back_data <= s_pc_plus_4 when Control_i.write_data_src = '1' else
-                s_load_unit_out when Control_i.mem_to_reg = '1' else
+            s_write_back_data <= s_pc_plus_4 when s_ctrl.write_data_src = '1' else
+                s_load_unit_out when s_ctrl.mem_to_reg = '1' else
                 s_alu_result;
 
     -- ============== Lógica de Cálculo do Próximo PC ======================================
@@ -236,7 +246,7 @@ begin
         -- Mux final que alimenta o registrador do PC no próximo ciclo de clock
         -- - A prioridade é: Jumps têm precedência sobre Branches, que têm precedência sobre PC+4.
 
-            with PCSrc_i select
+            with s_pc_src select
                 s_pc_next <= s_pc_plus_4                    when "00", -- PC <- PC + 4
                             s_branch_or_jal_addr            when "01", -- PC <- Endereço de Branch ou JAL
                             s_alu_result(31 downto 1) & '0' when "10", -- PC <- Endereço do JALR (rs1 + imm)

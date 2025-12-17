@@ -42,7 +42,7 @@ entity decoder is
     Opcode_i      : in  std_logic_vector(6 downto 0);    -- Opcode da instrução (bits [6:0])
 
     -- Saídas
-    Control_o     : out t_control                        -- Pacote com todos os sinais de controle
+    Decoder_o     : out t_decoder                        -- Record com todos os sinais de controle
 
   ) ;
 
@@ -84,8 +84,6 @@ architecture rtl of decoder is
 
 begin
 
-    -- Processo de decodificação do opcode para gerar os sinais de controle
-
     --------------------------------------------------------------------------------------------------------------
     -- Processo de decodificação do OPCODE
     -- 
@@ -105,7 +103,7 @@ begin
 
         -- Valores padrão (NOP)
 
-        Control_o <= c_CONTROL_NOP;
+        Decoder_o <= c_DECODER_NOP;
 
         case Opcode_i is
 
@@ -113,74 +111,74 @@ begin
             -- Formato R (ex: ADD, SUB...)
             -- ===================================================================================================
             when c_OPCODE_R_TYPE =>
-                Control_o.reg_write            <= '1';
-                Control_o.alu_src_b            <= '0';
-                Control_o.alu_op               <= "10";
+                Decoder_o.reg_write            <= '1';
+                Decoder_o.alu_src_b            <= '0';
+                Decoder_o.alu_op               <= "10";
 
             -- ===================================================================================================
             -- Formato I (imediato ALU)
             -- ===================================================================================================
             when c_OPCODE_I_TYPE =>
-                Control_o.reg_write            <= '1';
-                Control_o.alu_src_b            <= '1';
-                Control_o.alu_op               <= "11";
+                Decoder_o.reg_write            <= '1';
+                Decoder_o.alu_src_b            <= '1';
+                Decoder_o.alu_op               <= "11";
 
             -- ===================================================================================================
             -- LOAD (ex: LW)
             -- ===================================================================================================
             when c_OPCODE_LOAD =>
-                Control_o.reg_write            <= '1';
-                Control_o.alu_src_b            <= '1';
-                Control_o.mem_to_reg           <= '1';
-                Control_o.mem_read             <= '1';
-                Control_o.alu_op               <= "00"; -- soma para endereçamento
+                Decoder_o.reg_write            <= '1';
+                Decoder_o.alu_src_b            <= '1';
+                Decoder_o.mem_to_reg           <= '1';
+                Decoder_o.alu_op               <= "00"; -- soma para endereçamento
 
             -- ===================================================================================================
             -- STORE (ex: SW)
             -- ===================================================================================================
             when c_OPCODE_STORE =>
-                Control_o.alu_src_b            <= '1';
-                Control_o.mem_write            <= '1';
-                Control_o.alu_op               <= "00"; -- soma para endereçamento
+                Decoder_o.alu_src_b            <= '1';
+                Decoder_o.mem_write            <= '1';
+                Decoder_o.alu_op               <= "00"; -- soma para endereçamento
 
             -- ===================================================================================================
             -- BRANCH (ex: BEQ)
             -- ===================================================================================================
             when c_OPCODE_BRANCH =>
-                Control_o.branch               <= '1';
-                Control_o.alu_op               <= "01"; -- subtração para comparação
+                Decoder_o.branch               <= '1';
+                Decoder_o.alu_op               <= "01"; -- soma para comparação
 
             -- ===================================================================================================
             -- JUMP (JAL)
             -- ===================================================================================================
             when c_OPCODE_JAL =>
-                Control_o.reg_write            <= '1';
-                Control_o.jump                 <= '1';
-                Control_o.write_data_src       <= '1'; -- grava PC+4 no rd
+                Decoder_o.reg_write            <= '1';
+                Decoder_o.write_data_src       <= '1'; -- grava PC+4 no rd
+                Decoder_o.jump                 <= '1';
 
             -- ===================================================================================================
             -- JUMP (JALR)
             -- ===================================================================================================
             when c_OPCODE_JALR =>
-                Control_o.reg_write            <= '1';
-                Control_o.alu_src_b            <= '1';
-                Control_o.jump                 <= '1';
-                Control_o.write_data_src       <= '1';
+                Decoder_o.reg_write            <= '1';
+                Decoder_o.alu_src_b            <= '1';
+                Decoder_o.write_data_src       <= '1';
+                Decoder_o.jump                 <= '1';
+                Decoder_o.alu_op               <= "00";
 
             -- ===================================================================================================
             -- U-Type (LUI, AUIPC)
             -- ===================================================================================================
             when c_OPCODE_LUI =>
-                Control_o.reg_write            <= '1' ;
-                Control_o.alu_src_a            <= "10"; 
-                Control_o.alu_src_b            <= '1' ;
-                Control_o.alu_op               <= "00";
+                Decoder_o.reg_write            <= '1' ;
+                Decoder_o.alu_src_a            <= "10"; 
+                Decoder_o.alu_src_b            <= '1' ;
+                Decoder_o.alu_op               <= "00";
 
             when c_OPCODE_AUIPC =>
-                Control_o.reg_write            <= '1' ;
-                Control_o.alu_src_a            <= "01"; 
-                Control_o.alu_src_b            <= '1' ;
-                Control_o.alu_op               <= "00";
+                Decoder_o.reg_write            <= '1' ;
+                Decoder_o.alu_src_a            <= "01"; 
+                Decoder_o.alu_src_b            <= '1' ;
+                Decoder_o.alu_op               <= "00";
 
             -- ===================================================================================================
             -- OPCODE desconhecido → NOP
@@ -189,7 +187,7 @@ begin
 
         end case;
         
-    end process;
+    end process DECODING;
 
 end architecture rtl;
 

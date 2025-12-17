@@ -87,14 +87,9 @@ architecture rtl of processor_top is
 
         -- 1. Pacote de Controle (Substitui RegWrite, ALUSrc, MemWrite, etc.)
         
-            signal s_ctrl : t_control; 
+            signal s_ctrl : t_control;
 
-        -- 2. Sinais Dinâmicos (Calculados pelo Control a partir do estado)
-
-            signal s_pc_src     : std_logic_vector(1 downto 0) := (others => '0');
-            signal s_alucontrol : std_logic_vector(3 downto 0) := (others => '0');
-
-        -- 3. Feedback do Datapath para o Control
+        -- 2. Feedback do Datapath para o Control
 
             signal s_alu_zero     : std_logic := '0';
             signal s_alu_negative : std_logic := '0';
@@ -112,9 +107,7 @@ begin
                     Instruction_i      => s_instruction,  -- Instrução buscada na memória
                     ALU_Zero_i         => s_alu_zero,
                     ALU_Negative_i     => s_alu_negative,
-                    Control_o          => s_ctrl,         -- Sinais de controle do decodificador
-                    PCSrc_o            => s_pc_src,       -- Lógica de Branch/Jump resolvida
-                    ALUControl_o       => s_alucontrol    -- Decodificação da ALU resolvida
+                    Control_o          => s_ctrl          -- Todos os sinais de controle embalados
                 );
 
     -- ============== DATAPATH =============================
@@ -133,8 +126,6 @@ begin
                     DMem_data_i        => DMem_data_i,
                     DMem_writeEnable_o => DMem_writeEnable_o,
                     Control_i          => s_ctrl,
-                    PCSrc_i            => s_pc_src, 
-                    ALUControl_i       => s_alucontrol,
                     Instruction_o      => s_instruction,
                     ALU_Zero_o         => s_alu_zero,
                     ALU_Negative_o     => s_alu_negative
