@@ -70,7 +70,7 @@ end entity alu;
 
 architecture rtl of alu is
 
-    signal result_int : std_logic_vector(31 downto 0);
+    signal result_int : std_logic_vector(31 downto 0) := (others => '0');
 
 begin
 

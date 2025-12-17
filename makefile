@@ -24,6 +24,14 @@ OBJFLAGS  = -O verilog
 
 GTKWAVE   = gtkwave
 
+# COCOTB - Coroutine-based Co-simulation Testbench =======================================
+
+COCOTB_SIM      = ghdl
+COCOTB_DIR      = sim
+COCOTB_CORE_DIR = sim/core
+COCOTB_BUILD    = build/cocotb
+PYTHON          = python3
+
 # ========================================================================================
 #    Diretórios (NOVA ESTRUTURA)
 # ========================================================================================
@@ -214,3 +222,32 @@ view:
 clean:
 	@echo ">>> Limpando build..."
 	@rm -rf $(BUILD_DIR) *.cf
+
+# ========================================================================================
+#    COCOTB Testbench
+# ========================================================================================
+
+.PHONY: cocotb
+cocotb:
+	@mkdir -p $(COCOTB_BUILD)
+	@echo " "
+	@echo "======================================================================"
+	@echo ">>> 🧪 INICIANDO TESTES AUTOMATIZADOS (COCOTB) "
+	@echo ">>> 🎯 TOP LEVEL: $(TOP)"
+	@echo ">>> 📂 MÓDULO:    $(TEST)"
+	@echo "======================================================================"
+	@echo " "
+	@export COCOTB_ANSI_OUTPUT=1; \
+	export COCOTB_RESULTS_FILE=$(COCOTB_BUILD)/results.xml; \
+	$(MAKE) -s -f $(shell cocotb-config --makefiles)/Makefile.sim \
+		SIM=$(COCOTB_SIM) \
+		TOPLEVEL_LANG=vhdl \
+		TOPLEVEL=$(TOP) \
+		COCOTB_TEST_MODULES=$(TEST) \
+		WORKDIR=$(COCOTB_BUILD) \
+		VHDL_SOURCES="$(PKG_SRCS) $(CORE_SRCS)" \
+		PYTHONPATH=$(COCOTB_CORE_DIR) \
+		SIM_ARGS="--wave=$(COCOTB_BUILD)/wave-$(TEST).ghw" \
+		2>&1 | grep -v "vpi_iterate returned NULL"
+	@echo " "
+	@echo ">>> 🌊 Ondas salvas em: $(COCOTB_BUILD)/wave-$(TEST).ghw"
