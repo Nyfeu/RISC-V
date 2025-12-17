@@ -81,9 +81,14 @@ architecture rtl of datapath is
     -- ============== DECLARAÇÃO DOS SINAIS INTERNOS DO DATAPATH ==============
 
     -- Sinais para desempacotar Control_i
-    signal s_ctrl                 : t_decoder;
-    signal s_pc_src               : std_logic_vector(1 downto 0);
-    signal s_alucontrol           : std_logic_vector(3 downto 0);
+    signal s_reg_write            : std_logic := '0';                  
+    signal s_alu_src_a            : std_logic_vector(1 downto 0) := (others => '0');
+    signal s_alu_src_b            : std_logic := '0';                    
+    signal s_mem_to_reg           : std_logic := '0';                    
+    signal s_mem_write            : std_logic := '0';                   
+    signal s_write_data_src       : std_logic := '0';
+    signal s_pc_src               : std_logic_vector(1 downto 0) := (others => '0');
+    signal s_alucontrol           : std_logic_vector(3 downto 0) := (others => '0');
 
     -- Sinais internos do datapath
     signal s_pc_current           : std_logic_vector(31 downto 0) := (others => '0');     -- Contador de Programa (PC) atual
@@ -106,9 +111,14 @@ begin
 
     -- Desempacota os sinais de Control_i (vindos da unidade de controle)
 
-        s_ctrl       <= Control_i.decoder;
-        s_pc_src     <= Control_i.pcsrc;
-        s_alucontrol <= Control_i.alucontrol;
+        s_reg_write      <= Control_i.reg_write;
+        s_alu_src_a      <= Control_i.alu_src_a;
+        s_alu_src_b      <= Control_i.alu_src_b;
+        s_mem_to_reg     <= Control_i.mem_to_reg;
+        s_mem_write      <= Control_i.mem_write;
+        s_write_data_src <= Control_i.write_data_src;
+        s_pc_src         <= Control_i.pcsrc;
+        s_alucontrol     <= Control_i.alucontrol;
 
     -- Saídas para o control path
 
@@ -150,7 +160,7 @@ begin
             U_REG_FILE: entity work.reg_file
                 port map (
                     clk_i        => CLK_i,                            -- Clock do processador
-                    RegWrite_i   => s_ctrl.reg_write,                 -- Habilita escrita no banco de registradores
+                    RegWrite_i   => s_reg_write,                      -- Habilita escrita no banco de registradores
                     ReadAddr1_i  => s_instruction(19 downto 15),      -- rs1 (bits [19:15]) - 5 bits
                     ReadAddr2_i  => s_instruction(24 downto 20),      -- rs2 (bits [24:20]) - 5 bits
                     WriteAddr_i  => s_instruction(11 downto 7),       -- rd  (bits [11: 7]) - 5 bits
@@ -165,13 +175,13 @@ begin
         -- Se s_alusrc_b='0' (R-Type, Branch), usa o valor do registrador s_read_data_2.
         -- Se s_alusrc_b='1' (I-Type, Load, Store), usa a constante s_immediate.
 
-            with s_ctrl.alu_src_a select
+            with s_alu_src_a select
                 s_alu_in_a <= s_read_data_1 when "00",   -- Padrão (rs1)
                             s_pc_current    when "01",   -- AUIPC (PC)
                             x"00000000"     when "10",   -- LUI (Zero)
                             s_read_data_1   when others;
 
-            s_alu_in_b <= s_read_data_2 when s_ctrl.alu_src_b = '0' else s_immediate;
+            s_alu_in_b <= s_read_data_2 when s_alu_src_b = '0' else s_immediate;
 
         -- A ULA executa a operação comandada pelo s_alu_control.
         -- O resultado (s_alu_result) pode ser um valor aritmético, um endereço de memória ou um resultado de comparação.
@@ -200,7 +210,7 @@ begin
     
         -- - O sinal de escrita na memória vem da unidade de controle.
 
-            DMem_writeEnable_o <= s_ctrl.mem_write;
+            DMem_writeEnable_o <= s_mem_write;
 
         -- Instanciação da Unidade de Carga
 
@@ -225,8 +235,8 @@ begin
 
         -- Mux MemtoReg: decide o que será escrito de volta no registrador
     
-            s_write_back_data <= s_pc_plus_4 when s_ctrl.write_data_src = '1' else
-                s_load_unit_out when s_ctrl.mem_to_reg = '1' else
+            s_write_back_data <= s_pc_plus_4 when s_write_data_src = '1' else
+                s_load_unit_out when s_mem_to_reg = '1' else
                 s_alu_result;
 
     -- ============== Lógica de Cálculo do Próximo PC ======================================

@@ -92,17 +92,27 @@ package riscv_pkg is
     -- Agrupa todas as saídas da unidade de controle (control.vhd) que vão para o datapath
 
     type t_control is record
-        decoder    : t_decoder;                          -- Sinais do decoder (datapath)
-        pcsrc      : std_logic_vector(1 downto 0);       -- Seleção do PC (branch/jump)
-        alucontrol : std_logic_vector(3 downto 0);       -- Código de operação da ALU
+        reg_write         : std_logic;                    -- Habilita escrita no banco de registradores
+        alu_src_a         : std_logic_vector(1 downto 0); -- Seleciona a fonte do primeiro operando da ALU
+        alu_src_b         : std_logic;                    -- Seleciona a fonte do segundo operando da ALU (0=registrador, 1=imediato)
+        mem_to_reg        : std_logic;                    -- Seleciona a fonte dos dados a serem escritos no registrador (0=ALU, 1=Memória)
+        mem_write         : std_logic;                    -- Habilita escrita na memória
+        write_data_src    : std_logic;                    -- Habilita PC+4 como fonte de escrita
+        pcsrc      : std_logic_vector(1 downto 0);        -- Seleção do PC (branch/jump)
+        alucontrol : std_logic_vector(3 downto 0);        -- Código de operação da ALU
     end record;
 
     -- Constante para "zerar" tudo em t_control (NOP)
 
     constant c_CONTROL_NOP : t_control := (
-        decoder    => c_DECODER_NOP,
-        pcsrc      => "00",
-        alucontrol => "0000"
+        reg_write      => c_DECODER_NOP.reg_write, 
+        alu_src_a      => c_DECODER_NOP.alu_src_a, 
+        alu_src_b      => c_DECODER_NOP.alu_src_b,
+        mem_to_reg     => c_DECODER_NOP.mem_to_reg, 
+        mem_write      => c_DECODER_NOP.mem_write,
+        write_data_src => c_DECODER_NOP.write_data_src,
+        pcsrc          => "00",
+        alucontrol     => "0000"
     );
 
 end package riscv_pkg;

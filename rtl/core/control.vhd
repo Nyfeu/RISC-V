@@ -130,9 +130,14 @@ begin
     -- Monta o pacote de controle (t_control) com todos os sinais
     
             Control_o <= (
-                decoder    => s_decoder,
-                pcsrc      => s_pcsrc,
-                alucontrol => s_alucontrol
+                reg_write      => s_decoder.reg_write,
+                alu_src_a      => s_decoder.alu_src_a,
+                alu_src_b      => s_decoder.alu_src_b,
+                mem_to_reg     => s_decoder.mem_to_reg,
+                mem_write      => s_decoder.mem_write,
+                write_data_src => s_decoder.write_data_src,
+                pcsrc          => s_pcsrc,
+                alucontrol     => s_alucontrol
             );
 
 end architecture; -- rtl
