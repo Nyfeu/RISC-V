@@ -17,43 +17,50 @@ import logging
 # CONFIGURAÇÃO DE LOGGING E VISUAL
 # ==============================================================================
 
-# Suprime logs irrelevantes do GHDL/GPI (Generic Programming Interface)
+# Suprime logs irrelevantes do GHDL/GPI
 logging.getLogger("gpi").setLevel(logging.ERROR)
 
 class Colors:
-    """Códigos ANSI para colorir o terminal
-    
-    ANSI = American National Standards Institute
-    São códigos especiais que terminais entendem para colorir texto
-    Exemplo: \033[92m ativa verde, \033[0m desativa cores
-    """
-    HEADER = '\033[96m'   # Ciano - para cabeçalhos
-    SUCCESS = '\033[92m'  # Verde - para sucesso
-    INFO = '\033[94m'     # Azul - para informações
-    ENDC = '\033[0m'      # Fim - desativa cores
-    BOLD = '\033[1m'      # Negrito
-
-def log_info(msg):
-    """Escreve uma mensagem informativa"""
-    cocotb.log.info(f"{Colors.INFO}{msg}{Colors.ENDC}")
+    """Códigos ANSI para colorir o terminal"""
+    HEADER  = '\033[96m'  # Ciano
+    SUCCESS = '\033[92m'  # Verde
+    INFO    = '\033[94m'  # Azul
+    WARNING = '\033[93m'  # Amarelo
+    FAIL    = '\033[91m'  # Vermelho
+    ENDC    = '\033[0m'   # Reset
+    BOLD    = '\033[1m'   # Negrito
 
 def log_header(msg):
-    """Escreve uma mensagem de cabeçalho em ciano e negrito
-    cocotb.log = sistema de logs do cocotb que mostra no terminal
-    """
-    cocotb.log.info(f"{Colors.HEADER}{Colors.BOLD}>>> {msg}{Colors.ENDC}")
+    """Loga um cabeçalho de seção"""
+    cocotb.log.info(f"\n{Colors.HEADER}{Colors.BOLD}>>> {msg}{Colors.ENDC}")
+
+def log_info(msg):
+    """Loga uma informação geral"""
+    cocotb.log.info(f"{Colors.INFO}ℹ️  {msg}{Colors.ENDC}")
 
 def log_success(msg):
-    """Escreve uma mensagem de sucesso em verde com um checkmark (✔)"""
+    """Loga uma mensagem de sucesso"""
     cocotb.log.info(f"{Colors.SUCCESS}✅ {msg}{Colors.ENDC}")
+
+def log_warning(msg):
+    """Loga um aviso"""
+    cocotb.log.warning(f"{Colors.WARNING}⚠️  {msg}{Colors.ENDC}")
+
+def log_error(msg):
+    """Loga um erro"""
+    cocotb.log.error(f"{Colors.FAIL}❌ {msg}{Colors.ENDC}")
+
+def log_console(msg):
+    """Loga uma mensagem de console"""
+    cocotb.log.info(f"{Colors.INFO}📺 CONSOLE: {msg}{Colors.ENDC}")
+
+def log_int(msg):
+    """Loga um valor inteiro (número) no console"""
+    cocotb.log.info(f"{Colors.INFO}🔢 INT: {msg}{Colors.ENDC}")
 
 # ==============================================================================
 # CONSTANTES - Códigos de Operação da ALU
 # ==============================================================================
-#
-# Estas constantes definem os CÓDIGOS que a ALU entende
-# Cada código (como 0b0000) representa uma operação diferente.
-#
 
 ALU_ADD  = 0b0000  # Adição: 10 + 32 = 42
 ALU_SUB  = 0b1000  # Subtração: 10 - 32 = -22
@@ -66,44 +73,35 @@ ALU_SRA  = 0b1101  # Shift Right Aritmético: shift direita preservando sinal
 ALU_OR   = 0b0110  # OU lógico
 ALU_AND  = 0b0111  # E lógico
 
+# ==============================================================================
+# CONVERSÃO E DADOS
+# ==============================================================================
+
 def to_signed(val, bits=32):
-    """Converte um número para SINALIZADO (pode ser negativo)
-    
-    Exemplo: 0xFFFFFFFF em 32 bits = -1 (em representação com sinal)
-    
-    Como funciona:
-    1. val & ((1 << bits) - 1): Pega apenas os 'bits' menos significativos
-    2. Se o bit mais significativo é 1, o número é negativo
-    3. Nesse caso, subtraímos 2^bits para obter o valor negativo correto
-    """
+    """Converte int para signed (complemento de 2)"""
     val = val & ((1 << bits) - 1)
     if val & (1 << (bits - 1)):
         val -= (1 << bits)
     return val
 
 def to_unsigned(val, bits=32):
-    """Converte um número para NÃO SINALIZADO (sempre positivo)
-    
-    Exemplo: -1 em 32 bits = 0xFFFFFFFF
-    
-    Simplesmente máscara para pegar apenas os 'bits' bits menos significativos
-    """
+    """Garante que o valor seja tratado como unsigned"""
     return val & ((1 << bits) - 1)
 
+def int_to_char(val):
+    """Tenta converter int para char seguro para print"""
+    try:
+        c = chr(val & 0xFF)
+        return c if c.isprintable() or c == '\n' else '.'
+    except:
+        return '.'
+
 # ==============================================================================
-# FUNÇÕES AUXILIARES
+# SINCRONIZAÇÃO DE SINAIS
 # ==============================================================================
 
 async def settle():
-    """Função auxiliar para aguardar um ciclo de simulação
-    
-    'async' = assíncrono (não bloqueia, permite que simulador continue)
-    'await' = espera por algo acontecer
-    Timer(1, unit="ns") = espera 1 nanosegundo de tempo de simulação
-    
-    Após mudar um sinal de entrada, precisamos aguardar a lógica VHDL calcular 
-    a saída. Sem isso, seria lido o valor antigo que ainda não foi atualizado!
-    """
+    """Aguarda um passo de tempo para propagação de sinais"""
     await Timer(1, unit="ns")
 
 # ==============================================================================

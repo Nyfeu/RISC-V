@@ -226,30 +226,37 @@ clean:
 	@rm -rf $(BUILD_DIR) *.cf
 
 # ========================================================================================
-#    COCOTB Testbench
+#    COCOTB Testbench (Integrado com SW)
 # ========================================================================================
+
+# Valores padrão caso não sejam informados na linha de comando
+TOP  ?= processor_top
+TEST ?= test_soc
 
 .PHONY: cocotb
 cocotb:
+	$(if $(SW), @echo ">>> 🔨 Compilando Software: $(SW)"; $(MAKE) sw SW=$(SW), )
 	@mkdir -p $(COCOTB_BUILD)
 	@echo " "
 	@echo "======================================================================"
 	@echo ">>> 🧪 INICIANDO TESTES AUTOMATIZADOS (COCOTB) "
 	@echo ">>> 🎯 TOP LEVEL: $(TOP)"
 	@echo ">>> 📂 MÓDULO:    $(TEST)"
+	@echo ">>> 💾 SOFTWARE:  $(if $(SW),$(SW).hex,nenhum)"
 	@echo "======================================================================"
 	@echo " "
 	@export COCOTB_ANSI_OUTPUT=1; \
 	export COCOTB_RESULTS_FILE=$(COCOTB_BUILD)/results.xml; \
+	export PROGRAM_PATH=$(if $(SW),$(BUILD_DIR)/sw/$(SW).hex,); \
 	$(MAKE) -s -f $(shell cocotb-config --makefiles)/Makefile.sim \
 		SIM=$(COCOTB_SIM) \
 		TOPLEVEL_LANG=vhdl \
 		TOPLEVEL=$(TOP) \
-		COCOTB_TEST_MODULES=$(TEST) \
+		MODULE=$(TEST) \
 		WORKDIR=$(COCOTB_BUILD) \
 		VHDL_SOURCES="$(PKG_SRCS) $(CORE_SRCS) $(SOC_SRCS)" \
 		PYTHONPATH=$(COCOTB_CORE_DIR):$(COCOTB_SOC_DIR):$(COCOTB_COMMON_DIR) \
-		SIM_ARGS="--wave=$(COCOTB_BUILD)/wave-$(TEST).ghw" \
+		SIM_ARGS="--wave=$(COCOTB_BUILD)/wave-$(TEST).ghw --ieee-asserts=disable-at-0" \
 		SIM_BUILD=$(COCOTB_BUILD) \
 		2>&1 | grep -v "vpi_iterate returned NULL"
 	@echo " "

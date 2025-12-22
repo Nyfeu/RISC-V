@@ -36,11 +36,11 @@ Este documento rastreia o progresso da migração de um **Core** isolado para um
     | `0x80000000` | 4 KB | Main RAM | Memória de Instrução e Dados do Usuário | 
 
     - Roteamento de sinais `We`, `Addr`, `Data`.
-- [ ] Implementar `dual_port_ram.vhd`:
+- [x] Implementar `dual_port_ram.vhd`:
     - Porta A (Instrução), Porta B (Dados).
-    - Capacidade de carregar arquivo `.hex` inicial.
 - [ ] Implementar `boot_rom.vhd`:
     - Array constante com o código do **bootloader**.
+    - Capacidade de carregar a memória RAM.
 
 ### Periféricos (`rtl/perips/`)
 
