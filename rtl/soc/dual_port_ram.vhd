@@ -1,6 +1,29 @@
+------------------------------------------------------------------------------------------------------------------
+-- 
+-- File: dual_port_ram.vhd
+--
+-- ██████╗  █████╗ ███╗   ███╗
+-- ██╔══██╗██╔══██╗████╗ ████║
+-- ██████╔╝███████║██╔████╔██║
+-- ██╔══██╗██╔══██║██║╚██╔╝██║
+-- ██║  ██║██║  ██║██║ ╚═╝ ██║
+-- ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝
+--  
+-- Descrição : Módulo de RAM dual-port para leitura e escrita simultâneas
+--    em duas portas independentes - usando BRAM inferida.
+-- 
+-- Autor     : [André Maiolini]
+-- Data      : [22/12/2025]    
+--
+------------------------------------------------------------------------------------------------------------------
+
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
+
+-------------------------------------------------------------------------------------------------------------------
+-- ENTIDADE: Definição da interface da Dual Port RAM
+-------------------------------------------------------------------------------------------------------------------
 
 entity dual_port_ram is
     generic (
@@ -24,16 +47,20 @@ entity dual_port_ram is
     );
 end entity;
 
+-------------------------------------------------------------------------------------------------------------------
+-- ARQUITETURA: Implementação da Dual Port RAM
+-------------------------------------------------------------------------------------------------------------------
+
 architecture rtl of dual_port_ram is
 
+    -- Tipo de dado para a RAM
     type t_ram is array (0 to (2**ADDR_WIDTH)-1)
         of std_logic_vector(DATA_WIDTH-1 downto 0);
 
-    -- ALTERAÇÃO 1: Usar 'shared variable' ao invés de 'signal'
-    -- Isso permite que múltiplos processos acessem a memória sem conflito de drivers.
+    -- Usar shared variable permite que múltiplos processos acessem a memória sem conflito.
     shared variable ram : t_ram := (others => (others => '0'));
 
-    -- Atributo para forçar inferência de Block RAM (importante para FPGA)
+    -- Atributo para forçar inferência de Block RAM 
     attribute ram_style : string;
     attribute ram_style of ram : variable is "block";
 
@@ -44,7 +71,9 @@ begin
     -- =========================
     process(clk)
     begin
+
         if rising_edge(clk) then
+
             -- MODO READ-FIRST:
             -- 1. Lemos a variável para a saída (pega o valor atual/antigo)
             data_out_a <= ram(to_integer(unsigned(addr_a)));
@@ -55,7 +84,9 @@ begin
             if we_a = '1' then
                 ram(to_integer(unsigned(addr_a))) := data_in_a; -- Note o uso de :=
             end if;
+
         end if;
+        
     end process;
 
     -- =========================
@@ -63,7 +94,9 @@ begin
     -- =========================
     process(clk)
     begin
+
         if rising_edge(clk) then
+
             -- 1. Leitura (Read-First)
             data_out_b <= ram(to_integer(unsigned(addr_b)));
 
@@ -71,7 +104,11 @@ begin
             if we_b = '1' then
                 ram(to_integer(unsigned(addr_b))) := data_in_b;
             end if;
+
         end if;
+
     end process;
 
 end architecture;
+
+-------------------------------------------------------------------------------------------------------------------

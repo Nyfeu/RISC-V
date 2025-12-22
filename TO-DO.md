@@ -38,7 +38,7 @@ Este documento rastreia o progresso da migração de um **Core** isolado para um
     - Roteamento de sinais `We`, `Addr`, `Data`.
 - [x] Implementar `dual_port_ram.vhd`:
     - Porta A (Instrução), Porta B (Dados).
-- [ ] Implementar `boot_rom.vhd`:
+- [x] Implementar `boot_rom.vhd`:
     - Array constante com o código do **bootloader**.
     - Capacidade de carregar a memória RAM.
 
