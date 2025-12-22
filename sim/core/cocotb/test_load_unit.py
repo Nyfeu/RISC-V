@@ -102,6 +102,7 @@ async def verify_load(dut, mem_data, addr_lsb, funct3, expected_val, case_desc):
     dut.Addr_LSB_i.value  = addr_lsb
     dut.Funct3_i.value    = funct3
     
+    # Aguarda estabilização dos sinais
     await settle()
     
     # Leitura da saída (como inteiro sinalizado)
