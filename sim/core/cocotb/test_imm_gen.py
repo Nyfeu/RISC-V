@@ -12,7 +12,7 @@ import cocotb   # Biblioteca principal do cocotb
 import random   # Para gerar valores aleatórios nos testes
 
 # Importa utilitários compartilhados entre testbenches
-from test_utils import log_header, log_info, log_success, log_error, settle
+from test_utils import log_header, log_info, log_success, log_error, settle, sign_extend
 
 # =====================================================================================================================
 # CONSTANTES E FUNÇÕES AUXILIARES (RISC-V SPEC)
@@ -23,11 +23,6 @@ OPCODE_STORE    = 0x23  # 0100011 (SW, SB, SH)
 OPCODE_BRANCH   = 0x63  # 1100011 (BEQ, BNE, etc)
 OPCODE_LUI      = 0x37  # 0110111 (LUI)
 OPCODE_JAL      = 0x6F  # 1101111 (JAL)
-
-def sign_extend(value, bits):
-    """Realiza extensão de sinal de um valor de 'bits' largura para 32 bits (Python int)"""
-    sign_bit = 1 << (bits - 1)
-    return (value & (sign_bit - 1)) - (value & sign_bit)
 
 # =====================================================================================================================
 # GOLDEN MODEL - Modelo de referência em Python

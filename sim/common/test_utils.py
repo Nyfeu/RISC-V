@@ -106,6 +106,11 @@ def int_to_char(val):
         return c if c.isprintable() or c == '\n' else '.'
     except:
         return '.'
+    
+def sign_extend(value, bits):
+    """Realiza extensão de sinal de um valor de 'bits' largura para 32 bits"""
+    sign_bit = 1 << (bits - 1)
+    return (value & (sign_bit - 1)) - (value & sign_bit)
 
 # ==============================================================================
 # SINCRONIZAÇÃO DE SINAIS
