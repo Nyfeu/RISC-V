@@ -246,7 +246,7 @@ cocotb:
 		COCOTB_TEST_MODULES=$(TEST) \
 		WORKDIR=$(COCOTB_BUILD) \
 		VHDL_SOURCES="$(PKG_SRCS) $(CORE_SRCS)" \
-		PYTHONPATH=$(COCOTB_CORE_DIR) \
+		PYTHONPATH=$(COCOTB_CORE_DIR)/cocotb \
 		SIM_ARGS="--wave=$(COCOTB_BUILD)/wave-$(TEST).ghw" \
 		2>&1 | grep -v "vpi_iterate returned NULL"
 	@echo " "
