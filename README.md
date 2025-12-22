@@ -185,15 +185,15 @@ make cocotb TEST=test_processor TOP=processor_top SW=hello
 
 Open the last simulation waveform in GTKWave:
 ```bash
-make view TB=<testbench_name>
+make view TEST=<testbench_name>
 ```
 
 Example:
 ```bash
-make view TB=test_processor
+make view TEST=test_processor
 ```
 
-This opens `build/cocotb/wave-test_processor.ghw` in GTKWave for detailed signal inspection.
+This opens `build/cocotb/wave-test_processor.vcd` in GTKWave for detailed signal inspection.
 
 ## ✅ Verification
 

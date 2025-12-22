@@ -113,7 +113,7 @@ all:
 	@echo " make sw SW=<prog>                           -> Compilar app de usuário (em sw/apps)   "
 	@echo " make boot                                   -> Compilar bootloader (em sw/bootloader) "
 	@echo " make cocotb TEST=<tb> TOP=<top> [SW=<prog>] -> Rodar testes automatizados com COCOTB  "
-	@echo " make view TB=<tb>                           -> Abrir ondas para debubg no GTKWave     "
+	@echo " make view TEST=<tb>                         -> Abrir ondas para debubg no GTKWave     "
 	@echo " make clean                                  -> Limpar diretório build                 "
 	@echo " "
 	@echo "==========================================================================================="
@@ -147,7 +147,7 @@ $(BUILD_DIR)/sw/%.hex: $(SW_APPS_DIR)/%.c
 
 .PHONY: boot
 boot:
-	@echo ">>> Compilando Bootloader (TODO: Configurar flags de bootloader)"
+	@echo ">>> Compilando Bootloader (TODO: Configurar o bootloader)"
 
 # ========================================================================================
 #    Visualização
@@ -155,8 +155,13 @@ boot:
 
 .PHONY: view
 view:
-	@echo ">>> Abrindo GTKWave..."
-	@$(GTKWAVE) $(BUILD_DIR)/wave-$(TB).ghw 2>/dev/null &
+	@echo ">>> Abrindo GTKWave (Buscando em $(COCOTB_BUILD))..."
+	@if [ -f $(COCOTB_BUILD)/wave-$(TEST).vcd ]; then \
+		echo ">>> Abrindo VCD: $(COCOTB_BUILD)/wave-$(TEST).vcd"; \
+		$(GTKWAVE) $(COCOTB_BUILD)/wave-$(TEST).vcd 2>/dev/null; \
+	else \
+		echo ">>> ERRO: Nenhuma onda VCD encontrada para TEST=$(TEST) em $(COCOTB_BUILD)"; \
+	fi
 
 # ========================================================================================
 #    Limpeza
@@ -198,8 +203,8 @@ cocotb:
 		WORKDIR=$(COCOTB_BUILD) \
 		VHDL_SOURCES="$(ALL_RTL_SRCS)" \
 		PYTHONPATH=$(COCOTB_CORE_DIR):$(COCOTB_SOC_DIR):$(COCOTB_COMMON_DIR) \
-		SIM_ARGS="--wave=$(COCOTB_BUILD)/wave-$(TEST).ghw --ieee-asserts=disable-at-0" \
+		SIM_ARGS="--vcd=$(COCOTB_BUILD)/wave-$(TEST).vcd --ieee-asserts=disable-at-0" \
 		SIM_BUILD=$(COCOTB_BUILD) \
 		2>&1 | grep -v "vpi_iterate returned NULL"
 	@echo " "
-	@echo ">>> 🌊 Ondas salvas em: $(COCOTB_BUILD)/wave-$(TEST).ghw"
+	@echo ">>> 🌊 Ondas salvas em: $(COCOTB_BUILD)/wave-$(TEST).vcd"
