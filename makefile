@@ -14,6 +14,7 @@ PERIPS_DIR     = $(RTL_DIR)/perips
 # Estrutura de Simulação
 SIM_DIR        = sim
 SIM_CORE_DIR   = $(SIM_DIR)/core
+SIM_PERIPS_DIR = $(SIM_DIR)/perips
 SIM_SOC_DIR    = $(SIM_DIR)/soc
 SIM_COMMON_DIR = $(SIM_DIR)/common
 
@@ -46,13 +47,14 @@ GTKWAVE   = gtkwave
 
 # COCOTB - Coroutine-based Co-simulation Testbench =======================================
 
-COCOTB_SIM        = ghdl
-COCOTB_DIR        = $(SIM_DIR)
-COCOTB_CORE_DIR   = $(SIM_CORE_DIR)
-COCOTB_SOC_DIR    = $(SIM_SOC_DIR)
-COCOTB_COMMON_DIR = $(SIM_COMMON_DIR)
-COCOTB_BUILD      = $(BUILD_DIR)/cocotb
-PYTHON            = python3
+COCOTB_SIM         = ghdl
+COCOTB_DIR         = $(SIM_DIR)
+COCOTB_CORE_DIR    = $(SIM_CORE_DIR)
+COCOTB_PERIPS_DIR  = $(SIM_PERIPS_DIR)
+COCOTB_SOC_DIR     = $(SIM_SOC_DIR)
+COCOTB_COMMON_DIR  = $(SIM_COMMON_DIR)
+COCOTB_BUILD       = $(BUILD_DIR)/cocotb
+PYTHON             = python3
 
 # ========================================================================================
 # Fontes VHDL (Busca Automática)
@@ -212,7 +214,7 @@ cocotb:
 		WORKDIR=$(COCOTB_BUILD) \
 		VHDL_SOURCES="$(ALL_RTL_SRCS)" \
 		GHDL_ARGS="-fsynopsys" \
-		PYTHONPATH=$(COCOTB_CORE_DIR):$(COCOTB_SOC_DIR):$(COCOTB_COMMON_DIR) \
+		PYTHONPATH=$(COCOTB_CORE_DIR):$(COCOTB_SOC_DIR):$(COCOTB_PERIPS_DIR):$(COCOTB_COMMON_DIR) \
 		SIM_ARGS="--vcd=$(COCOTB_BUILD)/wave-$(TEST).vcd --ieee-asserts=disable-at-0" \
 		SIM_BUILD=$(COCOTB_BUILD) \
 		2>&1 | grep -v "vpi_iterate returned NULL"
