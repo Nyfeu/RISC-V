@@ -30,7 +30,7 @@ from test_utils import (
 )
 
 # =====================================================================================================================
-# GOLDEN MODEL - Implementação Perfeita em Python
+# GOLDEN MODEL - Modelo de referência em Python
 # =====================================================================================================================
 #
 # Def. Formal: Para todo (a, b, opcode) ∈ Domínio_Especificado:

@@ -1,11 +1,12 @@
 # ==============================================================================
-# alu_test_utils.py - Módulo Compartilhado de Utilidades para Testes da ALU
+# File: alu_test_utils.py
 # ==============================================================================
 #
-# Este módulo centraliza tudo que é COMUM entre diferentes testbenches:
-# - Configuração de logging e cores
-# - Constantes de operação
-# - Funções auxiliares
+# >>> Descrição: Módulo Compartilhado de Utilidades para Testes da ALU
+#       Este módulo centraliza tudo que é COMUM entre diferentes testbenches:
+#       - Configuração de logging e cores
+#       - Constantes de operação
+#       - Funções auxiliares
 #
 # ==============================================================================
 
@@ -72,6 +73,16 @@ ALU_SRL  = 0b0101  # Shift Right Lógico: move bits para direita (divide por 2)
 ALU_SRA  = 0b1101  # Shift Right Aritmético: shift direita preservando sinal
 ALU_OR   = 0b0110  # OU lógico
 ALU_AND  = 0b0111  # E lógico
+
+def alu_name(alu_op):
+    """Retorna o nome da operação ALU dado o código"""
+    names = {
+        ALU_ADD: "ADD", ALU_SUB: "SUB", ALU_SLL: "SLL",
+        ALU_SLT: "SLT", ALU_SLTU: "SLTU", ALU_XOR: "XOR",
+        ALU_SRL: "SRL", ALU_SRA: "SRA", ALU_OR: "OR",
+        ALU_AND: "AND"
+    }
+    return names.get(alu_op, "UNKNOWN")
 
 # ==============================================================================
 # CONVERSÃO E DADOS

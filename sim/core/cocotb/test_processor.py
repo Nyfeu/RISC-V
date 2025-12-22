@@ -1,7 +1,8 @@
 # ================================================================================================================
 # File: test_processor.py
+# ================================================================================================================
 #
-# Descrição: Testbench para o Processador RISC-V (RV32I).
+# >>> Descrição: Testbench para o Processador RISC-V (RV32I).
 #     Este módulo simula o ambiente externo ao processador, atuando como:
 #      1. Memória Principal (RAM de Instruções e Dados unificada).
 #      2. Controlador de Periféricos (MMIO) para Console e Controle de Simulação.

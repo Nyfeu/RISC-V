@@ -1,16 +1,16 @@
 # ==============================================================================
-# File: test_dual_port_ram.py (BRAM READ-FIRST)
+# File: test_dual_port_ram.py
 # ==============================================================================
 #
-# Este arquivo contém testes em cocotb para uma memória RAM dual-port (BRAM)
-# que utiliza a política READ-FIRST: quando há escrita, a saída mostra o valor
-# antigo (anterior à escrita), não o novo valor.
+# >>> Descrição: Este arquivo contém testes em cocotb para uma memória RAM dual-port (BRAM)
+#       que utiliza a política READ-FIRST: quando há escrita, a saída mostra o valor
+#       antigo (anterior à escrita), não o novo valor.
 #
 # ==============================================================================
 
 import cocotb
 from cocotb.clock import Clock
-from cocotb.triggers import RisingEdge, Timer
+from cocotb.triggers import RisingEdge
 import random
 
 # Constantes de configuração da memória
