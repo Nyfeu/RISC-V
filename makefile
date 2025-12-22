@@ -1,11 +1,31 @@
 # ========================================================================================
-#    Ferramentas
+#    Diretórios
 # ========================================================================================
 
-# GHDL - VHDL Simulator ==================================================================
+BUILD_DIR      = build
+PKG_DIR        = pkg
 
-GHDL      = ghdl
-GHDLFLAGS = --std=08 -fexplicit
+# Estrutura de Hardware
+RTL_DIR        = rtl
+CORE_DIR       = $(RTL_DIR)/core
+SOC_DIR        = $(RTL_DIR)/soc
+PERIPS_DIR     = $(RTL_DIR)/perips
+
+# Estrutura de Simulação
+SIM_DIR        = sim
+SIM_CORE_DIR   = $(SIM_DIR)/core
+SIM_SOC_DIR    = $(SIM_DIR)/soc
+SIM_COMMON_DIR = $(SIM_DIR)/common
+
+# Estrutura de Software
+SW_DIR         = sw
+SW_APPS_DIR    = $(SW_DIR)/apps
+SW_BOOT_DIR    = $(SW_DIR)/bootloader
+SW_COMMON_DIR  = $(SW_DIR)/common
+
+# ========================================================================================
+#    Ferramentas
+# ========================================================================================
 
 # RISC-V GCC Toolchain ===================================================================
 
@@ -13,11 +33,11 @@ CC        = riscv32-unknown-elf-gcc
 OBJCOPY   = riscv32-unknown-elf-objcopy
 
 # Flags de Compilação C
-# Nota: Atualizado para buscar o linker script em sw/common/
+
 CFLAGS    = -march=rv32i -mabi=ilp32 -nostdlib -nostartfiles -T sw/common/link.ld
 
 # Flags de Geração de HEX
-# -O verilog gera um formato hexadecimal legível (tipo @addr data)
+
 OBJFLAGS  = -O verilog
 
 # GTKWave - Waveform Viewer ==============================================================
@@ -27,36 +47,12 @@ GTKWAVE   = gtkwave
 # COCOTB - Coroutine-based Co-simulation Testbench =======================================
 
 COCOTB_SIM        = ghdl
-COCOTB_DIR        = sim
-COCOTB_CORE_DIR   = sim/core/cocotb
-COCOTB_SOC_DIR    = sim/soc
-COCOTB_COMMON_DIR = sim/common
-COCOTB_BUILD      = build/cocotb
+COCOTB_DIR        = $(SIM_DIR)
+COCOTB_CORE_DIR   = $(SIM_CORE_DIR)
+COCOTB_SOC_DIR    = $(SIM_SOC_DIR)
+COCOTB_COMMON_DIR = $(SIM_COMMON_DIR)
+COCOTB_BUILD      = $(BUILD_DIR)/cocotb
 PYTHON            = python3
-
-# ========================================================================================
-#    Diretórios (NOVA ESTRUTURA)
-# ========================================================================================
-
-BUILD_DIR    = build
-PKG_DIR      = pkg
-
-# Estrutura de Hardware
-RTL_DIR      = rtl
-CORE_DIR     = rtl/core
-SOC_DIR      = rtl/soc
-PERIPS_DIR   = rtl/perips
-
-# Estrutura de Simulação
-SIM_DIR      = sim
-SIM_CORE_DIR = sim/core
-SIM_SOC_DIR  = sim/soc
-
-# Estrutura de Software
-SW_DIR       = sw
-SW_APPS_DIR  = sw/apps
-SW_BOOT_DIR  = sw/bootloader
-SW_COMMON_DIR= sw/common
 
 # ========================================================================================
 # Fontes VHDL (Busca Automática)
@@ -80,8 +76,7 @@ CORE_SRCS := \
 	$(CORE_DIR)/branch_unit.vhd \
 	$(CORE_DIR)/control.vhd \
 	$(CORE_DIR)/datapath.vhd \
-	$(CORE_DIR)/processor_top.vhd \
-	$(SIM_CORE_DIR)/cocotb/decoder_wrapper.vhd
+	$(CORE_DIR)/processor_top.vhd
 
 # RTL SoC (Barramentos e Memórias)
 SOC_SRCS  := $(wildcard $(SOC_DIR)/*.vhd)
@@ -89,11 +84,11 @@ SOC_SRCS  := $(wildcard $(SOC_DIR)/*.vhd)
 # RTL Periféricos (Busca em subpastas, ex: rtl/perips/uart/file.vhd)
 PERIPS_SRCS := $(wildcard $(PERIPS_DIR)/*/*.vhd)
 
-# Lista completa de RTL
-ALL_RTL_SRCS := $(CORE_SRCS) $(SOC_SRCS) $(PERIPS_SRCS)
+# RTL Wrappers (para simulação)
+SIM_WRAPPERS := $(SIM_CORE_DIR)/decoder_wrapper.vhd
 
-# Fontes de Simulação (Todos os testbenches)
-ALL_SIM_SRCS := $(wildcard $(SIM_CORE_DIR)/*.vhd) $(wildcard $(SIM_SOC_DIR)/*.vhd)
+# Lista completa de RTL
+ALL_RTL_SRCS := $(CORE_SRCS) $(SOC_SRCS) $(PERIPS_SRCS) $(SIM_WRAPPERS) $(PKG_SRCS)
 
 # ========================================================================================
 #    Ajuda
@@ -156,59 +151,6 @@ boot:
 	@echo ">>> Compilando Bootloader (TODO: Configurar flags de bootloader)"
 
 # ========================================================================================
-#    Simulação (Core e SoC)
-# ========================================================================================
-
-.PHONY: sim
-sim:
-	@mkdir -p $(BUILD_DIR)/rtl $(BUILD_DIR)/sw
-	$(if $(SW), $(MAKE) sw SW=$(SW), )
-
-	@echo ">>> [VHDL] Analisando fontes..."
-	
-	@$(GHDL) -a $(GHDLFLAGS) --workdir=$(BUILD_DIR)/rtl $(PKG_SRCS)
-	@$(GHDL) -a $(GHDLFLAGS) --workdir=$(BUILD_DIR)/rtl $(ALL_RTL_SRCS)
-	@$(GHDL) -a $(GHDLFLAGS) --workdir=$(BUILD_DIR)/rtl $(ALL_SIM_SRCS)
-
-	@echo ">>> [VHDL] Elaborando $(TB)..."
-	@$(GHDL) -e $(GHDLFLAGS) --workdir=$(BUILD_DIR)/rtl $(TB)
-
-	@echo ">>> [SIM] Rodando simulação..."
-	@$(GHDL) -r $(GHDLFLAGS) --workdir=$(BUILD_DIR)/rtl $(TB) \
-		--wave=$(BUILD_DIR)/wave-$(TB).ghw \
-		--ieee-asserts=disable \
-		$(if $(SW), -gPROGRAM_PATH=$(BUILD_DIR)/sw/$(SW).hex, )
-	
-	@echo " "
-	@echo ">>> Simulação concluída. Onda gerada em: $(BUILD_DIR)/wave-$(TB).ghw"
-	@echo " "
-
-# ========================================================================================
-#    Simulação de Componentes (Unitária - Sem Software)
-# ========================================================================================
-
-.PHONY: comp
-comp:
-	@mkdir -p $(BUILD_DIR)/rtl
-	@echo ">>> [VHDL] Analisando fontes para componente..."
-	
-	@$(GHDL) -a $(GHDLFLAGS) --workdir=$(BUILD_DIR)/rtl $(PKG_SRCS)
-	@$(GHDL) -a $(GHDLFLAGS) --workdir=$(BUILD_DIR)/rtl $(ALL_RTL_SRCS)
-	@$(GHDL) -a $(GHDLFLAGS) --workdir=$(BUILD_DIR)/rtl $(ALL_SIM_SRCS)
-
-	@echo ">>> [VHDL] Elaborando $(TB)..."
-	@$(GHDL) -e $(GHDLFLAGS) --workdir=$(BUILD_DIR)/rtl $(TB)
-
-	@echo ">>> [SIM] Rodando simulação..."
-	@$(GHDL) -r $(GHDLFLAGS) --workdir=$(BUILD_DIR)/rtl $(TB) \
-		--wave=$(BUILD_DIR)/wave-$(TB).ghw \
-		--ieee-asserts=disable
-	
-	@echo " "
-	@echo ">>> Simulação Unitária concluída. Onda: $(BUILD_DIR)/wave-$(TB).ghw"
-	@echo " "
-
-# ========================================================================================
 #    Visualização
 # ========================================================================================
 
@@ -232,7 +174,7 @@ clean:
 
 # Valores padrão caso não sejam informados na linha de comando
 TOP  ?= processor_top
-TEST ?= test_soc
+TEST ?= test_processor
 
 .PHONY: cocotb
 cocotb:
@@ -255,7 +197,7 @@ cocotb:
 		TOPLEVEL=$(TOP) \
 		MODULE=$(TEST) \
 		WORKDIR=$(COCOTB_BUILD) \
-		VHDL_SOURCES="$(PKG_SRCS) $(CORE_SRCS) $(SOC_SRCS)" \
+		VHDL_SOURCES="$(ALL_RTL_SRCS)" \
 		PYTHONPATH=$(COCOTB_CORE_DIR):$(COCOTB_SOC_DIR):$(COCOTB_COMMON_DIR) \
 		SIM_ARGS="--wave=$(COCOTB_BUILD)/wave-$(TEST).ghw --ieee-asserts=disable-at-0" \
 		SIM_BUILD=$(COCOTB_BUILD) \
