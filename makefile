@@ -210,7 +210,7 @@ cocotb:
 		SIM=$(COCOTB_SIM) \
 		TOPLEVEL_LANG=vhdl \
 		TOPLEVEL=$(TOP) \
-		MODULE=$(TEST) \
+		COCOTB_TEST_MODULES=$(TEST) \
 		WORKDIR=$(COCOTB_BUILD) \
 		VHDL_SOURCES="$(ALL_RTL_SRCS)" \
 		GHDL_ARGS="-fsynopsys" \
