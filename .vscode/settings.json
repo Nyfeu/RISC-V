@@ -1,5 +1,6 @@
 {
     "python.analysis.extraPaths": [
-        "./sim/core"
+        "./sim/core",
+        "./sim/common"
     ]
 }
