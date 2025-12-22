@@ -142,12 +142,21 @@ $(BUILD_DIR)/sw/%.hex: $(SW_APPS_DIR)/%.c
 	@$(OBJCOPY) $(OBJFLAGS) $(patsubst %.hex,%.elf,$(@)) $(@)
 
 # ========================================================================================
-#    Compilação do Bootloader (ZSBL)
+#    Compilação do Bootloader (BOOT ROM)
 # ========================================================================================
+
+BOOT_SRC = sw/bootloader/boot.c sw/start.s
+BOOT_LDS = sw/common/boot.ld
 
 .PHONY: boot
 boot:
-	@echo ">>> Compilando Bootloader (TODO: Configurar o bootloader)"
+	@mkdir -p $(BUILD_DIR)/boot
+	@echo ">>> [BOOT] Compilando C..."
+	@$(CC) -march=rv32i -mabi=ilp32 -nostdlib -nostartfiles -T sw/common/boot.ld -o $(BUILD_DIR)/boot/bootloader.elf sw/bootloader/boot.c sw/start.s
+	@echo ">>> [BOOT] Extraindo Binário Puro..."
+	@$(OBJCOPY) -O binary $(BUILD_DIR)/boot/bootloader.elf $(BUILD_DIR)/boot/bootloader.bin
+	@echo ">>> [BOOT] Gerando HEX Limpo (32-bit word aligned)..."
+	@od -An -t x4 -v -w4 $(BUILD_DIR)/boot/bootloader.bin > $(BUILD_DIR)/boot/bootloader.hex
 
 # ========================================================================================
 #    Visualização
@@ -202,6 +211,7 @@ cocotb:
 		MODULE=$(TEST) \
 		WORKDIR=$(COCOTB_BUILD) \
 		VHDL_SOURCES="$(ALL_RTL_SRCS)" \
+		GHDL_ARGS="-fsynopsys" \
 		PYTHONPATH=$(COCOTB_CORE_DIR):$(COCOTB_SOC_DIR):$(COCOTB_COMMON_DIR) \
 		SIM_ARGS="--vcd=$(COCOTB_BUILD)/wave-$(TEST).vcd --ieee-asserts=disable-at-0" \
 		SIM_BUILD=$(COCOTB_BUILD) \
