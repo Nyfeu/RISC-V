@@ -80,7 +80,8 @@ CORE_SRCS := \
 	$(CORE_DIR)/branch_unit.vhd \
 	$(CORE_DIR)/control.vhd \
 	$(CORE_DIR)/datapath.vhd \
-	$(CORE_DIR)/processor_top.vhd
+	$(CORE_DIR)/processor_top.vhd \
+	$(SIM_CORE_DIR)/cocotb/decoder_wrapper.vhd
 
 # RTL SoC (Barramentos e Memórias)
 SOC_SRCS  := $(wildcard $(SOC_DIR)/*.vhd)
