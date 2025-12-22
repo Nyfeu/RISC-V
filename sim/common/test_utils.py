@@ -29,8 +29,13 @@ class Colors:
     """
     HEADER = '\033[96m'   # Ciano - para cabeçalhos
     SUCCESS = '\033[92m'  # Verde - para sucesso
+    INFO = '\033[94m'     # Azul - para informações
     ENDC = '\033[0m'      # Fim - desativa cores
     BOLD = '\033[1m'      # Negrito
+
+def log_info(msg):
+    """Escreve uma mensagem informativa"""
+    cocotb.log.info(f"{Colors.INFO}{msg}{Colors.ENDC}")
 
 def log_header(msg):
     """Escreve uma mensagem de cabeçalho em ciano e negrito

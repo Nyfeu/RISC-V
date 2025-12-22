@@ -26,11 +26,13 @@ GTKWAVE   = gtkwave
 
 # COCOTB - Coroutine-based Co-simulation Testbench =======================================
 
-COCOTB_SIM      = ghdl
-COCOTB_DIR      = sim
-COCOTB_CORE_DIR = sim/core
-COCOTB_BUILD    = build/cocotb
-PYTHON          = python3
+COCOTB_SIM        = ghdl
+COCOTB_DIR        = sim
+COCOTB_CORE_DIR   = sim/core/cocotb
+COCOTB_SOC_DIR    = sim/soc
+COCOTB_COMMON_DIR = sim/common
+COCOTB_BUILD      = build/cocotb
+PYTHON            = python3
 
 # ========================================================================================
 #    Diretórios (NOVA ESTRUTURA)
@@ -245,8 +247,8 @@ cocotb:
 		TOPLEVEL=$(TOP) \
 		COCOTB_TEST_MODULES=$(TEST) \
 		WORKDIR=$(COCOTB_BUILD) \
-		VHDL_SOURCES="$(PKG_SRCS) $(CORE_SRCS)" \
-		PYTHONPATH=$(COCOTB_CORE_DIR)/cocotb \
+		VHDL_SOURCES="$(PKG_SRCS) $(CORE_SRCS) $(SOC_SRCS)" \
+		PYTHONPATH=$(COCOTB_CORE_DIR):$(COCOTB_SOC_DIR):$(COCOTB_COMMON_DIR) \
 		SIM_ARGS="--wave=$(COCOTB_BUILD)/wave-$(TEST).ghw" \
 		SIM_BUILD=$(COCOTB_BUILD) \
 		2>&1 | grep -v "vpi_iterate returned NULL"

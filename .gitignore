@@ -11,3 +11,6 @@
 *.elf
 *.bin
 *.map
+
+# Ignorar pycache do Python
+__pycache__/
