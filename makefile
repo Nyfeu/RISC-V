@@ -248,6 +248,7 @@ cocotb:
 		VHDL_SOURCES="$(PKG_SRCS) $(CORE_SRCS)" \
 		PYTHONPATH=$(COCOTB_CORE_DIR)/cocotb \
 		SIM_ARGS="--wave=$(COCOTB_BUILD)/wave-$(TEST).ghw" \
+		SIM_BUILD=$(COCOTB_BUILD) \
 		2>&1 | grep -v "vpi_iterate returned NULL"
 	@echo " "
 	@echo ">>> 🌊 Ondas salvas em: $(COCOTB_BUILD)/wave-$(TEST).ghw"
