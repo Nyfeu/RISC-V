@@ -1,8 +1,10 @@
 # =====================================================================================================
 # File: test_uart_controller.py
 # =====================================================================================================
+#
 # >>> Descrição: Testbench de Integração para o UART Controller.
 #     Dividido em testes específicos para o caminho de TX e RX.
+#
 # =====================================================================================================
 
 import cocotb
@@ -13,10 +15,9 @@ from test_utils import log_header, log_info, log_success, log_error, log_console
 # =====================================================================================================
 # CONFIGURAÇÕES GLOBAIS
 # =====================================================================================================
+
 CLK_PERIOD_NS = 10
-# 100 MHz / 115200 baud = 868.055... ciclos
-# Arredondamos para inteiro para evitar erros de precisão flutuante no Timer
-CYCLES_PER_BIT = 868 
+CYCLES_PER_BIT = 868 # 100 MHz / 115200 baud = 868.055... ciclos 
 BIT_PERIOD_NS  = CYCLES_PER_BIT * CLK_PERIOD_NS
 
 ADDR_DATA = 0x0
@@ -28,6 +29,8 @@ ADDR_STAT = 0x4
 
 async def setup_dut(dut):
     """Inicializa clock e sinais para evitar Warnings de Metavalue"""
+
+    # Inicializa o Clock
     cocotb.start_soon(Clock(dut.clk, CLK_PERIOD_NS, unit="ns").start())
     
     # Inicializa entradas ANTES de qualquer borda de clock
