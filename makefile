@@ -142,6 +142,8 @@ $(BUILD_DIR)/sw/%.hex: $(SW_APPS_DIR)/%.c
 	@$(CC) $(CFLAGS) -o $(patsubst %.hex,%.elf,$(@)) $(SW_APPS_DIR)/../start.s $<
 	@echo ">>> [SW] Gerando HEX: $@"
 	@$(OBJCOPY) $(OBJFLAGS) $(patsubst %.hex,%.elf,$(@)) $(@)
+	@echo ">>> [SW] Gerando BIN: $(patsubst %.hex,%.bin,$(@))"
+	@$(OBJCOPY) -O binary $(patsubst %.hex,%.elf,$(@)) $(patsubst %.hex,%.bin,$(@))
 
 # ========================================================================================
 #    Compilação do Bootloader (BOOT ROM)
