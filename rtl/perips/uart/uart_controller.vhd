@@ -33,15 +33,15 @@ entity uart_controller is
         clk         : in  std_logic;
         rst         : in  std_logic;
 
-        -- Interface de Barramento (Simples)
-        -- O processador ativa 'sel_i' quando o endereço começa com 0x1000...
+        -- Interface de Barramento
+        -- O processador ativa 'sel_i' quando o endereço começa com '0x1'...
         sel_i       : in  std_logic; 
         we_i        : in  std_logic;                     -- 1=Write, 0=Read
         addr_i      : in  std_logic_vector(3 downto 0);  -- Apenas o Offset (0x0, 0x4...)
         data_i      : in  std_logic_vector(31 downto 0); -- Dado vindo da CPU
         data_o      : out std_logic_vector(31 downto 0); -- Dado indo para CPU
 
-        -- Pinos Físicos (Para o mundo externo)
+        -- Pinos Físicos
         uart_tx_pin : out std_logic;
         uart_rx_pin : in  std_logic
     );
