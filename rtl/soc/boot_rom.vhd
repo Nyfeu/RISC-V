@@ -29,12 +29,19 @@ use ieee.std_logic_textio.all;
 entity boot_rom is
     generic (
         INIT_FILE  : string  := "build/boot/bootloader.hex";     -- Arquivo HEX de inicialização (bootloader)
-        ADDR_WIDTH : integer := 10 -- 1 KB = 256 words           -- Largura do endereço (em palavras de 4 bytes) 
+        ADDR_WIDTH : integer := 10 -- Total de 4 KB              -- Largura do endereço (em palavras de 4 bytes) 
     );
     port (
-        clk    : in  std_logic;                                  -- Clock de operação
-        addr_i : in  std_logic_vector(31 downto 0);              -- Endereço de leitura (byte address)
-        data_o : out std_logic_vector(31 downto 0)               -- Dado lido da ROM
+        -- Sinal de controle de clock (sincronização da leitura)
+        clk      : in  std_logic;
+        
+        -- Porta A: Dedicada ao Fetch (Instruções)
+        addr_a_i : in  std_logic_vector(31 downto 0);            -- Endereço de 32 bits para leitura de instruções
+        data_a_o : out std_logic_vector(31 downto 0);            -- Dados de 32 bits lidos (instrução)
+
+        -- Porta B: Dedicada ao LOAD/STORE (Dados)
+        addr_b_i : in  std_logic_vector(31 downto 0);            -- Endereço de 32 bits para leitura de dados
+        data_b_o : out std_logic_vector(31 downto 0)             -- Dados de 32 bits lidos (dados)
     );
 end entity;
 
@@ -49,14 +56,14 @@ architecture rtl of boot_rom is
     
     -- Função para inicializar a ROM a partir de um arquivo HEX
     impure function init_rom_from_file(file_name : string) return t_rom is
-        
+
         file     f       : text open read_mode is file_name;
         variable l       : line;
         variable v_data  : std_logic_vector(31 downto 0);
         variable v_rom   : t_rom := (others => (others => '0'));
-        
+    
     begin
-
+    
         for i in 0 to (2**ADDR_WIDTH)-1 loop
             exit when endfile(f);
             readline(f, l);
@@ -64,7 +71,7 @@ architecture rtl of boot_rom is
             v_rom(i) := v_data;
         end loop;
         return v_rom;
-
+    
     end function;
 
     -- Memória ROM inicializada via arquivo HEX
@@ -76,29 +83,30 @@ architecture rtl of boot_rom is
 
 begin
 
-    -- Processo de leitura da ROM (síncrono)
+    -- Leitura Síncrona - Porta A
     process(clk)
-
-        -- Variável auxiliar para facilitar a leitura e checagem
         variable v_addr_idx : std_logic_vector(ADDR_WIDTH-1 downto 0);
-
-        begin
+    begin
         if rising_edge(clk) then
-        
-            -- Pegamos apenas os bits relevantes para o índice
-            v_addr_idx := addr_i(ADDR_WIDTH+1 downto 2);
-
-            -- PROTEÇÃO: Verifica se há metavalues ('U', 'X', 'Z', etc.) no endereço
+            v_addr_idx := addr_a_i(ADDR_WIDTH+1 downto 2);
             if Is_X(v_addr_idx) then
-
-                -- Se o endereço for lixo, sai 0 (evita o warning do to_integer)
-                data_o <= (others => '0');
-            
+                data_a_o <= (others => '0');
             else
-            
-                -- Conversão segura, pois sabemos que só tem '0' e '1'
-                data_o <= rom_content(to_integer(unsigned(v_addr_idx)));
-            
+                data_a_o <= rom_content(to_integer(unsigned(v_addr_idx)));
+            end if;
+        end if;
+    end process;
+
+    -- Leitura Síncrona - Porta B
+    process(clk)
+        variable v_addr_idx : std_logic_vector(ADDR_WIDTH-1 downto 0);
+    begin
+        if rising_edge(clk) then
+            v_addr_idx := addr_b_i(ADDR_WIDTH+1 downto 2);
+            if Is_X(v_addr_idx) then
+                data_b_o <= (others => '0');
+            else
+                data_b_o <= rom_content(to_integer(unsigned(v_addr_idx)));
             end if;
         end if;
     end process;
