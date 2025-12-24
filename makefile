@@ -28,8 +28,9 @@ SIM_COMMON_DIR     = $(SIM_DIR)/common
 # Estrutura de Software (Apps e Bootloader)
 SW_DIR             = sw
 SW_APPS_DIR        = $(SW_DIR)/apps
-SW_BOOT_DIR        = $(SW_DIR)/bootloader
-SW_COMMON_DIR      = $(SW_DIR)/common
+SW_BOOT_DIR        = $(SW_DIR)/platform/bootloader
+SW_LINKER_DIR      = $(SW_DIR)/platform/linker
+SW_STARTUP_DIR     = $(SW_DIR)/platform/startup
 
 # ==========================================================================================
 #                                  FERRAMENTAS E COMPILADORES
@@ -152,18 +153,19 @@ all:
 
 .PHONY: sw boot list-apps
 
-# Compilação de Apps (C e Assembly)
+# Compilação de Apps (C e Assembly) --------------------------------------------------------
+
 $(BUILD_DIR)/sw/%.hex: $(SW_APPS_DIR)/%.s
 	@mkdir -p $(@D)
 	@echo ">>> 🔨 [SW] Compilando Assembly: $<"
-	@$(CC) $(CFLAGS) -T $(SW_COMMON_DIR)/link.ld -o $(patsubst %.hex,%.elf,$(@)) $<
+	@$(CC) $(CFLAGS) -T $(SW_LINKER_DIR)/link.ld -o $(patsubst %.hex,%.elf,$(@)) $<
 	@echo ">>> 📦 [SW] Gerando HEX: $@"
 	@$(OBJCOPY) $(OBJCOPY_FLAGS) $(patsubst %.hex,%.elf,$(@)) $(@)
 
 $(BUILD_DIR)/sw/%.hex: $(SW_APPS_DIR)/%.c
 	@mkdir -p $(@D)
 	@echo ">>> 🔨 [SW] Compilando C: $<"
-	@$(CC) $(CFLAGS) -T $(SW_COMMON_DIR)/link.ld -o $(patsubst %.hex,%.elf,$(@)) $(SW_APPS_DIR)/../start.s $<
+	@$(CC) $(CFLAGS) -T $(SW_LINKER_DIR)/link.ld -o $(patsubst %.hex,%.elf,$(@)) $(SW_STARTUP_DIR)/crt0.s $<
 	@echo ">>> 📦 [SW] Gerando HEX: $@"
 	@$(OBJCOPY) $(OBJCOPY_FLAGS) $(patsubst %.hex,%.elf,$(@)) $(@)
 	@echo ">>> 💾 [SW] Gerando BIN: $(patsubst %.hex,%.bin,$(@))"
@@ -175,8 +177,8 @@ sw: $(BUILD_DIR)/sw/$(SW).hex
 boot:
 	@mkdir -p $(BUILD_DIR)/boot
 	@echo ">>> 🔨 [BOOT] Compilando bootloader..."
-	@$(CC) $(CFLAGS) -T $(SW_COMMON_DIR)/boot.ld -o $(BUILD_DIR)/boot/bootloader.elf \
-		$(SW_BOOT_DIR)/boot.c $(SW_DIR)/start.s
+	@$(CC) $(CFLAGS) -T $(SW_LINKER_DIR)/boot.ld -o $(BUILD_DIR)/boot/bootloader.elf \
+		$(SW_BOOT_DIR)/boot.c $(SW_STARTUP_DIR)/start.s
 	@echo ">>> 📦 [BOOT] Extraindo binário puro..."
 	@$(OBJCOPY) -O binary $(BUILD_DIR)/boot/bootloader.elf $(BUILD_DIR)/boot/bootloader.bin
 	@echo ">>> 💾 [BOOT] Gerando HEX (32-bit word aligned)..."
@@ -184,9 +186,11 @@ boot:
 
 # Listar aplicações disponíveis
 list-apps:
+	@echo " "
 	@echo "📱 Aplicações disponíveis em $(SW_APPS_DIR):"
 	@echo "────────────────────────────────────────────"
 	@ls -1 $(SW_APPS_DIR) | sed 's/\.[^.]*$$//' | sort | uniq | sed 's/^/  • /'
+	@echo " "
 
 # ==========================================================================================
 #                          COCOTB SIMULATION TARGETS
