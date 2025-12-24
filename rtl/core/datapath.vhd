@@ -32,6 +32,12 @@ use work.riscv_pkg.all;
 
 entity datapath is
 
+    generic (
+
+        DEBUG_EN : boolean := false  -- Habilita sinais de debug para monitoramento (desabilitado por padrão)
+    
+    );
+
     port (
 
         ----------------------------------------------------------------------------------------------------------
@@ -40,13 +46,13 @@ entity datapath is
 
         -- Sinais Globais (Clock e Mater-Reset)
 
-        CLK_i       : in  std_logic;                                  -- Clock principal
-        Reset_i     : in  std_logic;                                  -- Sinal de reset assíncrono
+        CLK_i              : in  std_logic;                           -- Clock principal
+        Reset_i            : in  std_logic;                           -- Sinal de reset assíncrono
 
         -- Barramento de Memória de Instruções (IMEM)
 
-        IMem_addr_o : out std_logic_vector(31 downto 0);              -- Endereço para a IMEM (saída do PC)
-        IMem_data_i : in  std_logic_vector(31 downto 0);              -- Instrução lida da IMEM
+        IMem_addr_o        : out std_logic_vector(31 downto 0);       -- Endereço para a IMEM (saída do PC)
+        IMem_data_i        : in  std_logic_vector(31 downto 0);       -- Instrução lida da IMEM
 
         -- Barramento de Memória de Dados (DMEM)
 
@@ -65,9 +71,22 @@ entity datapath is
 
         -- Saídas
 
-        Instruction_o  : out std_logic_vector(31 downto 0);           -- Envia a instrução para o controle
-        ALU_Zero_o     : out std_logic                                -- Envia a flag Zero para o controle
+        Instruction_o      : out std_logic_vector(31 downto 0);       -- Envia a instrução para o controle
+        ALU_Zero_o         : out std_logic;                           -- Envia a flag Zero para o controle
     
+        ----------------------------------------------------------------------------------------------------------
+        -- Interface de DEBUG (somente observação – simulação / bring-up)
+        ----------------------------------------------------------------------------------------------------------
+
+        DBG_pc_current_o   : out std_logic_vector(31 downto 0);       -- PC atual
+        DBG_pc_next_o      : out std_logic_vector(31 downto 0);       -- Próximo PC
+        DBG_instruction_o  : out std_logic_vector(31 downto 0);       -- Instrução atual
+        DBG_rs1_data_o     : out std_logic_vector(31 downto 0);       -- Dados lidos do rs1
+        DBG_rs2_data_o     : out std_logic_vector(31 downto 0);       -- Dados lidos do rs2
+        DBG_alu_result_o   : out std_logic_vector(31 downto 0);       -- Resultado da ALU
+        DBG_write_back_o   : out std_logic_vector(31 downto 0);       -- Dados escritos de volta no banco de registradores
+        DBG_alu_zero_o     : out std_logic                            -- Flag Zero da ALU
+
     );
 
 end entity;
@@ -257,6 +276,24 @@ begin
                             s_branch_or_jal_addr            when "01", -- PC <- Endereço de Branch ou JAL
                             s_alu_result(31 downto 1) & '0' when "10", -- PC <- Endereço do JALR (rs1 + imm)
                             (others => 'X')        when others;
+
+    -- ============== Sinais de DEBUG (MONITORAMENTO) ======================================
+
+        -- Sinais de Debug / Monitoramento para observação externa
+
+        ------------------------------------------------------------------------------
+        -- DEBUG ENABLED
+        ------------------------------------------------------------------------------
+        gen_debug_on : if DEBUG_EN generate
+            DBG_pc_current_o  <= s_pc_current;
+            DBG_pc_next_o     <= s_pc_next;
+            DBG_instruction_o <= s_instruction;
+            DBG_rs1_data_o    <= s_read_data_1;
+            DBG_rs2_data_o    <= s_read_data_2;
+            DBG_alu_result_o  <= s_alu_result;
+            DBG_write_back_o  <= s_write_back_data;
+            DBG_alu_zero_o    <= s_alu_zero;
+        end generate;
 
 end architecture; -- rtl
 
