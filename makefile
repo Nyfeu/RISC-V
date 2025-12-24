@@ -87,7 +87,8 @@ SOC_SRCS  := $(wildcard $(SOC_DIR)/*.vhd)
 PERIPS_SRCS := $(wildcard $(PERIPS_DIR)/*/*.vhd)
 
 # RTL Wrappers (para simulação)
-SIM_WRAPPERS := $(SIM_CORE_DIR)/decoder_wrapper.vhd
+SIM_WRAPPERS := $(SIM_CORE_DIR)/decoder_wrapper.vhd \
+	$(SIM_CORE_DIR)/control_wrapper.vhd
 
 # Lista completa de RTL
 ALL_RTL_SRCS := $(CORE_SRCS) $(SOC_SRCS) $(PERIPS_SRCS) $(SIM_WRAPPERS) $(PKG_SRCS)

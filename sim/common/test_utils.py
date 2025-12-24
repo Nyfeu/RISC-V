@@ -85,6 +85,20 @@ def alu_name(alu_op):
     return names.get(alu_op, "UNKNOWN")
 
 # ==============================================================================
+# CONSTANTES - Códigos de Operação para CONTROL
+# ==============================================================================
+
+OP_R_TYPE = 0x33   # R-Type
+OP_I_TYPE = 0x13   # I-Type
+OP_LOAD   = 0x03   # Load
+OP_STORE  = 0x23   # Store
+OP_BRANCH = 0x63   # Branch
+OP_JAL    = 0x6F   # Jump and Link
+OP_JALR   = 0x67   # Jump and Link Register
+OP_LUI    = 0x37   # Load Upper Immediate
+OP_AUIPC  = 0x17   # Add Upper Immediate to PC
+
+# ==============================================================================
 # CONVERSÃO E DADOS
 # ==============================================================================
 

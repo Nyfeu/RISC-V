@@ -28,8 +28,8 @@ OPCODE_JAL      = 0x6F  # 1101111 (JAL)
 # GOLDEN MODEL - Modelo de referência em Python
 # =====================================================================================================================
 #
-# Def. Formal: Para todo (a, b, opcode) ∈ Domínio_Especificado:
-#    RTL(a, b, opcode) == GoldenModel(a, b, opcode)
+# Def. Formal: Para todo (instruction) ∈ Domínio_Especificado:
+#    RTL(instruction) == GoldenModel(instruction)
 #
 # Trata-se da implementação de um modelo comportamental de referência, utilizado como oráculo de 
 # verificação funcional.
