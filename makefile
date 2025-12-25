@@ -84,7 +84,7 @@ SOC_SRCS           = $(wildcard $(SOC_DIR)/*.vhd)
 PERIPS_SRCS        = $(wildcard $(PERIPS_DIR)/*/*.vhd)
 
 # Wrappers de Simulação (Adaptadores para testbenches COCOTB)
-SIM_WRAPPERS       = $(wildcard $(SIM_CORE_DIR)/wrappers/*.vhd)
+SIM_WRAPPERS       = $(wildcard $(SIM_CORE_DIR)/wrappers/*.vhd) $(wildcard $(SIM_SOC_DIR)/wrappers/*.vhd)
 
 # Todos os fontes VHDL (ordem importa: Packages → Core → SoC → Periféricos → Wrappers)
 ALL_RTL_SRCS       = $(PKG_SRCS) $(CORE_SRCS) $(SOC_SRCS) $(PERIPS_SRCS) $(SIM_WRAPPERS)
