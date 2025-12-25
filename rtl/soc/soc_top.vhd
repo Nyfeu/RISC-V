@@ -49,44 +49,41 @@ end entity;
 
 architecture rtl of soc_top is
 
-    -- === Sinais Internos do Processador ===
-
-    -- Sinais de Instrução (IMem)
+    -- === Sinais de Interconexão (Core <-> Hub) ===
     signal s_imem_addr   : std_logic_vector(31 downto 0);
     signal s_imem_data   : std_logic_vector(31 downto 0);
-    
-    -- Sinais de Dados (DMem)
     signal s_dmem_addr   : std_logic_vector(31 downto 0);
     signal s_dmem_data_w : std_logic_vector(31 downto 0);
     signal s_dmem_data_r : std_logic_vector(31 downto 0);
     signal s_dmem_we     : std_logic;
 
-    -- === Sinais de Seleção do Barramento ===
+    -- === Sinais de Interconexão (Hub <-> Componentes) ===
+    
+    -- Boot ROM
+    signal s_rom_addr_a, s_rom_addr_b : std_logic_vector(31 downto 0);
+    signal s_rom_data_a, s_rom_data_b : std_logic_vector(31 downto 0);
+    signal s_rom_sel_b               : std_logic;
 
-    signal s_rom_sel     : std_logic;
-    signal s_ram_sel     : std_logic;
-    signal s_ram_we      : std_logic;
-    signal s_uart_sel    : std_logic;
-    signal s_uart_we     : std_logic;
+    -- RAM
+    signal s_ram_addr_a, s_ram_addr_b : std_logic_vector(31 downto 0);
+    signal s_ram_data_a, s_ram_data_b : std_logic_vector(31 downto 0); -- Saídas da RAM
+    signal s_ram_data_w              : std_logic_vector(31 downto 0); -- Entrada da RAM
+    signal s_ram_we_b                : std_logic;
+    signal s_ram_sel_b               : std_logic;
 
-    -- === Dados de Saída dos Componentes ===
-
-    -- Sinais de dados da Boot ROM
-    signal s_rom_data_fetch : std_logic_vector(31 downto 0); -- Porta A (Instrução)
-    signal s_rom_data_bus   : std_logic_vector(31 downto 0); -- Porta B (Dados)
-
-    -- Sinais de dados da RAM
-    signal s_ram_data_fetch : std_logic_vector(31 downto 0); -- Porta A (Instrução)
-    signal s_ram_data_bus   : std_logic_vector(31 downto 0); -- Porta B (Dados)
-
-    -- Sinais de dados da UART
-    signal s_uart_data      : std_logic_vector(31 downto 0);
+    -- UART
+    signal s_uart_addr               : std_logic_vector(3 downto 0);
+    signal s_uart_data_rx            : std_logic_vector(31 downto 0);
+    signal s_uart_data_tx            : std_logic_vector(31 downto 0);
+    signal s_uart_we                 : std_logic;
+    signal s_uart_sel                : std_logic;
 
 begin
 
     -- =========================================================================
     -- 1. NÚCLEO PROCESSADOR (CPU)
     -- =========================================================================
+
     U_CORE: entity work.processor_top
         port map (
             CLK_i               => CLK_i,
@@ -100,76 +97,70 @@ begin
         );
 
     -- =========================================================================
-    -- 2. BARRAMENTO (BUS INTERCONNECT) - Lado de Dados (DMem)
+    -- 2. HUB DE INTERCONEXÃO (BUS INTERCONNECT)
     -- =========================================================================
+    
     U_BUS: entity work.bus_interconnect
         port map (
-            -- Interface com o Processador -----
-            addr_i         => s_dmem_addr,
-            data_i         => s_dmem_data_w,
-            we_i           => s_dmem_we,
-            data_o         => s_dmem_data_r,
-            
-            -- Interface: Boot ROM (0x00000000)
-            rom_data_i     => s_rom_data_bus, -- Conectado à Porta B (Dados)
-            rom_sel_o      => s_rom_sel,
-            
-            -- Interface: RAM (0x80000000)
-            ram_data_i     => s_ram_data_bus, -- Conectado à Porta B (Dados)
-            ram_sel_o      => s_ram_sel,
-            ram_we_o       => s_ram_we,
-            
-            -- Interface: UART (0x10000000)
-            uart_data_i    => s_uart_data,
-            uart_sel_o     => s_uart_sel,
-            uart_we_o      => s_uart_we
+            -- Interface Core
+            imem_addr_i     => s_imem_addr,
+            imem_data_o     => s_imem_data,
+            dmem_addr_i     => s_dmem_addr,
+            dmem_data_i     => s_dmem_data_w,
+            dmem_we_i       => s_dmem_we,
+            dmem_data_o     => s_dmem_data_r,
+
+            -- Interface ROM
+            rom_addr_a_o    => s_rom_addr_a,
+            rom_data_a_i    => s_rom_data_a,
+            rom_addr_b_o    => s_rom_addr_b,
+            rom_data_b_i    => s_rom_data_b,
+            rom_sel_b_o     => s_rom_sel_b,
+
+            -- Interface RAM
+            ram_addr_a_o    => s_ram_addr_a,
+            ram_data_a_i    => s_ram_data_a,
+            ram_addr_b_o    => s_ram_addr_b,
+            ram_data_b_i    => s_ram_data_b,
+            ram_data_b_o    => s_ram_data_w,
+            ram_we_b_o      => s_ram_we_b,
+            ram_sel_b_o     => s_ram_sel_b,
+
+            -- Interface UART
+            uart_addr_o     => s_uart_addr,
+            uart_data_i     => s_uart_data_rx,
+            uart_data_o     => s_uart_data_tx,
+            uart_we_o       => s_uart_we,
+            uart_sel_o      => s_uart_sel
         );
 
     -- =========================================================================
-    -- 3. BOOT ROM (0x00000000) - Dual Port
+    -- 3. COMPONENTES DO SISTEMA
     -- =========================================================================
+
     U_ROM: entity work.boot_rom
         port map (
             clk      => CLK_i,
-            addr_a_i => s_imem_addr,        -- Porta A: Fetch de Instrução
-            data_a_o => s_rom_data_fetch,
-            addr_b_i => s_dmem_addr,        -- Porta B: Leitura de Dados (via Barramento)
-            data_b_o => s_rom_data_bus
+            addr_a_i => s_rom_addr_a,
+            data_a_o => s_rom_data_a,
+            addr_b_i => s_rom_addr_b,
+            data_b_o => s_rom_data_b
         );
 
-    -- =========================================================================
-    -- 4. RAM (0x80000000) - Dual Port
-    -- =========================================================================
     U_RAM: entity work.dual_port_ram
-        generic map (ADDR_WIDTH => 12)              -- 16 KB de espaço de endereçamento
+        generic map (ADDR_WIDTH => 12)
         port map (
-
-            -- Sinais de controle do componente
-            clk        => CLK_i,                    -- Clock comum para ambas as portas
-
-            -- Porta A: Instruções (Fetch)
-            we_a       => '0',                      -- Read-Only para o PC
-            addr_a     => s_imem_addr(13 downto 2), -- Endereço da instrução (word address)
-            data_in_a  => (others => '0'),          -- Não usado (leitura apenas)
-            data_out_a => s_ram_data_fetch,         -- Dados lidos para o PC
-
-            -- Porta B: Dados (Load/Store)
-            we_b       => s_ram_we,                 -- Sinal de escrita
-            addr_b     => s_dmem_addr(13 downto 2), -- Endereço de dados (word address)
-            data_in_b  => s_dmem_data_w,            -- Dados a serem escritos na RAM
-            data_out_b => s_ram_data_bus            -- Dados lidos da RAM para o Barramento
-
+            clk        => CLK_i,
+            we_a       => '0',
+            addr_a     => s_ram_addr_a(13 downto 2),
+            data_in_a  => (others => '0'),
+            data_out_a => s_ram_data_a,
+            we_b       => s_ram_we_b,
+            addr_b     => s_ram_addr_b(13 downto 2),
+            data_in_b  => s_ram_data_w,
+            data_out_b => s_ram_data_b
         );
 
-    -- =========================================================================
-    -- 5. MUX DE INSTRUÇÃO (Seleção de Fetch)
-    -- =========================================================================
-    -- Decide se o PC busca código da ROM (0x0...) ou da RAM (0x8...)
-    s_imem_data <= s_rom_data_fetch when s_imem_addr(31) = '0' else s_ram_data_fetch;
-
-    -- =========================================================================
-    -- 6. CONTROLADOR UART (0x10000000)
-    -- =========================================================================
     U_UART: entity work.uart_controller
         generic map (CLK_FREQ => CLK_FREQ, BAUD_RATE => BAUD_RATE)
         port map (
@@ -177,9 +168,9 @@ begin
             rst         => Reset_i,
             sel_i       => s_uart_sel,
             we_i        => s_uart_we,
-            addr_i      => s_dmem_addr(3 downto 0),
-            data_i      => s_dmem_data_w,
-            data_o      => s_uart_data,
+            addr_i      => s_uart_addr,
+            data_i      => s_uart_data_tx,
+            data_o      => s_uart_data_rx,
             uart_tx_pin => UART_TX_o,
             uart_rx_pin => UART_RX_i
         );
