@@ -1,50 +1,32 @@
 #include <stdint.h>
 
-// Endereços Base (Conforme Mapa de Memória)
-#define UART_BASE 0x10000000
-#define RAM_BASE  0x80000000
+#define RAM_START 0x80000000
 
-// Registradores UART (Offsets baseados no seu uart_controller)
-#define UART_DATA (*(volatile uint32_t*)(UART_BASE + 0x00))
-#define UART_STAT (*(volatile uint32_t*)(UART_BASE + 0x04))
-
-// Registrador de Status: Bit 1 = RX Ready (Dado disponível)
-#define UART_RX_READY 0x02 
+// Payload atualizado: Instruções de 32 bits (8 dígitos hex)
+const uint32_t app_payload[] = {
+    0x80004137, 0x00010113, 0x014000EF, 0x00100513,
+    0x100002B7, 0x00828293, 0x00A2A023, 0xFD010113,
+    0x02112623, 0x02812423, 0x03010413, 0x02F00793,
+    0xFEF42623, 0xFE042423, 0x00100793, 0xFEF42223,
+    0xFC042E23, 0x0400006F, 0x100007B7, 0x00478793,
+    0xFE842703, 0x00E7A023, 0xFE842703, 0xFE442783,
+    0x00F707B3, 0xFEF42023, 0xFE442783, 0xFEF42423,
+    0xFE042783, 0xFEF42223, 0xFD442783, 0x00178793,
+    0xFCF42E23, 0xFD442703, 0xFE442783, 0xFAF74EE3,
+    0x00000793, 0x00078513, 0x02C12083, 0x02812403,
+    0x03010113, 0x00008067
+};
 
 void main() {
-    uint32_t *ram_ptr = (uint32_t *)RAM_BASE;
-    
-    // 1. Sinaliza que o bootloader iniciou (Opcional: piscar LED ou enviar 'B')
-    UART_DATA = 'B';
+    uint32_t *dest = (uint32_t *)RAM_START;
+    uint32_t payload_size = sizeof(app_payload) / sizeof(uint32_t);
 
-    // 2. Loop de Carregamento
-    // Protocolo Simplificado: O bootloader fica lendo bytes e escrevendo na RAM.
-    // Em um caso real, você implementaria um tamanho de pacote ou timeout.
-    // Aqui, vamos assumir um loop infinito ou um número fixo para teste.
-    
-    while(1) {
-        // Espera dado chegar na UART
-        while ((UART_STAT & UART_RX_READY) == 0); 
-
-        // Lê o dado (assumindo que enviamos palavras de 32 bits ou bytes)
-        // Se for byte a byte, precisamos montar a word de 32 bits.
-        // Simplificação: Vamos supor que o testbench envia words prontas.
-        uint32_t data = UART_DATA; 
-
-        // Escreve na RAM
-        *ram_ptr = data;
-        
-        // Incrementa ponteiro
-        ram_ptr++;
-
-        // Verifica se terminou (Exemplo: se receber um "Magic Number" de fim)
-        if (data == 0xDEADBEEF) {
-            break;
-        }
+    // Copia o programa da ROM para a RAM
+    for (uint32_t i = 0; i < payload_size; i++) {
+        dest[i] = app_payload[i];
     }
 
-    // 3. Pula para a aplicação na RAM
-    // Cria um ponteiro de função para o início da RAM e chama
-    void (*app_entry)() = (void (*)())RAM_BASE;
+    // Salta para a execução na RAM
+    void (*app_entry)() = (void (*)())RAM_START;
     app_entry();
 }
