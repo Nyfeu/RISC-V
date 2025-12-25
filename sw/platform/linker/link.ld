@@ -4,7 +4,7 @@ ENTRY(_start)
 MEMORY
 {
   /* Nossa memória simulada tem 16KB (0x4000 bytes) */
-  ram (rwx) : ORIGIN = 0x80000000, LENGTH = 16K
+  ram (rwx) : ORIGIN = 0x00000000, LENGTH = 16K
 }
 
 SECTIONS
