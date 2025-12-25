@@ -4,13 +4,9 @@ Este documento rastreia o progresso da migração de um **Core** isolado para um
 
 ## 1. Reestruturação do Repositório
 - [x] Criar a estrutura de diretórios (`rtl/core`, `rtl/soc`, `rtl/perips`, etc.).
-
 - [x] Mover arquivos `.vhd` do processador antigo para `rtl/core`.
-
 - [x] Mover arquivos de teste unitários para `sim/core`.
-
 - [x] Atualizar o **makefile** para incluir os novos caminhos de fonte.
-
 - [x] Verificar se `make sim TB=processor_top_tb` ainda funciona após a mudança.
 
 ## 2. Definição do Sistema (Architecture)
@@ -19,14 +15,13 @@ Este documento rastreia o progresso da migração de um **Core** isolado para um
     - `0x00000000`: Boot ROM (bootloader)
     - `0x10000000`: Periféricos (UART, GPIO)
     - `0x80000000`: Main RAM
-
-- [ ] Atualizar Linker Script (`sw/common/link.ld`) para apontar RAM para `0x80000000`.
+- [x] Atualizar Linker Script (`sw/common/link_soc.ld`) para apontar RAM para `0x80000000`.
 
 ## 3. Implementação de Hardware (RTL)
 
 ### SoC Infrastructure (`rtl/soc/`)
 
-- [ ] Implementar `bus_interconnect.vhd`:
+- [x] Implementar `bus_interconnect.vhd`:
     - Decodificar endereços (`0x0`, `0x1`, `0x8`).
 
     | Endereço Inicial | Tamanho | Dispositivo | Descrição |
@@ -45,7 +40,7 @@ Este documento rastreia o progresso da migração de um **Core** isolado para um
 ### Periféricos (`rtl/perips/`)
 
 - [ ] Implementar `gpio_controller.vhd` (para LEDs).
-- [ ] Implementar `uart_controller.vhd` (Tx e Rx simples com polling).
+- [x] Implementar `uart_controller.vhd` (Tx e Rx simples).
 
 ### Top Level
 
@@ -57,11 +52,10 @@ Este documento rastreia o progresso da migração de um **Core** isolado para um
 
 ## 4. Software e Firmware
 
-- [ ] Escrever `sw/bootloader/bootloader.s`:
+- [x] Escrever `sw/bootloader/bootloader.s`:
     - Código que roda em 0x0000.
     - Inicialmente: Apenas pula para `0x8000`.
     - Futuro: Lê da UART e grava na RAM.
-
 - [ ] Atualizar `sw/apps/hello.c` e `test_all.s`:
     - Usar novos endereços de periféricos.
     - Recompilar para gerar HEX compatível com a Main RAM.
@@ -77,5 +71,6 @@ Este documento rastreia o progresso da migração de um **Core** isolado para um
 ## 6. FPGA (Síntese)
 
 - [ ] Criar arquivo de constraints (`.xdc`) mapeando pinos (Clock, Reset, LEDs, UART TX/RX).
-
-- [ ] Gerar Bitstream e testar na placa.
+- [ ] Criar arquivo de automatização para sintetização e upload `build.tcl`.
+- [ ] Adicionar FPGA ao workflow (`makefile`)
+- [ ] Gravar e testar na placa.
