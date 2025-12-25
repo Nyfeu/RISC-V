@@ -28,25 +28,50 @@ use ieee.numeric_std.all;
 
 entity bus_interconnect is
     port (
-        -- Interface com o Processador
-        addr_i         : in  std_logic_vector(31 downto 0);
-        data_i         : in  std_logic_vector(31 downto 0);
-        we_i           : in  std_logic;
-        data_o         : out std_logic_vector(31 downto 0);
+        -- ========================================================================================
+        -- 1. INTERFACE COM O PROCESSADOR (CORE)
+        -- ========================================================================================
 
-        -- Interface: Boot ROM (0x00000000)
-        rom_data_i     : in  std_logic_vector(31 downto 0);
-        rom_sel_o      : out std_logic;
+        -- Barramento de Instruções (IMem - Fetch)
+        imem_addr_i         : in  std_logic_vector(31 downto 0);
+        imem_data_o         : out std_logic_vector(31 downto 0);
 
-        -- Interface: RAM (0x80000000)
-        ram_data_i     : in  std_logic_vector(31 downto 0);
-        ram_sel_o      : out std_logic;
-        ram_we_o       : out std_logic;
+        -- Barramento de Dados (DMem - Load/Store)
+        dmem_addr_i         : in  std_logic_vector(31 downto 0);
+        dmem_data_i         : in  std_logic_vector(31 downto 0); -- Dados para escrita
+        dmem_we_i           : in  std_logic;                    -- Write Enable
+        dmem_data_o         : out std_logic_vector(31 downto 0); -- Dados lidos
 
-        -- Interface: UART (0x10000000)
-        uart_data_i    : in  std_logic_vector(31 downto 0);
-        uart_sel_o     : out std_logic;
-        uart_we_o      : out std_logic
+        -- ========================================================================================
+        -- 2. INTERFACES PARA COMPONENTES (MEMÓRIAS E PERIFÉRICOS)
+        -- ========================================================================================
+
+        -- Interface: Boot ROM (Dual Port)
+
+        rom_addr_a_o        : out std_logic_vector(31 downto 0);
+        rom_data_a_i        : in  std_logic_vector(31 downto 0);
+        rom_addr_b_o        : out std_logic_vector(31 downto 0);
+        rom_data_b_i        : in  std_logic_vector(31 downto 0);
+        rom_sel_b_o         : out std_logic; -- Seleção para leitura de dados
+
+        -- Interface: RAM (Dual Port)
+
+        ram_addr_a_o        : out std_logic_vector(31 downto 0);
+        ram_data_a_i        : in  std_logic_vector(31 downto 0);
+        ram_addr_b_o        : out std_logic_vector(31 downto 0);
+        ram_data_b_i        : in  std_logic_vector(31 downto 0); -- Leitura
+        ram_data_b_o        : out std_logic_vector(31 downto 0); -- Escrita
+        ram_we_b_o          : out std_logic;
+        ram_sel_b_o         : out std_logic;
+
+        -- Interface: UART
+
+        uart_addr_o         : out std_logic_vector(3 downto 0);
+        uart_data_i         : in  std_logic_vector(31 downto 0);
+        uart_data_o         : out std_logic_vector(31 downto 0);
+        uart_we_o           : out std_logic;
+        uart_sel_o          : out std_logic
+
     );
 end entity;
 
@@ -55,50 +80,76 @@ end entity;
 -------------------------------------------------------------------------------------------------------------------
 
 architecture rtl of bus_interconnect is
+    -- Sinais internos de decodificação para o lado de DADOS (DMem)
+    signal s_dmem_sel_rom  : std_logic;
+    signal s_dmem_sel_uart : std_logic;
+    signal s_dmem_sel_ram  : std_logic;
 
-    -- Sinais internos de seleção (Chip Select)
-    signal s_sel_rom  : std_logic;
-    signal s_sel_uart : std_logic;
-    signal s_sel_ram  : std_logic;
+    -- Sinais internos de decodificação para o lado de INSTRUÇÕES (IMem)
+    signal s_imem_sel_rom  : std_logic;
+    signal s_imem_sel_ram  : std_logic;
 
 begin
 
-    -- =========================================================================
-    -- 1. DECODIFICAÇÃO DE ENDEREÇO
-    -- =========================================================================
-    -- ROM:  0x00000000 até 0x0FFFFFFF
-    -- UART: 0x10000000 até 0x1FFFFFFF
-    -- RAM:  0x80000000 até 0x8FFFFFFF
-    
-    s_sel_rom  <= '1' when addr_i(31 downto 28) = x"0" else '0';
-    s_sel_uart <= '1' when addr_i(31 downto 28) = x"1" else '0';
-    s_sel_ram  <= '1' when addr_i(31 downto 28) = x"8" else '0';
+    -- -------------------------------------------------------------------------
+    -- 1. DECODIFICAÇÃO DE ENDEREÇOS (Memory Map)
+    -- -------------------------------------------------------------------------
+    -- ROM:  0x00000000 (0x0...)
+    -- UART: 0x10000000 (0x1...)
+    -- RAM:  0x80000000 (0x8...)
 
-    -- Saídas de seleção para dos componentes
+    -- Lado de Dados
+    s_dmem_sel_rom  <= '1' when dmem_addr_i(31 downto 28) = x"0" else '0';
+    s_dmem_sel_uart <= '1' when dmem_addr_i(31 downto 28) = x"1" else '0';
+    s_dmem_sel_ram  <= '1' when dmem_addr_i(31 downto 28) = x"8" else '0';
 
-    rom_sel_o  <= s_sel_rom;
-    uart_sel_o <= s_sel_uart;
-    ram_sel_o  <= s_sel_ram;
+    -- Lado de Instruções (Baseado no bit 31 para distinguir ROM de RAM)
+    s_imem_sel_rom  <= '1' when imem_addr_i(31 downto 28) = x"0" else '0';
+    s_imem_sel_ram  <= '1' when imem_addr_i(31 downto 28) = x"8" else '0';
 
-    -- Lógica de escrita (Write Enable qualificado pelo endereço)
+    -- -------------------------------------------------------------------------
+    -- 2. ROTEAMENTO PARA COMPONENTES (Saídas)
+    -- -------------------------------------------------------------------------
+    -- ROM
+    rom_addr_a_o <= imem_addr_i;
+    rom_addr_b_o <= dmem_addr_i;
+    rom_sel_b_o  <= s_dmem_sel_rom;
 
-    uart_we_o  <= we_i and s_sel_uart;
-    ram_we_o   <= we_i and s_sel_ram;
+    -- RAM
+    ram_addr_a_o <= imem_addr_i;
+    ram_addr_b_o <= dmem_addr_i;
+    ram_data_b_o <= dmem_data_i;
+    ram_we_b_o   <= dmem_we_i and s_dmem_sel_ram;
+    ram_sel_b_o  <= s_dmem_sel_ram;
 
-    -- =========================================================================
-    -- 2. MULTIPLEXAÇÃO DE LEITURA (Mux de Entrada do Processador)
-    -- =========================================================================
-    
-    process(s_sel_rom, s_sel_uart, s_sel_ram, rom_data_i, uart_data_i, ram_data_i)
+    -- UART
+    uart_addr_o  <= dmem_addr_i(3 downto 0);
+    uart_data_o  <= dmem_data_i;
+    uart_we_o    <= dmem_we_i and s_dmem_sel_uart;
+    uart_sel_o   <= s_dmem_sel_uart;
+
+    -- -------------------------------------------------------------------------
+    -- 3. MULTIPLEXAÇÃO DE RETORNO AO PROCESSADOR (Leitura)
+    -- -------------------------------------------------------------------------
+
+    -- Mux de Instrução (IMem)
+    -- Só retorna dado se estiver estritamente na faixa da ROM ou RAM
+    imem_data_o <= rom_data_a_i when s_imem_sel_rom = '1' else 
+                   ram_data_a_i when s_imem_sel_ram = '1' else 
+                   (others => '0'); -- Retorna 0 para endereços inválidos (como 0x5...)
+
+    -- Mux de Dados (DMem)
+    process (s_dmem_sel_rom, s_dmem_sel_uart, s_dmem_sel_ram, 
+            rom_data_b_i, uart_data_i, ram_data_b_i)
     begin
-        if s_sel_rom = '1' then
-            data_o <= rom_data_i;
-        elsif s_sel_uart = '1' then
-            data_o <= uart_data_i;
-        elsif s_sel_ram = '1' then
-            data_o <= ram_data_i;
+        if s_dmem_sel_rom = '1' then
+            dmem_data_o <= rom_data_b_i;
+        elsif s_dmem_sel_uart = '1' then
+            dmem_data_o <= uart_data_i;
+        elsif s_dmem_sel_ram = '1' then
+            dmem_data_o <= ram_data_b_i;
         else
-            data_o <= (others => '0'); -- Endereço inválido retorna 0
+            dmem_data_o <= (others => '0');
         end if;
     end process;
 
