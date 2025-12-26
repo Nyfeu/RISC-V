@@ -2,5 +2,6 @@
     "python.analysis.extraPaths": [
         "./sim/core",
         "./sim/common"
-    ]
+    ],
+    "hediet.vscode-drawio.appearance": "dark"
 }

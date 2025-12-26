@@ -275,7 +275,7 @@ begin
                 s_pc_next <= s_pc_plus_4                    when "00", -- PC <- PC + 4
                             s_branch_or_jal_addr            when "01", -- PC <- Endereço de Branch ou JAL
                             s_alu_result(31 downto 1) & '0' when "10", -- PC <- Endereço do JALR (rs1 + imm)
-                            (others => 'X')        when others;
+                            (others => 'X')                 when others;
 
     -- ============== Sinais de DEBUG (MONITORAMENTO) ======================================
 
