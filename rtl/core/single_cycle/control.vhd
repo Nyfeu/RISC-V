@@ -122,10 +122,10 @@ begin
 
         -- Calcula o valor de pcsrc baseado na lógica de branch e jump
 
-            s_pcsrc <= "10" when (s_decoder.jump = '1' and s_opcode = "1100111") else -- JALR
-               "01" when (s_decoder.jump = '1' and s_opcode = "1101111") else -- JAL
-               "01" when (s_decoder.branch = '1' and s_branch_condition_met = '1') else -- Branch Tomado
-               "00"; -- Padrão (PC + 4)
+            s_pcsrc <= "10" when (s_decoder.jump = '1' and s_opcode = "1100111") else            -- JALR
+                       "01" when (s_decoder.jump = '1' and s_opcode = "1101111") else            -- JAL
+                       "01" when (s_decoder.branch = '1' and s_branch_condition_met = '1') else  -- Branch Tomado
+                       "00";                                                                     -- Padrão (PC + 4)
 
     -- Monta o pacote de controle (t_control) com todos os sinais
     
