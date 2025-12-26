@@ -192,10 +192,10 @@ begin
         -- Se s_alusrc_b='1' (I-Type, Load, Store), usa a constante s_immediate.
 
             with s_alu_src_a select
-                s_alu_in_a <= s_read_data_1 when "00",   -- Padrão (rs1)
-                            s_pc_current    when "01",   -- AUIPC (PC)
-                            x"00000000"     when "10",   -- LUI (Zero)
-                            s_read_data_1   when others;
+                s_alu_in_a <= s_read_data_1   when "00",    -- Padrão (rs1)
+                              s_pc_current    when "01",    -- AUIPC (PC)
+                              x"00000000"     when "10",    -- LUI (Zero)
+                              s_read_data_1   when others;  -- Necessário para compilação
 
             s_alu_in_b <= s_read_data_2 when s_alu_src_b = '0' else s_immediate;
 
