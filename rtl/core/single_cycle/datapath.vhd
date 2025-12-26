@@ -120,10 +120,9 @@ architecture rtl of datapath is
     signal s_alu_in_b             : std_logic_vector(31 downto 0) := (others => '0');     -- Segundo operando da ALU (registrador ou imediato)
     signal s_alu_result           : std_logic_vector(31 downto 0) := (others => '0');     -- Resultado da ALU (32 bits)
     signal s_write_back_data      : std_logic_vector(31 downto 0) := (others => '0');     -- Dados a serem escritos de volta no banco de registradores
-    signal s_load_unit_out        : std_logic_vector(31 downto 0) := (others => '0');     -- Sinal de saida da load_unit
     signal s_alu_zero             : std_logic := '0';                                     -- Flag "Zero" da ALU
     signal s_branch_or_jal_addr   : std_logic_vector(31 downto 0) := (others => '0');     -- Endereço para Branch e JAL
-    signal s_store_unit_out       : std_logic_vector(31 downto 0) := (others => '0');     -- Dado preparado para DMEM
+    signal s_lsu_data_out         : std_logic_vector(31 downto 0) := (others => '0');     -- Sinal de saída da LSU (Load-Store Unit)
 
 begin
 
@@ -216,36 +215,26 @@ begin
 
         -- Aqui ocorre o acesso à memória de dados (DMEM).
         -- Dependendo dos sinais de controle, a CPU pode ler ou escrever na memória.
-                    
-        -- - A ALU sempre calcula o endereço para a memória de dados.
-    
-            DMem_addr_o        <= s_alu_result;
-    
-        -- - O dado a ser escrito vem sempre de rs2.
 
-            DMem_data_o        <= s_store_unit_out;
-    
-        -- - O sinal de escrita na memória vem da unidade de controle.
-
-            DMem_writeEnable_o <= s_mem_write;
-
-        -- Instanciação da Unidade de Carga
-
-            U_LOAD_UNIT: entity work.load_unit port map (
-                DMem_data_i  => DMem_data_i,                          -- Palavra completa vinda da memória de dados
-                Addr_LSB_i   => s_alu_result(1 downto 0),             -- 2 bits do endereço para selecionar o byte/half
-                Funct3_i     => s_instruction(14 downto 12),          -- Funct3 para decodificar o tipo de load
-                Data_o       => s_load_unit_out                       -- Saída de 32 bits, já tratada
-            );
-
-        -- Instanciação da Unidade de Armazenamento
-
-            U_STORE_UNIT: entity work.store_unit port map (
-                Data_from_DMEM_i => DMem_data_i,                      -- Dado já contido na memória
-                WriteData_i      => s_read_data_2,                    -- Dado vem sempre de rs2
-                Addr_LSB_i       => s_alu_result(1 downto 0),         -- LSBs do endereço da ALU
-                Funct3_i         => s_instruction(14 downto 12),      -- Funct3 para SW/SH/SB
-                Data_o           => s_store_unit_out                  -- Saída preparada para a DMEM
+        -- A LSU (Load Store Unit) encapsula toda a lógica de acesso à memória,
+        -- incluindo alinhamento de bytes (Load/Store Byte/Half) e extensão de sinal.
+        
+        U_LSU: entity work.lsu
+            port map (
+                -- Interface com o Datapath (Entradas)
+                Addr_i        => s_alu_result,                        -- Endereço calculado pela ALU
+                WriteData_i   => s_read_data_2,                       -- Dado de rs2 para escrita
+                MemWrite_i    => s_mem_write,                         -- Sinal de controle WE
+                Funct3_i      => s_instruction(14 downto 12),         -- Funct3 define B, H, W
+                
+                -- Interface com a Memória Física (DMem)
+                DMem_data_i   => DMem_data_i,                         -- Leitura crua da RAM
+                DMem_addr_o   => DMem_addr_o,                         -- Endereço físico
+                DMem_data_o   => DMem_data_o,                         -- Dado formatado para escrita
+                DMem_we_o     => DMem_writeEnable_o,                  -- WE repassado
+                
+                -- Interface com o Datapath (Saída para Write-Back)
+                LoadData_o    => s_lsu_data_out                       -- Dado lido formatado (Sign/Zero Ext)
             );
 
     -- ============== Estágio de Escrita de Volta (WRITE-BACK) ===============================
@@ -254,7 +243,7 @@ begin
 
             with s_wb_src select
                 s_write_back_data <= s_alu_result      when "00",     -- Tipo-R, Tipo-I (Aritmética)
-                                     s_load_unit_out   when "01",     -- Loads
+                                     s_lsu_data_out    when "01",     -- Loads
                                      s_pc_plus_4       when "10",     -- JAL / JALR
                                      (others => '0')   when others;
 
