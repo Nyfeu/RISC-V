@@ -18,19 +18,20 @@
 
 ```
 
-This repository contains the implementation of a 32-bit, single-cycle processor that follows the base RISC-V instruction set specification (RV32I). The project is developed entirely in VHDL (2008 standard) and is intended as an educational project for studying computer architecture.
+This repository contains the implementation of a 32-bit RISC-V processor (RV32I ISA) with support for multiple microarchitectures. The project is developed entirely in VHDL (2008 standard) and is intended as an educational project for studying computer architecture and processor design.
 
-The design is modular, with each main processor component (ALU, Register File, Control Unit, etc.) implemented in its own file. Each module is accompanied by a self-verifying testbench to ensure correctness before final integration.
+The design is modular, with each main processor component (ALU, Register File, Control Unit, etc.) implemented in its own file. Each module is accompanied by a self-verifying testbench to ensure correctness before final integration. The architecture is extensible, allowing easy addition of new microarchitectures (single-cycle, multi-cycle, pipelined, etc.) without modifying the core ISA definitions.
 
-A top-level processor entity integrates all modules and can execute software compiled from C or Assembly, with the program being loaded dynamically into the simulation at runtime.
+A top-level processor entity integrates all modules and can execute software compiled from C or Assembly, with the program being loaded dynamically into the simulation at runtime. The project includes a System-on-Chip (SoC) integration layer with bootloader support and configurable memory mapping.
 
 ## 🎯 Goals and Features
 
 * **Target ISA:** RISC-V RV32I (Base Integer Instruction Set).
+* **Microarchitectures:** Single-cycle, multi-cycle [on going].
 * **Language:** VHDL-2008.
-* **Focus:** Design clarity and educational purposes.
-* **Verification:** Self-verifying testbenches for each component.
-* **Automation:** Fully automated compilation and simulation flow via `Makefile`.
+* **Focus:** Design clarity, modularity, and educational purposes.
+* **Verification:** Self-verifying testbenches for each component using COCOTB (Python).
+* **Automation:** Fully automated build system via `Makefile` with dynamic CORE selection, automatic software compilation, and linker script selection.
 
 ## 📂 Project Structure
 
@@ -41,40 +42,85 @@ RISC-V/
 |
 ├── rtl/                              # Synthesizable VHDL code (processor RTL)
 │   ├── core/                         # Core processor components
-│   │   ├── alu.vhd                   # Arithmetic Logic Unit
-│   │   ├── [...]
-│   │   └── store_unit.vhd            # Store operation unit
-│   ├── soc/                          # System-on-Chip components
-│   └── perips/                       # Peripherals (future)
+│   │   ├── common/                   # ISA-common components (used by all microarchitectures)
+│   │   │   ├── alu.vhd               # Arithmetic Logic Unit
+│   │   │   ├── [...]
+│   │   │   └── store_unit.vhd        # Store operation unit
+│   │   ├── single_cycle/             # Single-cycle microarchitecture
+│   │   │   ├── [...]
+│   │   │   ├── datapath.vhd          # Datapath
+│   │   │   └── processor_top.vhd     # Top-level processor
+│   │   └── multi_cycle/              # Multi-cycle microarchitecture [on going]
+│   │
+│   ├── soc/                          # System-on-Chip integration
+│   │   ├── boot_rom.vhd              # Boot ROM with bootloader
+│   │   ├── bus_interconnect.vhd      # Bus interconnect
+│   │   ├── dual_port_ram.vhd         # Dual-port RAM
+│   │   └── soc_top.vhd               # Top-level SoC
+│   │
+│   └── perips/                       # Peripherals
+│       └── uart/                     # UART controller (future)
 │
 ├── sim/                              # Testbenches (Python + cocotb)
 │   ├── core/                         # Component testbenches
-│   │   ├── decoder_wrapper.vhd       # Wrapper for decoder testing
-│   │   ├── test_alu.py               # ALU testbench
-│   │   ├── [...]
-│   │   └── test_store_unit.py        # Store unit testbench
+│   │   ├── common/                   # Tests for common components
+│   │   │   ├── test_alu.py
+│   │   │   ├── test_imm_gen.py
+│   │   │   ├── test_load_unit.py
+│   │   │   ├── [...]
+│   │   │   └── test_store_unit.py
+│   │   ├── single_cycle/             # Tests for single-cycle implementation
+│   │   │   ├── test_control.py
+|   |   |   ├── test_processor.py
+│   │   │   ├── test_datapath.py
+│   │   │   ├── test_decoder.py
+│   │   │   └── wrappers/             # VHDL wrappers for testbenches
+│   │   └── multi_cycle/              # Tests for multi-cycle [on going]
+│   │
 │   ├── soc/                          # SoC testbenches
-│   └── common/                       # Shared test utilities and constants
+│   │   ├── test_boot_rom.py
+│   │   ├── [...]
+│   │   ├── test_memory_system.py
+│   │   └── wrappers/                 # VHDL wrappers for testbenches
+│   │
+│   ├── perips/                       # Peripheral testbenches
+│   │   ├── test_uart_controller.py
+│   │   ├── test_uart_rx.py
+│   │   └── test_uart_tx.py
+│   │
+│   └── common/                       # Shared test utilities
+│       └── test_utils.py
 │
 ├── pkg/                              # VHDL packages
-│   ├── riscv_isa_pkg.vhd                 # RISC-V constants and types
-│   └── memory_loader_pkg.vhd         # Dynamic program loading package
+│   └── riscv_isa_pkg.vhd             # RISC-V ISA definitions (ISA-agnostic)
 │
 ├── sw/                               # Software programs (C and Assembly)
-│   ├── start.s                       # Assembly boot code for C programs
 │   ├── apps/                         # User applications
-│   │   ├── hello.c                   # Hello world example
-│   │   └── [...] 
-│   └── common/
-│       └── link.ld                   # Linker script
+│   │   ├── hello.c
+│   │   ├── fibonacci.c
+│   │   ├── console_test.c
+│   │   ├── branch_test.s
+│   │   └── test_all.s
+│   └── platform/
+│       ├── bootloader/
+│       │   └── boot.c
+│       ├── startup/
+│       │   ├── crt0.s                # C Runtime Zero
+│       │   └── start.s               # Boot Start
+│       └── linker/
+│           ├── link.ld               # Processor linker script (ORIGIN=0x00000000)
+│           ├── link_soc.ld           # SoC linker script (ORIGIN=0x80000000)
+│           └── boot.ld               # Bootloader linker script
 │
 ├── docs/                             # Documentation (LaTeX ABNT thesis)
-|
 ├── fpga/                             # FPGA configuration (future)
-│   └── README.md
-│
 ├── build/                            # Auto-generated build output (ignored by Git)
-|
+|   ├── boot/
+│   ├── cocotb/
+│   │   ├── single_cycle/             # Output for single_cycle architecture
+│   │   └── multi_cycle/              # Output for multi_cycle architecture
+│   └── sw/                           # Compiled software
+│
 ├── makefile                          # Build automation (compilation, simulation, visualization)
 ├── README.md                         # This file
 └── .gitignore                        # Git ignore rules
@@ -91,7 +137,7 @@ To compile and simulate this project, install the following tools and ensure the
 
 ## 🚀 How to Compile and Simulate (Using the Makefile)
 
-All commands are executed from the root of the repository. The Makefile automates software compilation, hardware simulation via COCOtb, and waveform visualization.
+All commands are executed from the root of the repository. The Makefile automates software compilation, hardware simulation via COCOTB, and waveform visualization. It supports dynamic architecture selection (CORE), automatic software compilation, and linker script selection based on the test type.
 
 ```
  
@@ -102,18 +148,32 @@ All commands are executed from the root of the repository. The Makefile automate
      ██║  ██║██║███████║╚██████╗  ╚████╔╝     
      ╚═╝  ╚═╝╚═╝╚══════╝ ╚═════╝   ╚═══╝      
  
+=========================================================================================================
+                        RISC-V Project Build System                      
+=========================================================================================================
  
-===========================================================================================
-           Ambiente de Projeto RISC-V   
-===========================================================================================
+ 📦 SOFTWARE COMPILATION
+ ────────────────────────────────────────────────────────────────────────────────────────────────────────
+   make sw SW=<prog>                                            Compilar aplicação C/ASM (em sw/apps)
+   make boot                                                    Compilar bootloader (em sw/bootloader)
+   make list-apps                                               Listar aplicações disponíveis
  
- make sw SW=<prog>                           -> Compilar app de usuário (em sw/apps)   
- make boot                                   -> Compilar bootloader (em sw/bootloader) 
- make cocotb TEST=<tb> TOP=<top> [SW=<prog>] -> Rodar testes automatizados com COCOTB  
- make view TB=<tb>                           -> Abrir ondas para debubg no GTKWave     
- make clean                                  -> Limpar diretório build                 
+ 🧪 HARDWARE TESTING & SIMULATION
+ ────────────────────────────────────────────────────────────────────────────────────────────────────────
+   make cocotb [CORE=<core>] TEST=<test> TOP=<top> [SW=<prog>]  Rodar teste COCOTB
+   make cocotb TEST=<test> TOP=<top>                            Teste de componente (unit)
+   make list-tests [CORE=<core>]                                Listar testes disponíveis
  
-===========================================================================================
+ 📊 VISUALIZATION & DEBUG
+ ────────────────────────────────────────────────────────────────────────────────────────────────────────
+   make view TEST=<test>                                        Abrir ondas (VCD) no GTKWave
+ 
+ 🧹 MAINTENANCE
+ ────────────────────────────────────────────────────────────────────────────────────────────────────────
+   make clean                                                   Limpar diretório de build
+ 
+=========================================================================================================
+
 ```
 
 ### 1. Clean Project
@@ -134,66 +194,85 @@ Example:
 make sw SW=hello
 ```
 
-Generates `build/sw/hello.hex` that can be used as input for processor simulation.
+Generates `build/sw/hello.hex` and `build/sw/hello.bin` that can be used as input for processor simulation.
+
+**Note:** When running COCOTB tests with `SW=<prog>`, the software is compiled automatically, so explicit `make sw` is optional.
 
 ### 3. Run Automated Tests with COCOTB
 
 Run automated tests using COCOTB (Python-based coroutine testbenches):
 
 ```bash
-make cocotb TEST=<testbench_name> TOP=<top_level> [SW=<program_name>]
+make cocotb [CORE=<core>] TEST=<testbench_name> TOP=<top_level> [SW=<program_name>]
 ```
 
 **Parameters:**
-- `TEST`: Name of the Python testbench file (without `.py` extension) located in `sim/core/` or `sim/soc/`
+- `CORE`: Microarchitecture to test (default: `single_cycle`). Options: `single_cycle`, `multi_cycle`, or any custom architecture
+- `TEST`: Name of the Python testbench file (without `.py` extension) located in `sim/core/<core>/`, `sim/core/common/`, `sim/soc/`, or `sim/perips/`
 - `TOP`: Top-level VHDL entity to test (default: `processor_top`)
-- `SW`: Optional software program to load into memory during simulation
+- `SW`: Optional software program to load into memory during simulation. **Automatically compiled if not present.**
 
 **Examples:**
 
 ```bash
-# Test individual components (ALU, Decoder, Register File, etc.)
+# Unit tests - Common components (work with all architectures)
 make cocotb TEST=test_alu TOP=alu
-make cocotb TEST=test_alu_control TOP=alu_control
 make cocotb TEST=test_reg_file TOP=reg_file
-make cocotb TEST=test_branch_unit TOP=branch_unit
-make cocotb TEST=test_decoder TOP=decoder
 make cocotb TEST=test_imm_gen TOP=imm_gen
 make cocotb TEST=test_load_unit TOP=load_unit
 make cocotb TEST=test_store_unit TOP=store_unit
-[...]
 
-# Test processor with software program
+# Single-cycle specific tests (default architecture)
+make cocotb TEST=test_alu_control TOP=alu_control
+make cocotb TEST=test_control TOP=control
+make cocotb TEST=test_datapath TOP=datapath_wrapper
+make cocotb TEST=test_decoder TOP=decoder_wrapper
+
+# Processor test with software (automatic compilation & memory mapping)
 make cocotb TEST=test_processor TOP=processor_top SW=hello
-[...]
+make cocotb TEST=test_processor TOP=processor_top SW=fibonacci
+
+# Multi-cycle architecture (when available)
+make cocotb CORE=multi_cycle TEST=test_datapath TOP=datapath_wrapper
+
+# SoC tests with automatic bootloader compilation
+make cocotb TEST=test_soc_top TOP=soc_top
+make cocotb TEST=test_boot_rom TOP=boot_rom
 
 ```
 
 **What happens:**
-- The Makefile automatically compiles the software (if `SW=` is specified)
+- The Makefile automatically detects the architecture (CORE) and selects appropriate linker script
+- The software is automatically compiled if `SW=` is specified
+- The bootloader is automatically compiled for SoC tests (`boot_rom`, `soc_top`, etc.)
 - GHDL simulator runs under COCOTB control
 - Python testbenches interact with VHDL signals in real-time
 - Test results are logged to the terminal
 - Waveforms are generated in VCD format for inspection
 
+**Memory Mapping:**
+- **Processor tests** (processor_top): `0x00000000` (using `link.ld`)
+- **SoC tests** (soc_top, boot_rom, etc.): `0x80000000` (using `link_soc.ld`)
+
 **Output:**
 - Terminal: Test pass/fail messages with detailed logging
-- `build/cocotb/results.xml`: Test results in XML format
-- `build/cocotb/wave-test_<name>.ghw`: Waveform file for visualization
+- `build/cocotb/<core>/results.xml`: Test results in XML format
+- `build/cocotb/<core>/wave-test_<name>.vcd`: Waveform file for visualization
 
 ### 4. Visualize Waveforms
 
 Open the last simulation waveform in GTKWave:
 ```bash
-make view TEST=<testbench_name>
+make view [CORE=<core>] TEST=<testbench_name>
 ```
 
 Example:
 ```bash
 make view TEST=test_processor
+make view CORE=single_cycle TEST=test_datapath
 ```
 
-This opens `build/cocotb/wave-test_processor.vcd` in GTKWave for detailed signal inspection.
+This opens `build/cocotb/<core>/wave-test_<testbench_name>.vcd` in GTKWave for detailed signal inspection.
 
 ## ✅ Verification
 
@@ -204,19 +283,3 @@ This project uses **COCOTB** (Coroutine-based Co-simulation Testbench) for compr
 - **Real-Time Signal Access**: Python can directly interact with VHDL signals for precise control and monitoring.
 - **Detailed Logging**: Tests provide detailed console output showing all test cases and results.
 - **Waveform Generation**: Each test generates VCD waveforms for deeper inspection using GTKWave.
-
-### Test Organization
-
-```
-sim/
-├── core/
-│   ├── test_alu.py              # Tests for Arithmetic Logic Unit
-│   ├── [...]
-│   └── decoder_wrapper.vhd      # Wrapper for decoder testing
-├── soc/
-|   ├── [...]
-│   └── test_dual_port_ram.py    # Tests for Memory Module
-└── common/
-    ├── [...]
-    └── test_utils.py            # Shared utilities and constants
-```
