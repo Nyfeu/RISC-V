@@ -9,7 +9,7 @@
 -- ╚██████╔╝██║  ██║██║  ██║╚██████╗██║  ██║
 --  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝                                                                                                                                                      
 -- 
--- Descrição : Pacote que carrega as especificações para a micro-arquitetura específica.
+-- Descrição : Pacote que carrega as especificações para a micro-arquitetura específica (single_cycle).
 --
 -- Autor     : [André Maiolini]
 -- Data      : [25/12/2025]
