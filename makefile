@@ -84,7 +84,7 @@ BUILD_CORE_DIR      = $(COCOTB_BUILD)/$(CORE)
 PKG_SRCS           = $(wildcard $(PKG_DIR)/*.vhd) $(CORE_CURRENT)/riscv_uarch_pkg.vhd
 
 # RTLs comuns a todos os designs (CORE/common)
-COMMON_SRCS        = $(wildcard $(CORE_COMMON)/*.vhd)
+COMMON_SRCS        = $(wildcard $(CORE_COMMON)/*/*.vhd) $(wildcard $(CORE_COMMON)/*.vhd)
 
 # RTLs específicas da arquitetura selecionada (CORE/<arquitetura>)
 CORE_SRCS          = $(wildcard $(CORE_CURRENT)/*.vhd)
