@@ -57,7 +57,7 @@ RISC-V/
 │   └── common/                       # Shared test utilities and constants
 │
 ├── pkg/                              # VHDL packages
-│   ├── riscv_pkg.vhd                 # RISC-V constants and types
+│   ├── riscv_isa_pkg.vhd                 # RISC-V constants and types
 │   └── memory_loader_pkg.vhd         # Dynamic program loading package
 │
 ├── sw/                               # Software programs (C and Assembly)

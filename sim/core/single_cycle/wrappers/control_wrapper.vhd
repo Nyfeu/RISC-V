@@ -5,7 +5,7 @@
 
 library ieee;
 use ieee.std_logic_1164.all;
-use work.riscv_pkg.all;
+use work.riscv_isa_pkg.all;
 
 entity control_wrapper is
     port (

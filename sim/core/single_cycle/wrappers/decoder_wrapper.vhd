@@ -10,7 +10,7 @@
 -- Inclusão dos módulos necessários
 library ieee;
 use ieee.std_logic_1164.all;
-use work.riscv_pkg.all;
+use work.riscv_isa_pkg.all;
 
 -- A entidade do wrapper para o decoder
 entity decoder_wrapper is

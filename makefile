@@ -81,9 +81,7 @@ BUILD_CORE_DIR      = $(COCOTB_BUILD)/$(CORE)
 # ==========================================================================================
 
 # Pacotes VHDL (compilados primeiro - Dependências)
-PKG_SRCS           = \
-	$(PKG_DIR)/riscv_pkg.vhd \
-	$(PKG_DIR)/memory_loader_pkg.vhd
+PKG_SRCS           = $(wildcard $(PKG_DIR)/*.vhd) $(CORE_CURRENT)/riscv_uarch_pkg.vhd
 
 # RTLs comuns a todos os designs (CORE/common)
 COMMON_SRCS        = $(wildcard $(CORE_COMMON)/*.vhd)

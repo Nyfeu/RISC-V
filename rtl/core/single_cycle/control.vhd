@@ -24,7 +24,7 @@
 library ieee;                     -- Biblioteca padrão IEEE
 use ieee.std_logic_1164.all;      -- Tipos lógicos (std_logic, std_logic_vector)
 use ieee.numeric_std.all;         -- Biblioteca para operações aritméticas com vetores lógicos (signed, unsigned)
-use work.riscv_pkg.all;           -- Contém todas as definições de constantes e tipos
+use work.riscv_uarch_pkg.all;     -- Contém todas as definições específicas para a microarquitetura
 
 -------------------------------------------------------------------------------------------------------------------
 -- ENTIDADE: Definição da interface da Unidade de Controle

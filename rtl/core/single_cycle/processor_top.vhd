@@ -43,7 +43,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
-use work.riscv_pkg.all;
+use work.riscv_uarch_pkg.all;     -- Contém todas as definições específicas para a microarquitetura
 
 -- ==| PROCESSOR_TOP |============================================================================================================================
 
