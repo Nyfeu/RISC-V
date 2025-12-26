@@ -30,14 +30,13 @@ from test_utils import log_header, log_info, log_success, settle, sign_extend
 # Helpers
 # =====================================================================================================================
 
-async def drive_control(dut, rw=0, src_a=0, src_b=0, m2r=0, mw=0, wds=0, pcsrc=0, aluc=0):
+async def drive_control(dut, rw=0, src_a=0, src_b=0, wb_src=0, mw=0, pcsrc=0, aluc=0):
     """Define os sinais de controle do datapath"""
     dut.reg_write_i.value      = rw
     dut.alu_src_a_i.value      = src_a
     dut.alu_src_b_i.value      = src_b
-    dut.mem_to_reg_i.value     = m2r
     dut.mem_write_i.value      = mw
-    dut.write_data_src_i.value = wds
+    dut.wb_src_i.value         = wb_src
     dut.pcsrc_i.value          = pcsrc
     dut.alucontrol_i.value     = aluc
 

@@ -103,7 +103,6 @@ begin
     begin
 
         -- Valores padrão (NOP)
-
         Decoder_o <= c_DECODER_NOP;
 
         case Opcode_i is
@@ -112,58 +111,58 @@ begin
             -- Formato R (ex: ADD, SUB...)
             -- ===================================================================================================
             when c_OPCODE_R_TYPE =>
-                Decoder_o.reg_write            <= '1';
-                Decoder_o.alu_src_b            <= '0';
+                Decoder_o.reg_write            <= '1' ;
+                Decoder_o.alu_src_b            <= '0' ;
                 Decoder_o.alu_op               <= "10";
 
             -- ===================================================================================================
             -- Formato I (imediato ALU)
             -- ===================================================================================================
             when c_OPCODE_I_TYPE =>
-                Decoder_o.reg_write            <= '1';
-                Decoder_o.alu_src_b            <= '1';
+                Decoder_o.reg_write            <= '1' ;
+                Decoder_o.alu_src_b            <= '1' ;
                 Decoder_o.alu_op               <= "11";
 
             -- ===================================================================================================
             -- LOAD (ex: LW)
             -- ===================================================================================================
             when c_OPCODE_LOAD =>
-                Decoder_o.reg_write            <= '1';
-                Decoder_o.alu_src_b            <= '1';
-                Decoder_o.mem_to_reg           <= '1';
+                Decoder_o.reg_write            <= '1' ;
+                Decoder_o.alu_src_b            <= '1' ;
+                Decoder_o.wb_src               <= "01"; -- write back data vem da memória (LSU)
                 Decoder_o.alu_op               <= "00"; -- soma para endereçamento
 
             -- ===================================================================================================
             -- STORE (ex: SW)
             -- ===================================================================================================
             when c_OPCODE_STORE =>
-                Decoder_o.alu_src_b            <= '1';
-                Decoder_o.mem_write            <= '1';
+                Decoder_o.alu_src_b            <= '1' ;
+                Decoder_o.mem_write            <= '1' ;
                 Decoder_o.alu_op               <= "00"; -- soma para endereçamento
 
             -- ===================================================================================================
             -- BRANCH (ex: BEQ)
             -- ===================================================================================================
             when c_OPCODE_BRANCH =>
-                Decoder_o.branch               <= '1';
+                Decoder_o.branch               <= '1' ;
                 Decoder_o.alu_op               <= "01"; -- soma para comparação
 
             -- ===================================================================================================
             -- JUMP (JAL)
             -- ===================================================================================================
             when c_OPCODE_JAL =>
-                Decoder_o.reg_write            <= '1';
-                Decoder_o.write_data_src       <= '1'; -- grava PC+4 no rd
-                Decoder_o.jump                 <= '1';
+                Decoder_o.reg_write            <= '1' ;
+                Decoder_o.wb_src               <= "10"; -- grava PC+4 no rd
+                Decoder_o.jump                 <= '1' ;
 
             -- ===================================================================================================
             -- JUMP (JALR)
             -- ===================================================================================================
             when c_OPCODE_JALR =>
-                Decoder_o.reg_write            <= '1';
-                Decoder_o.alu_src_b            <= '1';
-                Decoder_o.write_data_src       <= '1';
-                Decoder_o.jump                 <= '1';
+                Decoder_o.reg_write            <= '1' ;
+                Decoder_o.alu_src_b            <= '1' ;
+                Decoder_o.wb_src               <= "10"; -- grava PC+4 no rd
+                Decoder_o.jump                 <= '1' ;
                 Decoder_o.alu_op               <= "00";
 
             -- ===================================================================================================
@@ -174,17 +173,19 @@ begin
                 Decoder_o.alu_src_a            <= "10"; 
                 Decoder_o.alu_src_b            <= '1' ;
                 Decoder_o.alu_op               <= "00";
+                Decoder_o.wb_src               <= "00"; -- vem da ALU (0 + Imm)
 
             when c_OPCODE_AUIPC =>
                 Decoder_o.reg_write            <= '1' ;
                 Decoder_o.alu_src_a            <= "01"; 
                 Decoder_o.alu_src_b            <= '1' ;
                 Decoder_o.alu_op               <= "00";
+                Decoder_o.wb_src               <= "00"; -- vem da ALU (PC + Imm)
 
             -- ===================================================================================================
             -- OPCODE desconhecido → NOP
             -- ===================================================================================================
-            when others => null; -- mantém os valores padrão
+            when others => null; -- mantém os valores padrão (NOP)
 
         end case;
         

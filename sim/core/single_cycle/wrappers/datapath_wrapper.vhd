@@ -25,9 +25,8 @@ entity datapath_wrapper is
         reg_write_i         : in  std_logic;
         alu_src_a_i         : in  std_logic_vector(1 downto 0);
         alu_src_b_i         : in  std_logic;
-        mem_to_reg_i        : in  std_logic;
         mem_write_i         : in  std_logic;
-        write_data_src_i    : in  std_logic;
+        wb_src_i            : in  std_logic_vector(1 downto 0);
         pcsrc_i             : in  std_logic_vector(1 downto 0);
         alucontrol_i        : in  std_logic_vector(3 downto 0);
 
@@ -60,9 +59,8 @@ begin
     s_control.reg_write      <= reg_write_i;
     s_control.alu_src_a      <= alu_src_a_i;
     s_control.alu_src_b      <= alu_src_b_i;
-    s_control.mem_to_reg     <= mem_to_reg_i;
     s_control.mem_write      <= mem_write_i;
-    s_control.write_data_src <= write_data_src_i;
+    s_control.wb_src         <= wb_src_i;
     s_control.pcsrc          <= pcsrc_i;
     s_control.alucontrol     <= alucontrol_i;
 

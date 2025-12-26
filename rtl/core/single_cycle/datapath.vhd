@@ -102,10 +102,9 @@ architecture rtl of datapath is
     -- Sinais para desempacotar Control_i
     signal s_reg_write            : std_logic := '0';                  
     signal s_alu_src_a            : std_logic_vector(1 downto 0) := (others => '0');
-    signal s_alu_src_b            : std_logic := '0';                    
-    signal s_mem_to_reg           : std_logic := '0';                    
+    signal s_alu_src_b            : std_logic := '0';                                   
     signal s_mem_write            : std_logic := '0';                   
-    signal s_write_data_src       : std_logic := '0';
+    signal s_wb_src               : std_logic_vector(1 downto 0) := (others => '0');
     signal s_pc_src               : std_logic_vector(1 downto 0) := (others => '0');
     signal s_alucontrol           : std_logic_vector(3 downto 0) := (others => '0');
 
@@ -133,9 +132,8 @@ begin
         s_reg_write      <= Control_i.reg_write;
         s_alu_src_a      <= Control_i.alu_src_a;
         s_alu_src_b      <= Control_i.alu_src_b;
-        s_mem_to_reg     <= Control_i.mem_to_reg;
         s_mem_write      <= Control_i.mem_write;
-        s_write_data_src <= Control_i.write_data_src;
+        s_wb_src         <= Control_i.wb_src;
         s_pc_src         <= Control_i.pcsrc;
         s_alucontrol     <= Control_i.alucontrol;
 
@@ -252,11 +250,13 @@ begin
 
     -- ============== Estágio de Escrita de Volta (WRITE-BACK) ===============================
 
-        -- Mux MemtoReg: decide o que será escrito de volta no registrador
-    
-            s_write_back_data <= s_pc_plus_4 when s_write_data_src = '1' else
-                s_load_unit_out when s_mem_to_reg = '1' else
-                s_alu_result;
+        -- Mux WRITE-BACK DATA: decide o que será escrito de volta no registrador
+
+            with s_wb_src select
+                s_write_back_data <= s_alu_result      when "00",     -- Tipo-R, Tipo-I (Aritmética)
+                                     s_load_unit_out   when "01",     -- Loads
+                                     s_pc_plus_4       when "10",     -- JAL / JALR
+                                     (others => '0')   when others;
 
     -- ============== Lógica de Cálculo do Próximo PC ======================================
     
