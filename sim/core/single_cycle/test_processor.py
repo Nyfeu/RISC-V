@@ -239,7 +239,7 @@ async def test_processor_execution(dut):
     # 2. Inicializa Clock e Reset.
     # 3. Monitora a execução até receber o sinal de HALT ou estourar o tempo (Timeout).
     
-    log_header("INICIANDO SIMULAÇÃO SOC RISC-V")
+    log_header("INICIANDO SIMULAÇÃO CORE RISC-V (SINGLE-CYCLE)")
 
     # ----------------------------------------------------------------------
     # [FASE 1] Configuração e Carga 

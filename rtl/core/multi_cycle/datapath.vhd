@@ -109,7 +109,6 @@ architecture rtl of datapath is
     signal s_alucontrol           : std_logic_vector(3 downto 0) := (others => '0');
 
     -- Sinais internos do datapath
-    signal s_pc_current           : std_logic_vector(31 downto 0) := (others => '0');     -- Contador de Programa (PC) atual
     signal s_pc_next              : std_logic_vector(31 downto 0) := (others => '0');     -- Próximo valor do PC
     signal s_pc_plus_4            : std_logic_vector(31 downto 0) := (others => '0');     -- PC + 4 (endereço da próxima instrução)
     signal s_instruction          : std_logic_vector(31 downto 0) := (others => '0');     -- Instrução lida da memória (IMEM)
@@ -123,6 +122,15 @@ architecture rtl of datapath is
     signal s_alu_zero             : std_logic := '0';                                     -- Flag "Zero" da ALU
     signal s_branch_or_jal_addr   : std_logic_vector(31 downto 0) := (others => '0');     -- Endereço para Branch e JAL
     signal s_lsu_data_out         : std_logic_vector(31 downto 0) := (others => '0');     -- Sinal de saída da LSU (Load-Store Unit)
+
+    -- Registradores de estado para o MULTI-CYCLE
+    signal r_PC             : std_logic_vector(31 downto 0);                              -- Contador de Programa (PC) atual
+    signal r_OldPC          : std_logic_vector(31 downto 0);                              -- Program Counter da instrução selecionada
+    signal r_IR             : std_logic_vector(31 downto 0);                              -- Instruction Register
+    signal r_MDR            : std_logic_vector(31 downto 0);                              -- Memory Data Register
+    signal r_RS1            : std_logic_vector(31 downto 0);                              -- Lê rs1
+    signal r_RS2            : std_logic_vector(31 downto 0);                              -- Lê rs2
+    signal r_ALUResult      : std_logic_vector(31 downto 0);                              -- Salva resultado da ALU
 
 begin
 
@@ -138,8 +146,43 @@ begin
 
     -- Saídas para o control path
 
-        Instruction_o  <= s_instruction;
-        ALU_Zero_o     <= s_alu_zero;
+        Instruction_o    <= r_IR;
+        ALU_Zero_o       <= s_alu_zero;
+
+    -- Gerenciamento dos registradores intermediários do MULTI-CYCLE 
+
+    -- process(CLK_i, Reset_i) -- [Síncrono]
+    process(Reset_i, r_PC, s_instruction, s_lsu_data_out, s_read_data_1, s_read_data_2, s_alu_result) -- [Assíncrono]
+    begin
+
+        if Reset_i = '1' then
+
+            -- Reinicia o estado do CORE com sinal de RESET
+
+            r_OldPC     <= (others => '0');
+            r_IR        <= (others => '0');
+            r_MDR       <= (others => '0');
+            r_RS1       <= (others => '0');
+            r_RS2       <= (others => '0');
+            r_ALUResult <= (others => '0');
+
+        -- elsif rising_edge(CLK_i) then -- [Síncrono]
+        else -- [Assíncrono]
+            
+            -- Lógica de atualização dos registradores intermediários
+            -- será adicionada aqui em breve
+
+            r_OldPC     <= r_PC;           -- Por enquanto, igual ao current PC
+            r_IR        <= s_instruction;  -- Registrado para ser usado em ID
+            r_MDR       <= s_lsu_data_out; -- Registrado para ser usado em WB
+            r_RS1       <= s_read_data_1;  -- Registrado para ser usado em EX
+            r_RS2       <= s_read_data_2;  -- Registrado para ser usado em EX
+            r_ALUResult <= s_alu_result;   -- Registrado para ser usado em MEM
+
+        end if;
+
+    end process;
+
 
     -- ============== Estágio de Busca (FETCH) ===============================================
 
@@ -149,16 +192,16 @@ begin
             PC_REGISTER:process(CLK_i, Reset_i)
             begin
                 if Reset_i = '1' then
-                    s_pc_current <= (others => '0');
+                     r_PC <= (others => '0');
                 elsif rising_edge(CLK_i) then
-                    s_pc_current <= s_pc_next;
+                     r_PC <= s_pc_next;
                 end if;
             end process;
 
         -- O PC atual busca a instrução na memória (IMEM)
 
-            IMem_addr_o <= s_pc_current;
-            s_instruction <= IMem_data_i;
+            IMem_addr_o   <= r_PC;         -- Utiliza o valor advindo do registrador program counter (PC) atual
+            s_instruction <= IMem_data_i;  -- Utiliza o valor advindo do registrador intermediário
 
     -- ============== Estágio de Decodificação (DECODE) ======================================
 
@@ -166,7 +209,7 @@ begin
         -- -- Extrai e estende o imediato da instrução para 32 bits
 
             U_IMM_GEN: entity work.imm_gen port map (
-                Instruction_i => s_instruction, 
+                Instruction_i => r_IR, 
                 Immediate_o => s_immediate
             );
 
@@ -177,9 +220,9 @@ begin
                 port map (
                     clk_i        => CLK_i,                            -- Clock do processador
                     RegWrite_i   => s_reg_write,                      -- Habilita escrita no banco de registradores
-                    ReadAddr1_i  => s_instruction(19 downto 15),      -- rs1 (bits [19:15]) - 5 bits
-                    ReadAddr2_i  => s_instruction(24 downto 20),      -- rs2 (bits [24:20]) - 5 bits
-                    WriteAddr_i  => s_instruction(11 downto 7),       -- rd  (bits [11: 7]) - 5 bits
+                    ReadAddr1_i  => r_IR(19 downto 15),               -- rs1 (bits [19:15]) - 5 bits
+                    ReadAddr2_i  => r_IR(24 downto 20),               -- rs2 (bits [24:20]) - 5 bits
+                    WriteAddr_i  => r_IR(11 downto 7),                -- rd  (bits [11: 7]) - 5 bits
                     WriteData_i  => s_write_back_data,                -- Dados a serem escritos (da ALU ou da memória) - 32 bits
                     ReadData1_o  => s_read_data_1,                    -- Dados lidos do registrador rs1 (32 bits)
                     ReadData2_o  => s_read_data_2                     -- Dados lidos do registrador rs2 (32 bits)
@@ -192,12 +235,12 @@ begin
         -- Se s_alusrc_b='1' (I-Type, Load, Store), usa a constante s_immediate.
 
             with s_alu_src_a select
-                s_alu_in_a <= s_read_data_1   when "00",    -- Padrão (rs1)
-                              s_pc_current    when "01",    -- AUIPC (PC)
-                              x"00000000"     when "10",    -- LUI (Zero)
-                              s_read_data_1   when others;  -- Necessário para compilação
+                s_alu_in_a <= r_RS1       when "00",    -- Padrão (rs1)
+                              r_PC        when "01",    -- AUIPC (PC)
+                              x"00000000" when "10",    -- LUI (Zero)
+                              r_RS1       when others;  -- Necessário para compilação
 
-            s_alu_in_b <= s_read_data_2 when s_alu_src_b = '0' else s_immediate;
+            s_alu_in_b <= r_RS2 when s_alu_src_b = '0' else s_immediate;
 
         -- A ULA executa a operação comandada pelo s_alu_control.
         -- O resultado (s_alu_result) pode ser um valor aritmético, um endereço de memória ou um resultado de comparação.
@@ -222,10 +265,10 @@ begin
         U_LSU: entity work.lsu
             port map (
                 -- Interface com o Datapath (Entradas)
-                Addr_i        => s_alu_result,                        -- Endereço calculado pela ALU
-                WriteData_i   => s_read_data_2,                       -- Dado de rs2 para escrita
+                Addr_i        => r_ALUResult,                         -- Endereço calculado pela ALU
+                WriteData_i   => r_RS2,                               -- Dado de rs2 para escrita
                 MemWrite_i    => s_mem_write,                         -- Sinal de controle WE
-                Funct3_i      => s_instruction(14 downto 12),         -- Funct3 define B, H, W
+                Funct3_i      => r_IR(14 downto 12),                  -- Funct3 define B, H, W
                 
                 -- Interface com a Memória Física (DMem)
                 DMem_data_i   => DMem_data_i,                         -- Leitura crua da RAM
@@ -242,8 +285,8 @@ begin
         -- Mux WRITE-BACK DATA: decide o que será escrito de volta no registrador
 
             with s_wb_src select
-                s_write_back_data <= s_alu_result      when "00",     -- Tipo-R, Tipo-I (Aritmética)
-                                     s_lsu_data_out    when "01",     -- Loads
+                s_write_back_data <= r_ALUResult       when "00",     -- Tipo-R, Tipo-I (Aritmética)
+                                     r_MDR             when "01",     -- Loads
                                      s_pc_plus_4       when "10",     -- JAL / JALR
                                      (others => '0')   when others;
 
@@ -251,20 +294,20 @@ begin
     
         -- Candidato 1: Endereço sequencial (PC + 4)
 
-            s_pc_plus_4 <= std_logic_vector(unsigned(s_pc_current) + 4);
+            s_pc_plus_4 <= std_logic_vector(unsigned( r_PC) + 4);
     
         -- Candidato 2: Endereço de destino para Branch e JAL (PC + imediato)
 
-            s_branch_or_jal_addr <= std_logic_vector(signed(s_pc_current) + signed(s_immediate));
+            s_branch_or_jal_addr <= std_logic_vector(signed( r_PC) + signed(s_immediate));
 
         -- Mux final que alimenta o registrador do PC no próximo ciclo de clock
         -- - A prioridade é: Jumps têm precedência sobre Branches, que têm precedência sobre PC+4.
 
             with s_pc_src select
-                s_pc_next <= s_pc_plus_4                    when "00", -- PC <- PC + 4
-                            s_branch_or_jal_addr            when "01", -- PC <- Endereço de Branch ou JAL
-                            s_alu_result(31 downto 1) & '0' when "10", -- PC <- Endereço do JALR (rs1 + imm)
-                            (others => 'X')                 when others;
+                s_pc_next <= s_pc_plus_4                     when "00", -- PC <- PC + 4
+                             s_branch_or_jal_addr            when "01", -- PC <- Endereço de Branch ou JAL
+                             r_ALUResult(31 downto 1) & '0'  when "10", -- PC <- Endereço do JALR (rs1 + imm)
+                             (others => 'X')                 when others;
 
     -- ============== Sinais de DEBUG (MONITORAMENTO) ======================================
 
@@ -274,12 +317,12 @@ begin
         -- DEBUG ENABLED
         ------------------------------------------------------------------------------
         gen_debug_on : if DEBUG_EN generate
-            DBG_pc_current_o  <= s_pc_current;
+            DBG_pc_current_o  <= r_PC;
             DBG_pc_next_o     <= s_pc_next;
-            DBG_instruction_o <= s_instruction;
-            DBG_rs1_data_o    <= s_read_data_1;
-            DBG_rs2_data_o    <= s_read_data_2;
-            DBG_alu_result_o  <= s_alu_result;
+            DBG_instruction_o <= r_IR;
+            DBG_rs1_data_o    <= r_RS1;
+            DBG_rs2_data_o    <= r_RS2;
+            DBG_alu_result_o  <= r_ALUResult;
             DBG_write_back_o  <= s_write_back_data;
             DBG_alu_zero_o    <= s_alu_zero;
         end generate;
