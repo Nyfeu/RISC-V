@@ -56,38 +56,19 @@ Além disso, o acesso à memória de instruções (IMem) e à memória de dados 
 #### **1. Instruction Fetch (IF) - Estado Inicial**
 Neste estado, comum a todas as instruções, o objetivo é carregar a instrução da memória e atualizar o Program Counter ($PC$).
 * **Ação:** A memória é lida no endereço apontado pelo $PC$.
-* **Controle:** O sinal `MemRead` é ativado e o registrador de instrução (`IR`) é habilitado para escrita (`IRWrite`).
-* **Incremento:** A ALU é utilizada para calcular $PC + 4$.
-
-Sinais de controle para o estado IF:
-| Sinal | Valor | Função |
-| :---: | :---: | :----: |
-| MemRead | `1` | Leitura da memória de einstruções | 
-| IRWrite | `1` | Carrega a instrução no IR | 
-| ALUSrcA | PC | Operando A da ALU recebe o PC | 
-| ALUSrcB | 4 | Operando B da ALU recebe constante `4`
-| ALUOp | ADD | Cálculo de `PC + 4` |
-| PCWrite | `1` | Atualiza o PC |
+* **Transição**: invariavelmente, IF transitará para ID (estágio de decodificação da intrução em `IR`).
 
 #### **2. Instruction Decode (ID)**
 A instrução armazenada no `IR` é decodificada. Como o RISC-V é regular, os campos dos registradores fonte ($rs1$, $rs2$) estão em posições fixas, permitindo a leitura do Banco de Registradores (*Register File*) antes mesmo de saber qual é a instrução exata.
 * **Ação:** Leitura dos operandos e extensão de sinal dos imediatos.
 * **Transição:** A FSM avalia o *Opcode* para decidir o próximo estado (ex: se for uma instrução tipo-R, vai para Execução; se for *Load*, prepara o cálculo de endereço).
 
-Sinais de controle para o estado ID:
-| Sinal | Valor | Função |
-| :---: | :---: | :----: |
-| RegRead | `1` | Leitura do banco de registradores | 
-| ImmExt | `1` | Extensão de sinal do imediato | 
-| ALUSrcA | PC | Base para cálculo de desvio | 
-| ALUSrcB | IMM | Imediato estendido |
-| ALUOp | ADD | Pré-cálculo de endereço de branch |
-
 #### **3. Execution (EX)**
 O comportamento deste estado varia drasticamente conforme o tipo da instrução:
 * **Tipo-R:** A ALU realiza a operação lógica ou aritmética definida pelos campos *funct*.
 * **Load/Store:** A ALU calcula o endereço efetivo de memória (Base + Deslocamento).
 * **Branch:** A ALU compara os operandos e calcula o endereço de desvio. Se a condição for verdadeira, o $PC$ é atualizado aqui.
+* [...]
 
 #### **4. Memory Access (MEM)**
 Necessário apenas para instruções de carga (`LW`) e armazenamento (`SW`).
@@ -104,7 +85,8 @@ Necessário apenas para instruções de carga (`LW`) e armazenamento (`SW`).
 
 | Estado Atual | Condição | Próximo Estado | Descrição |
 | :-: | :-: | :-: | :-: |
-| IF | - | ID | Busca da instrução e incremento do PC |
+| IF_ADDR | - | IF_DATA | Endereça a IMem |
+| IF_DATA | - | ID | Leitura da instrução e incremento do PC |
 | ID | Tipo-R | EX_ALU | Operação aritmética/lógica |
 | ID | Tipo-I | EX_ALU | Operação imediata |
 | ID | Load  | EX_ADDR | Cálculo de enndereço |
@@ -112,13 +94,15 @@ Necessário apenas para instruções de carga (`LW`) e armazenamento (`SW`).
 | ID | Branch | EX_BRANCH | Comparação e decisão de desvio |
 | ID | Jump | EX_JUMP | Cálculo do endereço de salto |
 | EX_ALU | - | WB | Resultado da ALU pronto |
-| EX_ADDR | Load | MEM_LW | Leitura da memória de dados |
-| EX_ADDR | Store | MEM_SW | Escrita na memória de dados |
-| EX_BRANCH | - | IF | PC atualizado condicionalmente |
-| EX_JUMP | - | IF | PC atualizado com alvo do salto |
+| EX_ADDR | Load | MEM_LA | Leitura da memória de dados |
+| EX_ADDR | Store | MEM_SA | Escrita na memória de dados |
+| EX_BRANCH | - | IF_ADDR | PC atualizado condicionalmente |
+| EX_JUMP | - | WB | PC atualizado com alvo do salto |
+| MEM_LA | - | MEM_LW | Endereça a DMem |
 | MEM_LW | - | WB | Dado da memória disponível |
-| MEM_SW | - | IF | Escrita concluída |
-| WB | - | IF | Escrita no banco de registradores |
+| MEM_SA | - | MEM_SW | Endereça a DMem |
+| MEM_SW | - | IF_ADDR | Escrita concluída |
+| WB | - | IF_ADDR | Escrita no banco de registradores |
 
 ### Tabela Completa de Sinais de Controle
 
@@ -143,4 +127,5 @@ Necessário apenas para instruções de carga (`LW`) e armazenamento (`SW`).
 
 | Estado | `PCWrite` | `OPCWrite` | `PCSrc` | `IRWrite` | `MemWrite` | `ALUSrcA` | `ALUSrcB` | `ALUControl` | `RegWrite` | `WBSel` | `RS1Write` | `RS2Write` | `ALUrWrite` | `MDRWrite` |
 | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | 
-| IF | 
+| IF_ADDR | 0 | 0 | X | 0 | 0 | X | X | X | 0 | X | 0 | 0 | 0 | 0 | 
+| IF_DATA | 1 | 1 | X | 1 | 0 | X | X | X | 0 | X | 0 | 0 | 0 | 0 |

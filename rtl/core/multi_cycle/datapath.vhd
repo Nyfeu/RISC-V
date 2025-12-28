@@ -69,6 +69,16 @@ entity datapath is
 
         Control_i          : in  t_control;                           -- Recebe todos os sinais de controle (decoder, pcsrc, alucontrol)
 
+        -- Entradas temporárias para validação do datapath
+
+        PCWrite_i          : in  std_logic;
+        OPCWrite_i         : in  std_logic;
+        IRWrite_i          : in  std_logic;
+        RS1Write_i         : in  std_logic;
+        RS2Write_i         : in  std_logic;
+        ALUWrite_i         : in  std_logic;
+        MDRWrite_i         : in  std_logic;
+
         -- Saídas
 
         Instruction_o      : out std_logic_vector(31 downto 0);       -- Envia a instrução para o controle
@@ -78,14 +88,25 @@ entity datapath is
         -- Interface de DEBUG (somente observação – simulação / bring-up)
         ----------------------------------------------------------------------------------------------------------
 
-        DBG_pc_current_o   : out std_logic_vector(31 downto 0);       -- PC atual
+        -- Sinais combinacionais 
+
         DBG_pc_next_o      : out std_logic_vector(31 downto 0);       -- Próximo PC
         DBG_instruction_o  : out std_logic_vector(31 downto 0);       -- Instrução atual
         DBG_rs1_data_o     : out std_logic_vector(31 downto 0);       -- Dados lidos do rs1
         DBG_rs2_data_o     : out std_logic_vector(31 downto 0);       -- Dados lidos do rs2
         DBG_alu_result_o   : out std_logic_vector(31 downto 0);       -- Resultado da ALU
         DBG_write_back_o   : out std_logic_vector(31 downto 0);       -- Dados escritos de volta no banco de registradores
-        DBG_alu_zero_o     : out std_logic                            -- Flag Zero da ALU
+        DBG_alu_zero_o     : out std_logic;                           -- Flag Zero da ALU
+
+        -- Dados dos registradores
+
+        DBG_r_pc_o   : out std_logic_vector(31 downto 0);             -- PC atual
+        DBG_r_opc_o  : out std_logic_vector(31 downto 0);             -- OldPC atual
+        DBG_r_ir_o   : out std_logic_vector(31 downto 0);             -- IR atual
+        DBG_r_rs1_o  : out std_logic_vector(31 downto 0);             -- RS1 atual
+        DBG_r_rs2_o  : out std_logic_vector(31 downto 0);             -- RS2 atual 
+        DBG_r_alu_o  : out std_logic_vector(31 downto 0);             -- ALUResult atual
+        DBG_r_MDR_o  : out std_logic_vector(31 downto 0)              -- MDR atual
 
     );
 
@@ -124,13 +145,13 @@ architecture rtl of datapath is
     signal s_lsu_data_out         : std_logic_vector(31 downto 0) := (others => '0');     -- Sinal de saída da LSU (Load-Store Unit)
 
     -- Registradores de estado para o MULTI-CYCLE
-    signal r_PC             : std_logic_vector(31 downto 0);                              -- Contador de Programa (PC) atual
-    signal r_OldPC          : std_logic_vector(31 downto 0);                              -- Program Counter da instrução selecionada
-    signal r_IR             : std_logic_vector(31 downto 0);                              -- Instruction Register
-    signal r_MDR            : std_logic_vector(31 downto 0);                              -- Memory Data Register
-    signal r_RS1            : std_logic_vector(31 downto 0);                              -- Lê rs1
-    signal r_RS2            : std_logic_vector(31 downto 0);                              -- Lê rs2
-    signal r_ALUResult      : std_logic_vector(31 downto 0);                              -- Salva resultado da ALU
+    signal r_PC             : std_logic_vector(31 downto 0) := (others => '0');           -- Contador de Programa (PC) atual
+    signal r_OldPC          : std_logic_vector(31 downto 0) := (others => '0');           -- Program Counter da instrução selecionada
+    signal r_IR             : std_logic_vector(31 downto 0) := (others => '0');           -- Instruction Register
+    signal r_MDR            : std_logic_vector(31 downto 0) := (others => '0');           -- Memory Data Register
+    signal r_RS1            : std_logic_vector(31 downto 0) := (others => '0');           -- Lê rs1
+    signal r_RS2            : std_logic_vector(31 downto 0) := (others => '0');           -- Lê rs2
+    signal r_ALUResult      : std_logic_vector(31 downto 0) := (others => '0');           -- Salva resultado da ALU
 
 begin
 
@@ -151,8 +172,7 @@ begin
 
     -- Gerenciamento dos registradores intermediários do MULTI-CYCLE 
 
-    -- process(CLK_i, Reset_i) -- [Síncrono]
-    process(Reset_i, r_PC, s_instruction, s_lsu_data_out, s_read_data_1, s_read_data_2, s_alu_result) -- [Assíncrono]
+    process(CLK_i, Reset_i) -- [Síncrono]
     begin
 
         if Reset_i = '1' then
@@ -166,18 +186,31 @@ begin
             r_RS2       <= (others => '0');
             r_ALUResult <= (others => '0');
 
-        -- elsif rising_edge(CLK_i) then -- [Síncrono]
-        else -- [Assíncrono]
-            
-            -- Lógica de atualização dos registradores intermediários
-            -- será adicionada aqui em breve
+        elsif rising_edge(CLK_i) then -- [Síncrono]
 
-            r_OldPC     <= r_PC;           -- Por enquanto, igual ao current PC
-            r_IR        <= s_instruction;  -- Registrado para ser usado em ID
-            r_MDR       <= s_lsu_data_out; -- Registrado para ser usado em WB
-            r_RS1       <= s_read_data_1;  -- Registrado para ser usado em EX
-            r_RS2       <= s_read_data_2;  -- Registrado para ser usado em EX
-            r_ALUResult <= s_alu_result;   -- Registrado para ser usado em MEM
+            if OPCWrite_i = '1' then
+                r_OldPC <= r_PC;               -- Registra o valor de PC referente à instrução atual
+            end if;
+
+            if IRWrite_i = '1' then
+                r_IR <= s_instruction;         -- Registrado para ser usado em ID
+            end if;
+
+            if MDRWrite_i = '1' then
+                r_MDR <= s_lsu_data_out;       -- Registrado para ser usado em WB
+            end if;
+            
+            if RS1Write_i = '1' then
+                r_RS1 <= s_read_data_1;        -- Registrado para ser usado em EX
+            end if;
+
+            if RS2Write_i = '1' then
+                r_RS2 <= s_read_data_2;        -- Registrado para ser usado em EX
+            end if;
+
+            if ALUWrite_i = '1' then
+                r_ALUResult <= s_alu_result;   -- Registrado para ser usado em MEM
+            end if;
 
         end if;
 
@@ -194,7 +227,9 @@ begin
                 if Reset_i = '1' then
                      r_PC <= (others => '0');
                 elsif rising_edge(CLK_i) then
-                     r_PC <= s_pc_next;
+                    if PCWrite_i = '1' then
+                        r_PC <= s_pc_next;
+                    end if;
                 end if;
             end process;
 
@@ -236,7 +271,7 @@ begin
 
             with s_alu_src_a select
                 s_alu_in_a <= r_RS1       when "00",    -- Padrão (rs1)
-                              r_PC        when "01",    -- AUIPC (PC)
+                              r_OldPC     when "01",    -- AUIPC (PC)
                               x"00000000" when "10",    -- LUI (Zero)
                               r_RS1       when others;  -- Necessário para compilação
 
@@ -298,7 +333,7 @@ begin
     
         -- Candidato 2: Endereço de destino para Branch e JAL (PC + imediato)
 
-            s_branch_or_jal_addr <= std_logic_vector(signed( r_PC) + signed(s_immediate));
+            s_branch_or_jal_addr <= std_logic_vector(signed(r_OldPC) + signed(s_immediate));
 
         -- Mux final que alimenta o registrador do PC no próximo ciclo de clock
         -- - A prioridade é: Jumps têm precedência sobre Branches, que têm precedência sobre PC+4.
@@ -317,7 +352,13 @@ begin
         -- DEBUG ENABLED
         ------------------------------------------------------------------------------
         gen_debug_on : if DEBUG_EN generate
-            DBG_pc_current_o  <= r_PC;
+            DBG_r_pc_o        <= r_PC;
+            DBG_r_opc_o       <= r_OldPC;
+            DBG_r_ir_o        <= r_IR;
+            DBG_r_rs1_o       <= r_RS1;
+            DBG_r_rs2_o       <= r_RS2; 
+            DBG_r_alu_o       <= r_ALUResult;
+            DBG_r_MDR_o       <= r_MDR;
             DBG_pc_next_o     <= s_pc_next;
             DBG_instruction_o <= r_IR;
             DBG_rs1_data_o    <= r_RS1;

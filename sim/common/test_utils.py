@@ -1,5 +1,5 @@
 # ==============================================================================
-# File: alu_test_utils.py
+# File: test_utils.py
 # ==============================================================================
 #
 # >>> Descrição: Módulo Compartilhado de Utilidades para Testes da ALU
