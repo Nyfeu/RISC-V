@@ -85,8 +85,8 @@ Necessário apenas para instruções de carga (`LW`) e armazenamento (`SW`).
 
 | Estado Atual | Condição | Próximo Estado | Descrição |
 | :-: | :-: | :-: | :-: |
-| IF_ADDR | - | IF_DATA | Endereça a IMem |
-| IF_DATA | - | ID | Leitura da instrução e incremento do PC |
+| IF1 | - | IF2 | Endereça a IMem |
+| IF2 | - | ID | Leitura da instrução e incremento do PC |
 | ID | Tipo-R | EX_ALU | Operação aritmética/lógica |
 | ID | Tipo-I | EX_ALU | Operação imediata |
 | ID | Load  | EX_ADDR | Cálculo de enndereço |
@@ -94,15 +94,15 @@ Necessário apenas para instruções de carga (`LW`) e armazenamento (`SW`).
 | ID | Branch | EX_BRANCH | Comparação e decisão de desvio |
 | ID | Jump | EX_JUMP | Cálculo do endereço de salto |
 | EX_ALU | - | WB | Resultado da ALU pronto |
-| EX_ADDR | Load | MEM_LA | Leitura da memória de dados |
-| EX_ADDR | Store | MEM_SA | Escrita na memória de dados |
-| EX_BRANCH | - | IF_ADDR | PC atualizado condicionalmente |
+| EX_ADDR | Load | MEM1_LW | Calcula endereço para DMem |
+| EX_ADDR | Store | MEM1_SW | Calcula endereço para DMem |
+| EX_BRANCH | - | IF1 | PC atualizado condicionalmente |
 | EX_JUMP | - | WB | PC atualizado com alvo do salto |
-| MEM_LA | - | MEM_LW | Endereça a DMem |
-| MEM_LW | - | WB | Dado da memória disponível |
-| MEM_SA | - | MEM_SW | Endereça a DMem |
-| MEM_SW | - | IF_ADDR | Escrita concluída |
-| WB | - | IF_ADDR | Escrita no banco de registradores |
+| MEM1_LW | - | MEM2_LW | Endereço estável na DMem |
+| MEM2_LW | - | WB | Dado da memória válido |
+| MEM1_SW | - | MEM2_SW | Endereço estável na DMem |
+| MEM2_SW | - | IF1 | Pulso de escrita |
+| WB | - | IF1 | Escrita no banco de registradores |
 
 ### Tabela Completa de Sinais de Controle
 

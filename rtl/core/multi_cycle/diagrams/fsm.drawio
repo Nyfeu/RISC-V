@@ -1,6 +1,6 @@
 <mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36" version="29.2.9">
   <diagram name="Página-1" id="X-4iF6R0kZAHm9mUUK4V">
-    <mxGraphModel dx="3252" dy="2618" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+    <mxGraphModel dx="3091" dy="2099" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -82,7 +82,7 @@
         <mxCell id="ZTTege3xyIp2_rOYraAM-23" edge="1" parent="1" source="ZTTege3xyIp2_rOYraAM-7" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0;entryDx=0;entryDy=0;strokeWidth=4;strokeColor=light-dark(#000000,#06BFFF);" target="ZTTege3xyIp2_rOYraAM-10">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="ZTTege3xyIp2_rOYraAM-29" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=18;" value="&lt;font style=&quot;color: light-dark(rgb(0, 0, 0), rgb(6, 191, 255));&quot;&gt;IF_DATA&lt;/font&gt;" vertex="1">
+        <mxCell id="ZTTege3xyIp2_rOYraAM-29" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=18;" value="&lt;font style=&quot;color: light-dark(rgb(0, 0, 0), rgb(6, 191, 255));&quot;&gt;IF2&lt;/font&gt;" vertex="1">
           <mxGeometry height="30" width="60" x="70" y="-260" as="geometry" />
         </mxCell>
         <mxCell id="ZTTege3xyIp2_rOYraAM-31" edge="1" parent="1" style="endArrow=none;html=1;rounded=0;" value="">
@@ -169,7 +169,7 @@
             <mxPoint x="1000" y="500" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="ZTTege3xyIp2_rOYraAM-57" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=18;" value="&lt;font style=&quot;color: light-dark(rgb(0, 0, 0), rgb(6, 191, 255));&quot;&gt;MEM_LA&lt;/font&gt;" vertex="1">
+        <mxCell id="ZTTege3xyIp2_rOYraAM-57" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=18;" value="&lt;font style=&quot;color: light-dark(rgb(0, 0, 0), rgb(6, 191, 255));&quot;&gt;MEM1_LW&lt;/font&gt;" vertex="1">
           <mxGeometry height="30" width="90" x="335" y="820" as="geometry" />
         </mxCell>
         <mxCell id="ZTTege3xyIp2_rOYraAM-58" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="RegRead: 1" vertex="1">
@@ -181,7 +181,7 @@
             <mxPoint x="440" y="860" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="ZTTege3xyIp2_rOYraAM-60" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=18;" value="&lt;font style=&quot;color: light-dark(rgb(0, 0, 0), rgb(6, 191, 255));&quot;&gt;MEM_SA&lt;/font&gt;" vertex="1">
+        <mxCell id="ZTTege3xyIp2_rOYraAM-60" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=18;" value="&lt;font style=&quot;color: light-dark(rgb(0, 0, 0), rgb(6, 191, 255));&quot;&gt;MEM1_SW&lt;/font&gt;" vertex="1">
           <mxGeometry height="30" width="90" x="615" y="820" as="geometry" />
         </mxCell>
         <mxCell id="ZTTege3xyIp2_rOYraAM-61" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="RegRead: 1" vertex="1">
@@ -220,7 +220,7 @@
         <mxCell id="4" parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;" value="" vertex="1">
           <mxGeometry height="200" width="200" y="-640" as="geometry" />
         </mxCell>
-        <mxCell id="5" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=18;" value="&lt;font style=&quot;color: light-dark(rgb(0, 0, 0), rgb(6, 191, 255));&quot;&gt;IF_ADDR&lt;/font&gt;" vertex="1">
+        <mxCell id="5" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=18;" value="&lt;font style=&quot;color: light-dark(rgb(0, 0, 0), rgb(6, 191, 255));&quot;&gt;IF1&lt;/font&gt;" vertex="1">
           <mxGeometry height="30" width="60" x="70" y="-620" as="geometry" />
         </mxCell>
         <mxCell id="6" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="PCWrite: 0" vertex="1">
@@ -265,7 +265,7 @@
         <mxCell id="19" parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;" value="" vertex="1">
           <mxGeometry height="200" width="200" x="560" y="1160" as="geometry" />
         </mxCell>
-        <mxCell id="20" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=18;" value="&lt;font style=&quot;color: light-dark(rgb(0, 0, 0), rgb(6, 191, 255));&quot;&gt;MEM_LW&lt;/font&gt;" vertex="1">
+        <mxCell id="20" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=18;" value="&lt;font style=&quot;color: light-dark(rgb(0, 0, 0), rgb(6, 191, 255));&quot;&gt;MEM2_LW&lt;/font&gt;" vertex="1">
           <mxGeometry height="30" width="90" x="335" y="1180" as="geometry" />
         </mxCell>
         <mxCell id="21" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="RegRead: 1" vertex="1">
@@ -277,7 +277,7 @@
             <mxPoint x="440" y="1220" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="23" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=18;" value="&lt;font style=&quot;color: light-dark(rgb(0, 0, 0), rgb(6, 191, 255));&quot;&gt;MEM_SW&lt;/font&gt;" vertex="1">
+        <mxCell id="23" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=18;" value="&lt;font style=&quot;color: light-dark(rgb(0, 0, 0), rgb(6, 191, 255));&quot;&gt;MEM2_SW&lt;/font&gt;" vertex="1">
           <mxGeometry height="30" width="90" x="615" y="1180" as="geometry" />
         </mxCell>
         <mxCell id="24" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="RegRead: 1" vertex="1">
