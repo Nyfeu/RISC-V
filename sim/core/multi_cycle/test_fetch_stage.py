@@ -1,5 +1,5 @@
 # ================================================================================================================
-# File: test_instruction_fetch.py
+# File: test_fetch_stage.py
 # ================================================================================================================
 #
 # >>> Descrição: Conjunto de testes focado exclusivamente no Estágio de Busca (Instruction Fetch).
