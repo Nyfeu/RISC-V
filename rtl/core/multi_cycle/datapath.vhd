@@ -322,7 +322,7 @@ begin
             with s_wb_src select
                 s_write_back_data <= r_ALUResult       when "00",     -- Tipo-R, Tipo-I (Aritmética)
                                      r_MDR             when "01",     -- Loads
-                                     s_pc_plus_4       when "10",     -- JAL / JALR
+                                     r_PC              when "10",     -- JAL / JALR
                                      (others => '0')   when others;
 
     -- ============== Lógica de Cálculo do Próximo PC ======================================

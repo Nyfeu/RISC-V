@@ -83,26 +83,31 @@ Necessário apenas para instruções de carga (`LW`) e armazenamento (`SW`).
 
 ### Tabela Completa de Transição de Estado
 
-| Estado Atual | Condição | Próximo Estado | Descrição |
-| :-: | :-: | :-: | :-: |
-| IF1 | - | IF2 | Endereça a IMem |
-| IF2 | - | ID | Leitura da instrução e incremento do PC |
-| ID | Tipo-R | EX_ALU | Operação aritmética/lógica |
-| ID | Tipo-I | EX_ALU | Operação imediata |
-| ID | Load  | EX_ADDR | Cálculo de enndereço |
-| ID | Store | EX_ADDR | Cálculo de endereço | 
-| ID | Branch | EX_BRANCH | Comparação e decisão de desvio |
-| ID | Jump | EX_JUMP | Cálculo do endereço de salto |
-| EX_ALU | - | WB | Resultado da ALU pronto |
-| EX_ADDR | Load | MEM1_LW | Calcula endereço para DMem |
-| EX_ADDR | Store | MEM1_SW | Calcula endereço para DMem |
-| EX_BRANCH | - | IF1 | PC atualizado condicionalmente |
-| EX_JUMP | - | WB | PC atualizado com alvo do salto |
-| MEM1_LW | - | MEM2_LW | Endereço estável na DMem |
-| MEM2_LW | - | WB | Dado da memória válido |
-| MEM1_SW | - | MEM2_SW | Endereço estável na DMem |
-| MEM2_SW | - | IF1 | Pulso de escrita |
-| WB | - | IF1 | Escrita no banco de registradores |
+| Estado Atual | Condição   | Próximo Estado | Descrição do Estado                                    | 
+| :----------: | :--------: | :------------: | :----------------------------------------------------: | 
+| IF           | -          | ID             | Busca instrução e incrementa PC (PC+4)                 | 
+| ID           | Tipo-R/I   | EX_ALU         | Decodifica instruções aritméticas/lógicas              | 
+| ID           | Load/Store | EX_ADDR        | Decodifica acesso à memória                            | 
+| ID           | Branch     | EX_BR          | Decodifica desvio condicional                          | 
+| ID           | JAL        | EX_JAL         | Decodifica salto incondicional imediato                | 
+| ID           | JALR       | EX_JALR        | Decodifica salto incondicional via registrador         | 
+| ID           | LUI        | EX_LUI         | Decodifica carregamento imediato superior              | 
+| ID           | AUIPC      | EX_AUIPC       | Decodifica adição de imediato ao PC                    | 
+| EX_ALU       | -          | WB_REG         | Operação da ALU concluída. Vai escrever no RegFile     | 
+| EX_ADDR      | Load       | MEM_RD         | Endereço calculado. Vai ler da memória                 | 
+| EX_ADDR      | Store      | MEM_WR         | Endereço calculado. Vai escrever na memória            | 
+| EX_BR        | -          | IF             | Avalia condição (`Zero`) e atualiza PC se necessário   | 
+| EX_JAL       | -          | WB_JAL         | Calcula alvo (`OldPC+IMM`) imediatamente               | 
+| EX_JALR      | -          | WB_JALR        | Calcula alvo (`rs1+IMM`) e salva em ALUResult          | 
+| EX_LUI       | -          | WB_REG         | Soma `0+IMM`. Vai para write-back                      | 
+| EX_AUIPC     | -          | WB_REG         | Soma `PC+IMM`. Vai para write-back                     | 
+| MEM_RD       | -          | WB_REG         | Lê `DMem[ALUResult]` e atualiza MDR                    | 
+| MEM_WR       | -          | IF             | Escreve RS2 em `DMem[ALUResult]`                       | 
+| WB_REG       | -          | IF             | Escrita do resultado em `rd`                           | 
+| WB_JAL       | -          | IF             | Escreve retorno (`PC+4`) em `rd`. PC já foi atualizado | 
+| WB_JALR      | -          | IF             | Escreve retorno (`PC+4`) em `rd`. PC é atualizado      | 
+
+> ℹ️ **Modelo de memória**: por ora, a memória é assumida na forma de RAM Distribuída, garantindo o acesso aos dados no mesmo ciclo de clock e simplificando a lógica de controle. Pretende-se alterar isso futuramente, implementando **protocolo READY/VALID handshake**.
 
 ### Tabela Completa de Sinais de Controle
 
@@ -125,7 +130,27 @@ Necessário apenas para instruções de carga (`LW`) e armazenamento (`SW`).
 
 ### Tabela Completa de Sinais por Estado
 
-| Estado | `PCWrite` | `OPCWrite` | `PCSrc` | `IRWrite` | `MemWrite` | `ALUSrcA` | `ALUSrcB` | `ALUControl` | `RegWrite` | `WBSel` | `RS1Write` | `RS2Write` | `ALUrWrite` | `MDRWrite` |
-| :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | 
-| IF_ADDR | 0 | 0 | X | 0 | 0 | X | X | X | 0 | X | 0 | 0 | 0 | 0 | 
-| IF_DATA | 1 | 1 | X | 1 | 0 | X | X | X | 0 | X | 0 | 0 | 0 | 0 |
+#### Legenda de Sinais
+* **ALUSrcA:** `00`=rs1; `01`=OldPC; `10`=Zero
+* **ALUSrcB:** `0`=rs2; `1`=Imediato
+* **PCSrc:** `00`=PC+4; `01`=Branch/JAL (Somador Dedicado); `10`=JALR (ALUResult)
+* **WBSel:** `00`=ALUResult; `01`=MDR; `10`=PC+4 (Retorno)
+* **Cond:** Habilitado apenas se a condição de Branch for satisfeita (Zero flag)
+* **ALUControl:** `ADD` (Força Soma); `Funct` (Tipo-R/I); `Branch` (Resolve SUB/SLT/SLTU via funct3)
+
+| Estado  | `PCWrite` | `OPCWrite` | `PCSrc`       | `IRWrite` | `MemWrite` | `ALUSrcA`      | `ALUSrcB`      | `ALUControl` | `RegWrite` | `WBSel`        | `RS1Write` | `RS2Write` | `ALUrWrite` | `MDRWrite` |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **IF** | 1 | 1 | 00 | 1 | 0 | X | X | X | 0 | X | 0 | 0 | 0 | 0 |
+| **ID** | 0 | 0 | X | 0 | 0 | X | X | X | 0 | X | 1 | 1 | 0 | 0 |
+| **EX_ALU** | 0 | 0 | X | 0 | 0 | 00 | **0/1** | **Funct** | 0 | X | 0 | 0 | 1 | 0 |
+| **EX_ADDR**| 0 | 0 | X | 0 | 0 | 00 | 1 | **ADD** | 0 | X | 0 | 0 | 1 | 0 |
+| **EX_BR** | **Cond** | 0 | 01 | 0 | 0 | 00 | 0 | **Branch** | 0 | X | 0 | 0 | 0 | 0 |
+| **EX_JAL** | 0 | 0 | X | 0 | 0 | X | X | X | 0 | X | 0 | 0 | 0 | 0 |
+| **EX_JALR**| 0 | 0 | X | 0 | 0 | 00 | 1 | **ADD** | 0 | X | 0 | 0 | 1 | 0 |
+| **EX_LUI** | 0 | 0 | X | 0 | 0 | 10 | 1 | **ADD** | 0 | X | 0 | 0 | 1 | 0 |
+| **EX_AUIPC**| 0 | 0 | X | 0 | 0 | 01 | 1 | **ADD** | 0 | X | 0 | 0 | 1 | 0 |
+| **MEM_RD** | 0 | 0 | X | 0 | 0 | X | X | X | 0 | X | 0 | 0 | 0 | 1 |
+| **MEM_WR** | 0 | 0 | X | 0 | 1 | X | X | X | 0 | X | 0 | 0 | 0 | 0 |
+| **WB_REG** | 0 | 0 | X | 0 | 0 | X | X | X | 1 | **00/01** | 0 | 0 | 0 | 0 |
+| **WB_JAL** | 1 | 0 | 01 | 0 | 0 | X | X | X | 1 | 10 | 0 | 0 | 0 | 0 |
+| **WB_JALR**| 1 | 0 | 10 | 0 | 0 | X | X | X | 1 | 10 | 0 | 0 | 0 | 0 |
