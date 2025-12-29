@@ -103,8 +103,13 @@ begin
 
             U_CONTROLPATH: entity work.control
                 port map (
+                    -- Sinais de Sincronismo 
+                    Clk_i              => CLK_i,          -- CLOCK global
+                    Reset_i            => Reset_i,        -- Master-Reset
+
+                    -- Interface de dados
                     Instruction_i      => s_instruction,  -- Instrução buscada na memória
-                    ALU_Zero_i         => s_alu_zero,
+                    ALU_Zero_i         => s_alu_zero,     -- Flag zero da ALU
                     Control_o          => s_ctrl          -- Todos os sinais de controle embalados
                 );
 

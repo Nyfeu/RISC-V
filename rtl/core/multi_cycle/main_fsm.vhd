@@ -1,0 +1,230 @@
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+use work.riscv_isa_pkg.all;       -- Contém todas as definições da ISA RISC-V especificadas
+use work.riscv_uarch_pkg.all;     -- Contém todas as definições específicas para a microarquitetura
+
+entity main_fsm is
+    port (
+        Clk_i          : in  std_logic;
+        Reset_i        : in  std_logic;
+        Opcode_i       : in  std_logic_vector(6 downto 0);
+
+        -- Sinais de Controle de Escrita/Habilitação
+        PCWrite_o      : out std_logic; -- Escrita Incondicional (JAL, JALR, IF)
+        OPCWrite_o     : out std_logic; -- Escrita de Old PC
+        PCWriteCond_o  : out std_logic; -- Escrita Condicional (Branches)
+        IRWrite_o      : out std_logic;
+        MemWrite_o     : out std_logic;
+        RegWrite_o     : out std_logic;
+        RS1Write_o     : out std_logic;
+        RS2Write_o     : out std_logic;
+        ALUrWrite_o    : out std_logic; -- Habilita escrita no reg ALUResult
+        MDRWrite_o     : out std_logic; -- Habilita escrita no reg MDR
+        
+        -- Sinais de Seleção (Multiplexadores)
+        PCSrc_o        : out std_logic_vector(1 downto 0);
+        ALUSrcA_o      : out std_logic_vector(1 downto 0);
+        ALUSrcB_o      : out std_logic; -- 0: rs2, 1: Imm
+        WBSel_o        : out std_logic_vector(1 downto 0);
+        
+        -- Controle Auxiliar para blocos reaproveitados
+        ALUOp_o        : out std_logic_vector(1 downto 0) -- 00: Add, 01: Branch, 10: Funct
+    );
+end entity main_fsm;
+
+architecture rtl of main_fsm is
+
+    -- Definição dos Estados (14 Estados - Safe Mode)
+    type t_state is (
+        S_IF, S_ID,
+        S_EX_ALU, S_EX_ADDR, S_EX_BR, S_EX_JAL, S_EX_JALR, S_EX_LUI, S_EX_AUIPC,
+        S_MEM_RD, S_MEM_WR,
+        S_WB_REG, S_WB_JAL, S_WB_JALR
+    );
+
+    signal current_state, next_state : t_state;
+
+begin
+
+    -- 1. Registrador de Estado (Processo Síncrono)
+    process(Clk_i, Reset_i)
+    begin
+        if Reset_i = '1' then
+            current_state <= S_IF;
+        elsif rising_edge(Clk_i) then
+            current_state <= next_state;
+        end if;
+    end process;
+
+    -- 2. Lógica de Próximo Estado (Combinacional)
+    process(current_state, Opcode_i)
+    begin
+        -- Default: manter estado 
+        next_state <= current_state;
+
+        case current_state is
+            -- FETCH: Busca Instrução
+            when S_IF =>
+                next_state <= S_ID;
+
+            -- DECODE: Decodifica e lê registradores
+            when S_ID =>
+                case Opcode_i is
+                    when c_OPCODE_R_TYPE | c_OPCODE_I_TYPE => next_state <= S_EX_ALU  ;
+                    when c_OPCODE_LOAD   | c_OPCODE_STORE  => next_state <= S_EX_ADDR ;
+                    when c_OPCODE_BRANCH                   => next_state <= S_EX_BR   ;
+                    when c_OPCODE_JAL                      => next_state <= S_EX_JAL  ;
+                    when c_OPCODE_JALR                     => next_state <= S_EX_JALR ;
+                    when c_OPCODE_LUI                      => next_state <= S_EX_LUI  ;
+                    when c_OPCODE_AUIPC                    => next_state <= S_EX_AUIPC;
+                    when others                            => next_state <= S_IF      ; -- Instrução inválida volta pro IF 
+                end case;
+
+            -- EXECUTE: Várias possibilidades
+            when S_EX_ALU   => next_state <= S_WB_REG;
+            
+            when S_EX_ADDR  => 
+                if Opcode_i = c_OPCODE_LOAD then
+                    next_state <= S_MEM_RD; -- Load
+                else
+                    next_state <= S_MEM_WR; -- Store
+                end if;
+
+            when S_EX_BR    => next_state <= S_IF; -- Branch decide e volta
+            when S_EX_JAL   => next_state <= S_WB_JAL;
+            when S_EX_JALR  => next_state <= S_WB_JALR;
+            when S_EX_LUI   => next_state <= S_WB_REG;
+            when S_EX_AUIPC => next_state <= S_WB_REG;
+
+            -- MEMORY: Acesso a dados
+            when S_MEM_RD   => next_state <= S_WB_REG;
+            when S_MEM_WR   => next_state <= S_IF;
+
+            -- WRITE BACK: Fim da instrução
+            when S_WB_REG   => next_state <= S_IF;
+            when S_WB_JAL   => next_state <= S_IF;
+            when S_WB_JALR  => next_state <= S_IF;
+            
+            when others => next_state <= S_IF;
+        end case;
+    end process;
+
+    -- 3. Lógica de Saída (Combinacional - Moore Puro)
+    process(current_state, Opcode_i)
+    begin
+        
+        -- Default Outputs (por segurança)
+        PCWrite_o     <= '0';
+        OPCWrite_o    <= '0';
+        PCWriteCond_o <= '0';
+        IRWrite_o     <= '0';
+        MemWrite_o    <= '0';
+        RegWrite_o    <= '0';
+        ALUrWrite_o   <= '0';
+        MDRWrite_o    <= '0';
+        
+        -- Default Muxes (por segurança)
+        PCSrc_o       <= "00"; -- PC+4
+        ALUSrcA_o     <= "00"; -- rs1
+        ALUSrcB_o     <= '0';  -- rs2
+        WBSel_o       <= "00"; -- ALUResult
+        ALUOp_o       <= "00"; -- ADD
+
+        case current_state is
+            
+            -- Estado IF: IRWrite=1, PCWrite=1, OPCWrite=1
+            when S_IF =>
+                IRWrite_o  <= '1';
+                PCWrite_o  <= '1';
+                OPCWrite_o <= '1';
+
+            -- Estado ID: RS1Write=1, RS2Write=1
+            when S_ID =>
+                RS1Write_o <= '1';
+                RS2Write_o <= '1';
+                null;
+
+            -- Estados de EXECUÇÃO
+            when S_EX_ALU =>
+                ALUrWrite_o <= '1';
+                ALUSrcA_o   <= "00"; -- rs1
+                
+                -- Diferenciação R-Type vs I-Type
+                if Opcode_i = c_OPCODE_I_TYPE then -- (Use a constante definida no seu pkg ou architecture)
+                    ALUSrcB_o <= '1'; -- Usa Imediato
+                    ALUOp_o   <= "11"; -- CÓDIGO CORRETO PARA I-TYPE (conforme alu_control)
+                else
+                    ALUSrcB_o <= '0'; -- Usa rs2
+                    ALUOp_o   <= "10"; -- CÓDIGO CORRETO PARA R-TYPE
+                end if;
+
+            when S_EX_ADDR =>
+                ALUrWrite_o <= '1';
+                ALUOp_o     <= "00"; -- Force ADD
+                ALUSrcA_o   <= "00"; -- rs1
+                ALUSrcB_o   <= '1';  -- Imediato (Offset)
+
+            when S_EX_BR =>
+                PCWriteCond_o <= '1';  -- Habilita escrita condicional
+                PCSrc_o       <= "01"; -- Alvo do Branch (Somador Dedicado)
+                ALUOp_o       <= "01"; -- Branch Logic (Sub/Slt...)
+                ALUSrcA_o     <= "00"; -- rs1
+                ALUSrcB_o     <= '0';  -- rs2
+
+            when S_EX_JAL =>
+                -- JAL só espera (somador dedicado calcula alvo). PC atualiza no WB.
+                -- Poderíamos atualizar aqui, mas movemos pro WB por segurança (Safe Mode).
+                null; 
+
+            when S_EX_JALR =>
+                ALUrWrite_o <= '1';
+                ALUOp_o     <= "00"; -- Force ADD
+                ALUSrcA_o   <= "00"; -- rs1
+                ALUSrcB_o   <= '1';  -- Imediato
+
+            when S_EX_LUI =>
+                ALUrWrite_o <= '1';
+                ALUOp_o     <= "00"; -- ADD
+                ALUSrcA_o   <= "10"; -- Zero
+                ALUSrcB_o   <= '1';  -- Imediato
+
+            when S_EX_AUIPC =>
+                ALUrWrite_o <= '1';
+                ALUOp_o     <= "00"; -- ADD
+                ALUSrcA_o   <= "01"; -- OldPC
+                ALUSrcB_o   <= '1';  -- Imediato
+
+            -- Estados de MEMÓRIA
+            when S_MEM_RD =>
+                MDRWrite_o  <= '1';
+                -- Datapath assume leitura combinacional da RAM
+                
+            when S_MEM_WR =>
+                MemWrite_o  <= '1';
+
+            -- Estados de WRITE-BACK
+            when S_WB_REG =>
+                RegWrite_o  <= '1';
+                if Opcode_i = c_OPCODE_LOAD then
+                    WBSel_o <= "01"; -- MDR
+                else
+                    WBSel_o <= "00"; -- ALUResult
+                end if;
+
+            when S_WB_JAL =>
+                RegWrite_o  <= '1';
+                WBSel_o     <= "10"; -- PC+4 (Link Address)
+                PCWrite_o   <= '1';
+                PCSrc_o     <= "01"; -- Alvo JAL (Somador Dedicado)
+
+            when S_WB_JALR =>
+                RegWrite_o  <= '1';
+                WBSel_o     <= "10"; -- PC+4 (Link Address)
+                PCWrite_o   <= '1';
+                PCSrc_o     <= "10"; -- Alvo JALR (ALUResult)
+
+        end case;
+    end process;
+
+end architecture;

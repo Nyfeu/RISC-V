@@ -26,58 +26,64 @@ use ieee.numeric_std.all;         -- Biblioteca para operações aritméticas co
 
 package riscv_uarch_pkg is
 
-    -- === TIPO DE REGISTRO PARA OS SINAIS DO DECODIFICADOR (DECODER) ===
-
-    -- Agrupa todas as saídas do decodificador (decoder.vhd)
-
-    type t_decoder is record
-        reg_write         : std_logic;                                -- Habilita escrita no banco de registradores
-        alu_src_a         : std_logic_vector(1 downto 0);             -- Seleciona a fonte do primeiro operando da ALU
-        alu_src_b         : std_logic;                                -- Seleciona a fonte do segundo operando da ALU (0=registrador, 1=imediato)
-        mem_write         : std_logic;                                -- Habilita escrita na memória
-        wb_src            : std_logic_vector(1 downto 0);             -- Seleciona a fonte de escrita no registrador de write back (WB)
-        branch            : std_logic;                                -- Sinal de desvio condicional
-        jump              : std_logic;                                -- Sinal de salto incondicional
-        alu_op            : std_logic_vector(1 downto 0);             -- Código de operação da ALU
-    end record;
-
-    -- Constante para "zerar" tudo em t_decoder (NOP)
-
-    constant c_DECODER_NOP : t_decoder := (
-        reg_write      => '0', 
-        alu_src_a      => "00", 
-        alu_src_b      => '0',
-        mem_write      => '0',
-        wb_src         => "00",
-        branch         => '0',
-        jump           => '0',
-        alu_op         => "00"
-    );
-
     -- === TIPO DE REGISTRO PARA OS SINAIS DE CONTROLE (CONTROL) ===
-
-    -- Agrupa todas as saídas da unidade de controle (control.vhd) que vão para o datapath
+    -- Agrupa todas as saídas da unidade de controle (control.vhd) que vão para o datapath.
+    -- Atualizado para suportar a arquitetura MULTI-CYCLE.
 
     type t_control is record
-        reg_write         : std_logic;                                -- Habilita escrita no banco de registradores
-        alu_src_a         : std_logic_vector(1 downto 0);             -- Seleciona a fonte do primeiro operando da ALU
-        alu_src_b         : std_logic;                                -- Seleciona a fonte do segundo operando da ALU (0=registrador, 1=imediato)
-        mem_write         : std_logic;                                -- Habilita escrita na memória
-        wb_src            : std_logic_vector(1 downto 0);             -- Seleciona a fonte de escrita no registrador de write back (WB)
-        pcsrc             : std_logic_vector(1 downto 0);             -- Seleção do PC (branch/jump)
-        alucontrol        : std_logic_vector(3 downto 0);             -- Código de operação da ALU
+        
+        ----------------------------------------------------------------------
+        -- 1. Sinais de Habilitação de Escrita (Write Enables)
+        ----------------------------------------------------------------------
+        pc_write    : std_logic; -- Atualiza o PC (Jumps, Fetch ou Branch confirmado)
+        opc_write   : std_logic; -- Atualiza o registrador OldPC (Salva PC atual)
+        ir_write    : std_logic; -- Atualiza o Instruction Register (IR)
+        mem_write   : std_logic; -- Habilita escrita na memória (SW)
+        reg_write   : std_logic; -- Habilita escrita no Banco de Registradores (WB)
+        
+        -- Registradores Intermediários (Pipeline Registers)
+        rs1_write   : std_logic; -- Captura rs1 do banco para o reg interno 'A'
+        rs2_write   : std_logic; -- Captura rs2 do banco para o reg interno 'B'
+        alur_write  : std_logic; -- Captura resultado da ALU no reg 'ALUOut'
+        mdr_write   : std_logic; -- Captura dado da memória no 'MDR'
+
+        ----------------------------------------------------------------------
+        -- 2. Sinais de Seleção de Multiplexadores (Selects)
+        ----------------------------------------------------------------------
+        alu_src_a   : std_logic_vector(1 downto 0); -- 00:rs1, 01:OldPC, 10:Zero
+        alu_src_b   : std_logic;                    -- 0:rs2, 1:Imediato
+        wb_sel      : std_logic_vector(1 downto 0); -- 00:ALUOut, 01:MDR, 10:PC+4 (Era wb_src)
+        pc_src      : std_logic_vector(1 downto 0); -- 00:PC+4, 01:Jump/Branch, 10:JALR
+
+        ----------------------------------------------------------------------
+        -- 3. Sinais Funcionais
+        ----------------------------------------------------------------------
+        alu_control : std_logic_vector(3 downto 0); -- Operação da ALU (ADD, SUB, XOR...)
+        
     end record;
 
-    -- Constante para "zerar" tudo em t_control (NOP)
+    -- === CONSTANTE NOP (RESET) ===
+    -- Inicializa todos os sinais com zero/segurança
 
     constant c_CONTROL_NOP : t_control := (
-        reg_write      => c_DECODER_NOP.reg_write, 
-        alu_src_a      => c_DECODER_NOP.alu_src_a, 
-        alu_src_b      => c_DECODER_NOP.alu_src_b, 
-        mem_write      => c_DECODER_NOP.mem_write,
-        wb_src         => c_DECODER_NOP.wb_src,
-        pcsrc          => "00",
-        alucontrol     => "0000"
+        pc_write    => '0',
+        opc_write   => '0',
+        ir_write    => '0',
+        mem_write   => '0',
+        reg_write   => '0',
+        rs1_write   => '0',
+        rs2_write   => '0',
+        alur_write  => '0',
+        mdr_write   => '0',
+        
+        alu_src_a   => "00",
+        alu_src_b   => '0',
+        wb_sel      => "00",
+        pc_src      => "00",
+        
+        alu_control => "0000"
     );
 
 end package riscv_uarch_pkg;
+
+-------------------------------------------------------------------------------------------------------------------

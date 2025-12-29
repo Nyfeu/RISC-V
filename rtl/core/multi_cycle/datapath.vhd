@@ -71,14 +71,6 @@ entity datapath is
 
         -- Entradas temporárias para validação do datapath
 
-        PCWrite_i          : in  std_logic;
-        OPCWrite_i         : in  std_logic;
-        IRWrite_i          : in  std_logic;
-        RS1Write_i         : in  std_logic;
-        RS2Write_i         : in  std_logic;
-        ALUWrite_i         : in  std_logic;
-        MDRWrite_i         : in  std_logic;
-
         -- Saídas
 
         Instruction_o      : out std_logic_vector(31 downto 0);       -- Envia a instrução para o controle
@@ -121,11 +113,18 @@ architecture rtl of datapath is
     -- ============== DECLARAÇÃO DOS SINAIS INTERNOS DO DATAPATH ==============
 
     -- Sinais para desempacotar Control_i
+    signal s_pc_write             : std_logic := '0';
+    signal s_opc_write            : std_logic := '0';
+    signal s_ir_write             : std_logic := '0';
+    signal s_mdr_write            : std_logic := '0';
+    signal s_rs1_write            : std_logic := '0';
+    signal s_rs2_write            : std_logic := '0';
+    signal s_alur_write           : std_logic := '0';
     signal s_reg_write            : std_logic := '0';                  
     signal s_alu_src_a            : std_logic_vector(1 downto 0) := (others => '0');
     signal s_alu_src_b            : std_logic := '0';                                   
     signal s_mem_write            : std_logic := '0';                   
-    signal s_wb_src               : std_logic_vector(1 downto 0) := (others => '0');
+    signal s_wb_sel               : std_logic_vector(1 downto 0) := (others => '0');
     signal s_pc_src               : std_logic_vector(1 downto 0) := (others => '0');
     signal s_alucontrol           : std_logic_vector(3 downto 0) := (others => '0');
 
@@ -157,13 +156,20 @@ begin
 
     -- Desempacota os sinais de Control_i (vindos da unidade de controle)
 
+        s_pc_write       <= Control_i.pc_write;
+        s_opc_write      <= Control_i.opc_write;
+        s_ir_write       <= Control_i.ir_write;
+        s_mdr_write      <= Control_i.mdr_write;
+        s_rs1_write      <= Control_i.rs1_write;
+        s_rs2_write      <= Control_i.rs2_write;
+        s_alur_write     <= Control_i.alur_write;
         s_reg_write      <= Control_i.reg_write;
         s_alu_src_a      <= Control_i.alu_src_a;
         s_alu_src_b      <= Control_i.alu_src_b;
         s_mem_write      <= Control_i.mem_write;
-        s_wb_src         <= Control_i.wb_src;
-        s_pc_src         <= Control_i.pcsrc;
-        s_alucontrol     <= Control_i.alucontrol;
+        s_wb_sel         <= Control_i.wb_sel;
+        s_pc_src         <= Control_i.pc_src;
+        s_alucontrol     <= Control_i.alu_control;
 
     -- Saídas para o control path
 
@@ -188,27 +194,27 @@ begin
 
         elsif rising_edge(CLK_i) then -- [Síncrono]
 
-            if OPCWrite_i = '1' then
+            if s_opc_write = '1' then
                 r_OldPC <= r_PC;               -- Registra o valor de PC referente à instrução atual
             end if;
 
-            if IRWrite_i = '1' then
+            if s_ir_write = '1' then
                 r_IR <= s_instruction;         -- Registrado para ser usado em ID
             end if;
 
-            if MDRWrite_i = '1' then
+            if s_mdr_write = '1' then
                 r_MDR <= s_lsu_data_out;       -- Registrado para ser usado em WB
             end if;
             
-            if RS1Write_i = '1' then
+            if s_rs1_write = '1' then
                 r_RS1 <= s_read_data_1;        -- Registrado para ser usado em EX
             end if;
 
-            if RS2Write_i = '1' then
+            if s_rs2_write = '1' then
                 r_RS2 <= s_read_data_2;        -- Registrado para ser usado em EX
             end if;
 
-            if ALUWrite_i = '1' then
+            if s_alur_write = '1' then
                 r_ALUResult <= s_alu_result;   -- Registrado para ser usado em MEM
             end if;
 
@@ -227,7 +233,7 @@ begin
                 if Reset_i = '1' then
                      r_PC <= (others => '0');
                 elsif rising_edge(CLK_i) then
-                    if PCWrite_i = '1' then
+                    if s_pc_write = '1' then
                         r_PC <= s_pc_next;
                     end if;
                 end if;
@@ -319,7 +325,7 @@ begin
 
         -- Mux WRITE-BACK DATA: decide o que será escrito de volta no registrador
 
-            with s_wb_src select
+            with s_wb_sel select
                 s_write_back_data <= r_ALUResult       when "00",     -- Tipo-R, Tipo-I (Aritmética)
                                      r_MDR             when "01",     -- Loads
                                      r_PC              when "10",     -- JAL / JALR

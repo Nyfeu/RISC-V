@@ -35,6 +35,15 @@ entity control is
     port (
 
         ----------------------------------------------------------------------------------------------------------
+        -- Interface de controle (Sincronismo para MULTI-CYCLE)
+        ----------------------------------------------------------------------------------------------------------
+        
+        -- Entradas
+            
+            Clk_i          : in  std_logic;
+            Reset_i        : in  std_logic;
+
+        ----------------------------------------------------------------------------------------------------------
         -- Interface com o Datapath
         ----------------------------------------------------------------------------------------------------------
 
@@ -54,90 +63,101 @@ end entity;
 
 architecture rtl of control is
 
-    -- Sinais internos
-    signal s_opcode               : std_logic_vector(6 downto 0) := (others => '0');
-    signal s_funct3               : std_logic_vector(2 downto 0) := (others => '0');
-    signal s_funct7               : std_logic_vector(6 downto 0) := (others => '0');
+    --------------------------------------------------------------------------------------------------------------
+    -- Sinais Internos (Fios de interconexão)
+    --------------------------------------------------------------------------------------------------------------
+    
+    -- Campos da Instrução
+    signal s_opcode : std_logic_vector(6 downto 0);
+    signal s_funct3 : std_logic_vector(2 downto 0);
+    signal s_funct7 : std_logic_vector(6 downto 0);
 
-    -- Sinal para armazenar o pacote de controle vindo do Decoder
-    signal s_decoder              : t_decoder := c_DECODER_NOP;
+    -- Sinais vindos da FSM (Main Finite State Machine)
+    signal s_fsm_pc_write      : std_logic;
+    signal s_fsm_pc_write_cond : std_logic;                    -- Habilita condicional (Branch)
+    signal s_fsm_alu_op        : std_logic_vector(1 downto 0); -- Comunicação FSM -> ALU Control
 
-    -- Sinais internos para lógica de control (extraídos de s_decoder)
-    signal s_alucontrol           : std_logic_vector(3 downto 0) := (others => '0');
-    signal s_pcsrc                : std_logic_vector(1 downto 0) := (others => '0');
+    -- Sinais vindos da Branch Unit
+    signal s_branch_taken      : std_logic;
 
-    -- Sinal interno para lógica de branch
-    signal s_branch_condition_met : std_logic := '0'; 
+    -- Sinais vindos do ALU Control
+    signal s_alu_function      : std_logic_vector(3 downto 0);
 
 begin
 
-    -- Extrai os campos da instrução
+    --------------------------------------------------------------------------------------------------------------
+    -- 1. Extração dos Campos da Instrução
+    --------------------------------------------------------------------------------------------------------------
+    s_opcode <= Instruction_i(6 downto 0);
+    s_funct3 <= Instruction_i(14 downto 12);
+    s_funct7 <= Instruction_i(31 downto 25);
 
-        s_opcode <= Instruction_i(6 downto 0);
-        s_funct3 <= Instruction_i(14 downto 12);
-        s_funct7 <= Instruction_i(31 downto 25);
+    --------------------------------------------------------------------------------------------------------------
+    -- 2. Instância da FSM Principal (Sequenciador)
+    --------------------------------------------------------------------------------------------------------------
+    u_main_fsm : entity work.main_fsm
+    port map (
+        Clk_i          => Clk_i,
+        Reset_i        => Reset_i,
+        Opcode_i       => s_opcode,
 
-    -- Unidade de Controle Principal
+        -- Saídas de Controle de Escrita/Enable
+        PCWrite_o      => s_fsm_pc_write,       -- Escrita Incondicional
+        PCWriteCond_o  => s_fsm_pc_write_cond,  -- Escrita Condicional (Branch)
+        OPCWrite_o     => Control_o.opc_write,
+        IRWrite_o      => Control_o.ir_write,
+        MemWrite_o     => Control_o.mem_write,
+        RegWrite_o     => Control_o.reg_write,
+        RS1Write_o     => Control_o.rs1_write,
+        RS2Write_o     => Control_o.rs2_write,
+        ALUrWrite_o    => Control_o.alur_write,
+        MDRWrite_o     => Control_o.mdr_write,
 
-        -- Decodifica o Opcode para gerar os sinais de controle primários.
+        -- Saídas de Seleção (Muxes)
+        PCSrc_o        => Control_o.pc_src,
+        ALUSrcA_o      => Control_o.alu_src_a,
+        ALUSrcB_o      => Control_o.alu_src_b,
+        WBSel_o        => Control_o.wb_sel,
 
-        -- OBS.: na arquitetura RISC-V, os campos da instrução são fixos:
+        -- Interface Interna
+        ALUOp_o        => s_fsm_alu_op
+    );
 
-        -- - opcode nos bits [6:0];
-        -- - funct3 nos bits [14:12];
-        -- - funct7 nos bits [31:25].     
-        -- - rd nos bits [11:7];
-        -- - rs1 nos bits [19:15];
-        -- - rs2 nos bits [24:20].
+    --------------------------------------------------------------------------------------------------------------
+    -- 3. Instância da Unidade de Controle da ALU (Combinacional)
+    --------------------------------------------------------------------------------------------------------------
+    -- Traduz o 'ALUOp' da FSM + Funct3/7 em sinais específicos para a ALU
+    u_alu_control : entity work.alu_control
+    port map (
+        ALUOp_i        => s_fsm_alu_op,
+        Funct3_i       => s_funct3,
+        Funct7_i       => s_funct7,
+        ALUControl_o   => s_alu_function
+    );
 
-            U_CONTROL: entity work.decoder
-                port map (
-                    Opcode_i       => s_opcode,
-                    Decoder_o      => s_decoder
-                );
+    -- Conecta a saída ao record principal
+    Control_o.alu_control <= s_alu_function;
 
-    -- Unidade de Controle da ALU
+    --------------------------------------------------------------------------------------------------------------
+    -- 4. Instância da Unidade de Branch (Combinacional)
+    --------------------------------------------------------------------------------------------------------------
+    -- Decide se o salto deve ser tomado com base no Funct3 e na flag Zero
+    u_branch_unit : entity work.branch_unit
+    port map (
+        Branch_i       => s_fsm_pc_write_cond,
+        Funct3_i       => s_funct3,
+        ALU_Zero_i     => ALU_Zero_i,
+        BranchTaken_o  => s_branch_taken
+    );
 
-        -- Decodifica os campos funct3 e funct7, junto com o ALUOp,
-        -- para gerar o código final da operação da ULA.
+    --------------------------------------------------------------------------------------------------------------
+    -- 5. Lógica de "Cola" (Glue Logic) - Controle Final do PC
+    --------------------------------------------------------------------------------------------------------------
+    -- O PC deve ser escrito se:
+    -- A) A FSM mandar escrever incondicionalmente (JAL, JALR, Fetch) OU
+    -- B) A FSM permitir escrita condicional (Branch) E a Branch Unit confirmar o desvio.
     
-            U_ALU_CONTROL: entity work.alu_control
-                port map (
-                    ALUOp_i        => s_decoder.alu_op,
-                    Funct3_i       => s_funct3,
-                    Funct7_i       => s_funct7,
-                    ALUControl_o   => s_alucontrol
-                );
-
-    -- Lógica para o sinal PCSrc
-    
-        -- Usa funct3 para decidir qual condição verificar
-            U_BRANCH_UNIT: entity work.branch_unit
-                port map (
-                    Branch_i       => s_decoder.branch,       -- Sinal decodificado do decoder
-                    Funct3_i       => s_funct3,               -- Campo funct3 da instrução
-                    ALU_Zero_i     => ALU_Zero_i,             -- Flag Zero vinda do datapath
-                    BranchTaken_o  => s_branch_condition_met  -- Saída que indica se o desvio deve ser tomado
-                );
-
-        -- Calcula o valor de pcsrc baseado na lógica de branch e jump
-
-            s_pcsrc <= "10" when (s_decoder.jump = '1' and s_opcode = "1100111") else            -- JALR
-                       "01" when (s_decoder.jump = '1' and s_opcode = "1101111") else            -- JAL
-                       "01" when (s_decoder.branch = '1' and s_branch_condition_met = '1') else  -- Branch Tomado
-                       "00";                                                                     -- Padrão (PC + 4)
-
-    -- Monta o pacote de controle (t_control) com todos os sinais
-    
-            Control_o <= (
-                reg_write      => s_decoder.reg_write,
-                alu_src_a      => s_decoder.alu_src_a,
-                alu_src_b      => s_decoder.alu_src_b,
-                mem_write      => s_decoder.mem_write,
-                wb_src         => s_decoder.wb_src,
-                pcsrc          => s_pcsrc,
-                alucontrol     => s_alucontrol
-            );
+    Control_o.pc_write <= s_fsm_pc_write OR (s_fsm_pc_write_cond AND s_branch_taken);
 
 end architecture; -- rtl
 
