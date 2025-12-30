@@ -14,7 +14,7 @@
 --             o Processador (Mestre) e os componentes endereçáveis (ROM, RAM, UART).
 -- 
 -- Autor     : [André Maiolini]
--- Data      : [23/12/2025]    
+-- Data      : [30/12/2025]    
 --
 ------------------------------------------------------------------------------------------------------------------
 
@@ -39,7 +39,7 @@ entity bus_interconnect is
         -- Barramento de Dados (DMem - Load/Store)
         dmem_addr_i         : in  std_logic_vector(31 downto 0);
         dmem_data_i         : in  std_logic_vector(31 downto 0); -- Dados para escrita
-        dmem_we_i           : in  std_logic;                    -- Write Enable
+        dmem_we_i           : in  std_logic_vector( 3 downto 0); -- Write Enable
         dmem_data_o         : out std_logic_vector(31 downto 0); -- Dados lidos
 
         -- ========================================================================================
@@ -61,7 +61,7 @@ entity bus_interconnect is
         ram_addr_b_o        : out std_logic_vector(31 downto 0);
         ram_data_b_i        : in  std_logic_vector(31 downto 0); -- Leitura
         ram_data_b_o        : out std_logic_vector(31 downto 0); -- Escrita
-        ram_we_b_o          : out std_logic;
+        ram_we_b_o          : out std_logic_vector( 3 downto 0);
         ram_sel_b_o         : out std_logic;
 
         -- Interface: UART
@@ -119,13 +119,13 @@ begin
     ram_addr_a_o <= imem_addr_i;
     ram_addr_b_o <= dmem_addr_i;
     ram_data_b_o <= dmem_data_i;
-    ram_we_b_o   <= dmem_we_i and s_dmem_sel_ram;
+    ram_we_b_o   <= dmem_we_i when s_dmem_sel_ram = '1' else (others => '0');
     ram_sel_b_o  <= s_dmem_sel_ram;
 
     -- UART
     uart_addr_o  <= dmem_addr_i(3 downto 0);
     uart_data_o  <= dmem_data_i;
-    uart_we_o    <= dmem_we_i and s_dmem_sel_uart;
+    uart_we_o    <= '1' when (s_dmem_sel_uart = '1' and unsigned(dmem_we_i) > 0) else '0';
     uart_sel_o   <= s_dmem_sel_uart;
 
     -- -------------------------------------------------------------------------
