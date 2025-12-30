@@ -9,7 +9,7 @@
 -- ╚██████╔╝██║  ██║██║  ██║╚██████╗██║  ██║
 --  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝                                                                                                                                                      
 -- 
--- Descrição : Pacote que carrega as especificações para a micro-arquitetura específica (single_cycle).
+-- Descrição : Pacote que carrega as especificações para a micro-arquitetura específica (multi_cycle).
 --
 -- Autor     : [André Maiolini]
 -- Data      : [25/12/2025]
@@ -26,7 +26,7 @@ use ieee.numeric_std.all;         -- Biblioteca para operações aritméticas co
 
 package riscv_uarch_pkg is
 
-    -- === TIPO DE REGISTRO PARA OS SINAIS DE CONTROLE (CONTROL) ===
+    -- === TIPO DE REGISTRO PARA OS SINAIS DE CONTROLE (CONTROL) ==================================================
     -- Agrupa todas as saídas da unidade de controle (control.vhd) que vão para o datapath.
     -- Atualizado para suportar a arquitetura MULTI-CYCLE.
 
@@ -62,7 +62,7 @@ package riscv_uarch_pkg is
         
     end record;
 
-    -- === CONSTANTE NOP (RESET) ===
+    -- === CONSTANTE NOP (RESET) ==================================================================================
     -- Inicializa todos os sinais com zero/segurança
 
     constant c_CONTROL_NOP : t_control := (

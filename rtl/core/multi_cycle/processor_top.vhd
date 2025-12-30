@@ -40,9 +40,9 @@
 
 -- ==| Libraries |================================================================================================================================
 
-library ieee;
-use ieee.std_logic_1164.all;
-use ieee.numeric_std.all;
+library ieee;                     -- Biblioteca padrão IEEE
+use ieee.std_logic_1164.all;      -- Tipos lógicos (std_logic, std_logic_vector)
+use ieee.numeric_std.all;         -- Biblioteca para operações aritméticas com vetores lógicos (signed, unsigned)
 use work.riscv_uarch_pkg.all;     -- Contém todas as definições específicas para a microarquitetura
 
 -- ==| PROCESSOR_TOP |============================================================================================================================

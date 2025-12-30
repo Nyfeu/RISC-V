@@ -17,13 +17,13 @@
 --             ela apenas executa as operações comandadas pela Unidade de Controle.
 --
 -- Autor     : [André Maiolini]
--- Data      : [20/09/2025]
+-- Data      : [29/12/2025]
 --
 ------------------------------------------------------------------------------------------------------------------
 
-library ieee;
-use ieee.std_logic_1164.all;
-use ieee.numeric_std.all; 
+library ieee;                     -- Biblioteca padrão IEEE
+use ieee.std_logic_1164.all;      -- Tipos lógicos (std_logic, std_logic_vector)
+use ieee.numeric_std.all;         -- Biblioteca para operações aritméticas com vetores lógicos (signed, unsigned)
 use work.riscv_uarch_pkg.all;     -- Contém todas as definições específicas para a microarquitetura
 
 -------------------------------------------------------------------------------------------------------------------
@@ -113,22 +113,24 @@ architecture rtl of datapath is
     -- ============== DECLARAÇÃO DOS SINAIS INTERNOS DO DATAPATH ==============
 
     -- Sinais para desempacotar Control_i
-    signal s_pc_write             : std_logic := '0';
-    signal s_opc_write            : std_logic := '0';
-    signal s_ir_write             : std_logic := '0';
-    signal s_mdr_write            : std_logic := '0';
-    signal s_rs1_write            : std_logic := '0';
-    signal s_rs2_write            : std_logic := '0';
-    signal s_alur_write           : std_logic := '0';
-    signal s_reg_write            : std_logic := '0';                  
-    signal s_alu_src_a            : std_logic_vector(1 downto 0) := (others => '0');
-    signal s_alu_src_b            : std_logic := '0';                                   
-    signal s_mem_write            : std_logic := '0';                   
-    signal s_wb_sel               : std_logic_vector(1 downto 0) := (others => '0');
-    signal s_pc_src               : std_logic_vector(1 downto 0) := (others => '0');
-    signal s_alucontrol           : std_logic_vector(3 downto 0) := (others => '0');
+
+    signal s_pc_write             : std_logic := '0';                                     -- Habilita escrita do PC
+    signal s_opc_write            : std_logic := '0';                                     -- Habilita escrita de OldPC
+    signal s_ir_write             : std_logic := '0';                                     -- Habilita escrita de IR
+    signal s_mdr_write            : std_logic := '0';                                     -- Habilita escrita de MDR
+    signal s_rs1_write            : std_logic := '0';                                     -- Habilita escrita de RS1
+    signal s_rs2_write            : std_logic := '0';                                     -- Habilita escrita de RS2
+    signal s_alur_write           : std_logic := '0';                                     -- Habilita escrita de ALU Result
+    signal s_reg_write            : std_logic := '0';                                     -- Habilita escrita WB em rd (reg_file)
+    signal s_alu_src_a            : std_logic_vector(1 downto 0) := (others => '0');      -- Seleciona o operando A da ALU
+    signal s_alu_src_b            : std_logic := '0';                                     -- Seleciona o operando B da ALU     
+    signal s_mem_write            : std_logic := '0';                                     -- Habilita escrita na DMem
+    signal s_wb_sel               : std_logic_vector(1 downto 0) := (others => '0');      -- Seleciona a entrada de WB do reg_file
+    signal s_pc_src               : std_logic_vector(1 downto 0) := (others => '0');      -- Seleciona o próximo PC
+    signal s_alucontrol           : std_logic_vector(3 downto 0) := (others => '0');      -- Seleciona a operação da ALU
 
     -- Sinais internos do datapath
+
     signal s_pc_next              : std_logic_vector(31 downto 0) := (others => '0');     -- Próximo valor do PC
     signal s_pc_plus_4            : std_logic_vector(31 downto 0) := (others => '0');     -- PC + 4 (endereço da próxima instrução)
     signal s_instruction          : std_logic_vector(31 downto 0) := (others => '0');     -- Instrução lida da memória (IMEM)
@@ -144,6 +146,7 @@ architecture rtl of datapath is
     signal s_lsu_data_out         : std_logic_vector(31 downto 0) := (others => '0');     -- Sinal de saída da LSU (Load-Store Unit)
 
     -- Registradores de estado para o MULTI-CYCLE
+
     signal r_PC             : std_logic_vector(31 downto 0) := (others => '0');           -- Contador de Programa (PC) atual
     signal r_OldPC          : std_logic_vector(31 downto 0) := (others => '0');           -- Program Counter da instrução selecionada
     signal r_IR             : std_logic_vector(31 downto 0) := (others => '0');           -- Instruction Register
@@ -178,50 +181,49 @@ begin
 
     -- Gerenciamento dos registradores intermediários do MULTI-CYCLE 
 
-    process(CLK_i, Reset_i) -- [Síncrono]
-    begin
+        process(CLK_i, Reset_i) 
+        begin
 
-        if Reset_i = '1' then
+            if Reset_i = '1' then
 
-            -- Reinicia o estado do CORE com sinal de RESET
+                -- Reinicia o estado do CORE com sinal de RESET
 
-            r_OldPC     <= (others => '0');
-            r_IR        <= (others => '0');
-            r_MDR       <= (others => '0');
-            r_RS1       <= (others => '0');
-            r_RS2       <= (others => '0');
-            r_ALUResult <= (others => '0');
+                r_OldPC     <= (others => '0');
+                r_IR        <= (others => '0');
+                r_MDR       <= (others => '0');
+                r_RS1       <= (others => '0');
+                r_RS2       <= (others => '0');
+                r_ALUResult <= (others => '0');
 
-        elsif rising_edge(CLK_i) then -- [Síncrono]
+            elsif rising_edge(CLK_i) then 
 
-            if s_opc_write = '1' then
-                r_OldPC <= r_PC;               -- Registra o valor de PC referente à instrução atual
+                if s_opc_write = '1' then
+                    r_OldPC <= r_PC;               -- Registra o valor de PC referente à instrução atual
+                end if;
+
+                if s_ir_write = '1' then
+                    r_IR <= s_instruction;         -- Registrado para ser usado em ID
+                end if;
+
+                if s_mdr_write = '1' then
+                    r_MDR <= s_lsu_data_out;       -- Registrado para ser usado em WB
+                end if;
+                
+                if s_rs1_write = '1' then
+                    r_RS1 <= s_read_data_1;        -- Registrado para ser usado em EX
+                end if;
+
+                if s_rs2_write = '1' then
+                    r_RS2 <= s_read_data_2;        -- Registrado para ser usado em EX
+                end if;
+
+                if s_alur_write = '1' then
+                    r_ALUResult <= s_alu_result;   -- Registrado para ser usado em MEM
+                end if;
+
             end if;
 
-            if s_ir_write = '1' then
-                r_IR <= s_instruction;         -- Registrado para ser usado em ID
-            end if;
-
-            if s_mdr_write = '1' then
-                r_MDR <= s_lsu_data_out;       -- Registrado para ser usado em WB
-            end if;
-            
-            if s_rs1_write = '1' then
-                r_RS1 <= s_read_data_1;        -- Registrado para ser usado em EX
-            end if;
-
-            if s_rs2_write = '1' then
-                r_RS2 <= s_read_data_2;        -- Registrado para ser usado em EX
-            end if;
-
-            if s_alur_write = '1' then
-                r_ALUResult <= s_alu_result;   -- Registrado para ser usado em MEM
-            end if;
-
-        end if;
-
-    end process;
-
+        end process;
 
     -- ============== Estágio de Busca (FETCH) ===============================================
 

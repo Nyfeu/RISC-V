@@ -1,53 +1,100 @@
-library ieee;
-use ieee.std_logic_1164.all;
-use ieee.numeric_std.all;
+------------------------------------------------------------------------------------------------------------------
+--
+-- File: control.vhd
+--
+-- ███████╗███████╗███╗   ███╗
+-- ██╔════╝██╔════╝████╗ ████║
+-- █████╗  ███████╗██╔████╔██║
+-- ██╔══╝  ╚════██║██║╚██╔╝██║
+-- ██║     ███████║██║ ╚═╝ ██║
+-- ╚═╝     ╚══════╝╚═╝     ╚═╝
+--
+-- Descrição : Máquina de estados finitos (do tipo Moore) que controla os estados do datapath para
+--      a arquitetura multi-cycle do core RV32I (RISC-V).
+--
+-- Autor     : [André Maiolini]
+-- Data      : [29/12/2025]
+--
+-------------------------------------------------------------------------------------------------------------------
+
+library ieee;                     -- Biblioteca padrão IEEE
+use ieee.std_logic_1164.all;      -- Tipos lógicos (std_logic, std_logic_vector)
+use ieee.numeric_std.all;         -- Biblioteca para operações aritméticas com vetores lógicos (signed, unsigned)
 use work.riscv_isa_pkg.all;       -- Contém todas as definições da ISA RISC-V especificadas
 use work.riscv_uarch_pkg.all;     -- Contém todas as definições específicas para a microarquitetura
 
+-------------------------------------------------------------------------------------------------------------------
+-- ENTIDADE: Definição da interface da Máquina de Estados Finitos (Main FSM)
+-------------------------------------------------------------------------------------------------------------------
+
 entity main_fsm is
     port (
-        Clk_i          : in  std_logic;
-        Reset_i        : in  std_logic;
-        Opcode_i       : in  std_logic_vector(6 downto 0);
+
+        ----------------------------------------------------------------------------------------------------------
+        -- Interface para Sincronismo do MULTI-CYCLE
+        ----------------------------------------------------------------------------------------------------------
+
+        -- Entradas
+            
+            Clk_i          : in  std_logic;
+            Reset_i        : in  std_logic;
+            Opcode_i       : in  std_logic_vector(6 downto 0);
+
+        ----------------------------------------------------------------------------------------------------------
+        -- Interface de sinais de controle
+        ----------------------------------------------------------------------------------------------------------
 
         -- Sinais de Controle de Escrita/Habilitação
-        PCWrite_o      : out std_logic; -- Escrita Incondicional (JAL, JALR, IF)
-        OPCWrite_o     : out std_logic; -- Escrita de Old PC
-        PCWriteCond_o  : out std_logic; -- Escrita Condicional (Branches)
-        IRWrite_o      : out std_logic;
-        MemWrite_o     : out std_logic;
-        RegWrite_o     : out std_logic;
-        RS1Write_o     : out std_logic;
-        RS2Write_o     : out std_logic;
-        ALUrWrite_o    : out std_logic; -- Habilita escrita no reg ALUResult
-        MDRWrite_o     : out std_logic; -- Habilita escrita no reg MDR
+
+            PCWrite_o      : out std_logic;                          -- Escrita Incondicional (JAL, JALR, IF)
+            OPCWrite_o     : out std_logic;                          -- Escrita de Old PC
+            PCWriteCond_o  : out std_logic;                          -- Escrita Condicional (Branches)
+            IRWrite_o      : out std_logic;                          -- Escrita no Instruction Register
+            MemWrite_o     : out std_logic;                          -- Escrita na DMem (Memória de Dados)
+            RegWrite_o     : out std_logic;                          -- Escrita no banco de registradores
+            RS1Write_o     : out std_logic;                          -- Escrita do registrador de saída de RS1
+            RS2Write_o     : out std_logic;                          -- Escrita do registrador de saída de RS2
+            ALUrWrite_o    : out std_logic;                          -- Habilita escrita no reg ALUResult
+            MDRWrite_o     : out std_logic;                          -- Habilita escrita no reg MDR
         
         -- Sinais de Seleção (Multiplexadores)
-        PCSrc_o        : out std_logic_vector(1 downto 0);
-        ALUSrcA_o      : out std_logic_vector(1 downto 0);
-        ALUSrcB_o      : out std_logic; -- 0: rs2, 1: Imm
-        WBSel_o        : out std_logic_vector(1 downto 0);
+
+            PCSrc_o        : out std_logic_vector(1 downto 0);       -- 00: PC + 4, 01: OldPC + IMM, 10: r_alu_result
+            ALUSrcA_o      : out std_logic_vector(1 downto 0);       -- 00: RS1, 01: OldPC, 10: '0'
+            ALUSrcB_o      : out std_logic;                          -- 0: rs2, 1: Imm
+            WBSel_o        : out std_logic_vector(1 downto 0);       -- 00: r_alu_result, 01: r_MDR, 10: PC + 4
         
-        -- Controle Auxiliar para blocos reaproveitados
-        ALUOp_o        : out std_logic_vector(1 downto 0) -- 00: Add, 01: Branch, 10: Funct
+        -- Controle Auxiliar para o controlador da ALU (alu_control.vhd)
+        
+            ALUOp_o        : out std_logic_vector(1 downto 0)        -- 00: Add, 01: Branch, 10: Funct
+
     );
 end entity main_fsm;
 
+-------------------------------------------------------------------------------------------------------------------
+-- Arquitetura: Implementação da Máquina de Estados Finitos (Main FSM)
+-------------------------------------------------------------------------------------------------------------------
+
 architecture rtl of main_fsm is
 
-    -- Definição dos Estados (14 Estados - Safe Mode)
+    -- Definição dos Estados da FSM -------------------------------------------------------------------------------
+
     type t_state is (
-        S_IF, S_ID,
-        S_EX_ALU, S_EX_ADDR, S_EX_BR, S_EX_JAL, S_EX_JALR, S_EX_LUI, S_EX_AUIPC,
-        S_MEM_RD, S_MEM_WR,
-        S_WB_REG, S_WB_JAL, S_WB_JALR
+        S_IF,                                                                        -- IF  (Instruction Fetch)
+        S_ID,                                                                        -- ID  (Instruction Decode)
+        S_EX_ALU, S_EX_ADDR, S_EX_BR, S_EX_JAL, S_EX_JALR, S_EX_LUI, S_EX_AUIPC,     -- EX  (Execution)
+        S_MEM_RD, S_MEM_WR,                                                          -- MEM (Memory Access)
+        S_WB_REG, S_WB_JAL, S_WB_JALR                                                -- WB  (Write-Back)
     );
+
+    -- Registro do estado atual e do próximo estado ---------------------------------------------------------------
 
     signal current_state, next_state : t_state;
 
 begin
 
     -- 1. Registrador de Estado (Processo Síncrono)
+
     process(Clk_i, Reset_i)
     begin
         if Reset_i = '1' then
@@ -58,6 +105,7 @@ begin
     end process;
 
     -- 2. Lógica de Próximo Estado (Combinacional)
+
     process(current_state, Opcode_i)
     begin
         -- Default: manter estado 
@@ -110,7 +158,7 @@ begin
         end case;
     end process;
 
-    -- 3. Lógica de Saída (Combinacional - Moore Puro)
+    -- 3. Lógica de Saída (Combinacional - Moore)
     process(current_state, Opcode_i)
     begin
         
@@ -227,4 +275,6 @@ begin
         end case;
     end process;
 
-end architecture;
+end architecture; -- rtl
+
+-------------------------------------------------------------------------------------------------------------------
