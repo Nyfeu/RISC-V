@@ -14,7 +14,7 @@
 --             Utiliza arquitetura Dual-Port para ROM e RAM (Harvard Modificada).
 -- 
 -- Autor     : [André Maiolini]
--- Data      : [23/12/2025]    
+-- Data      : [30/12/2025]    
 --
 ------------------------------------------------------------------------------------------------------------------
 
@@ -50,33 +50,33 @@ end entity;
 architecture rtl of soc_top is
 
     -- === Sinais de Interconexão (Core <-> Hub) ===
-    signal s_imem_addr   : std_logic_vector(31 downto 0);
-    signal s_imem_data   : std_logic_vector(31 downto 0);
-    signal s_dmem_addr   : std_logic_vector(31 downto 0);
-    signal s_dmem_data_w : std_logic_vector(31 downto 0);
-    signal s_dmem_data_r : std_logic_vector(31 downto 0);
-    signal s_dmem_we     : std_logic;
+    signal s_imem_addr                : std_logic_vector(31 downto 0);
+    signal s_imem_data                : std_logic_vector(31 downto 0);
+    signal s_dmem_addr                : std_logic_vector(31 downto 0);
+    signal s_dmem_data_w              : std_logic_vector(31 downto 0);
+    signal s_dmem_data_r              : std_logic_vector(31 downto 0);
+    signal s_dmem_we                  : std_logic_vector( 3 downto 0);
 
     -- === Sinais de Interconexão (Hub <-> Componentes) ===
     
     -- Boot ROM
     signal s_rom_addr_a, s_rom_addr_b : std_logic_vector(31 downto 0);
     signal s_rom_data_a, s_rom_data_b : std_logic_vector(31 downto 0);
-    signal s_rom_sel_b               : std_logic;
+    signal s_rom_sel_b                : std_logic;
 
     -- RAM
     signal s_ram_addr_a, s_ram_addr_b : std_logic_vector(31 downto 0);
     signal s_ram_data_a, s_ram_data_b : std_logic_vector(31 downto 0); -- Saídas da RAM
-    signal s_ram_data_w              : std_logic_vector(31 downto 0); -- Entrada da RAM
-    signal s_ram_we_b                : std_logic;
-    signal s_ram_sel_b               : std_logic;
+    signal s_ram_data_w               : std_logic_vector(31 downto 0); -- Entrada da RAM
+    signal s_ram_we_b                 : std_logic_vector( 3 downto 0);
+    signal s_ram_sel_b                : std_logic;
 
     -- UART
-    signal s_uart_addr               : std_logic_vector(3 downto 0);
-    signal s_uart_data_rx            : std_logic_vector(31 downto 0);
-    signal s_uart_data_tx            : std_logic_vector(31 downto 0);
-    signal s_uart_we                 : std_logic;
-    signal s_uart_sel                : std_logic;
+    signal s_uart_addr                : std_logic_vector( 3 downto 0);
+    signal s_uart_data_rx             : std_logic_vector(31 downto 0);
+    signal s_uart_data_tx             : std_logic_vector(31 downto 0);
+    signal s_uart_we                  : std_logic;
+    signal s_uart_sel                 : std_logic;
 
 begin
 
@@ -151,7 +151,7 @@ begin
         generic map (ADDR_WIDTH => 12)
         port map (
             clk        => CLK_i,
-            we_a       => '0',
+            we_a       => (others => '0'),
             addr_a     => s_ram_addr_a(13 downto 2),
             data_in_a  => (others => '0'),
             data_out_a => s_ram_data_a,

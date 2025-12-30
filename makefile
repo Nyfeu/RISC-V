@@ -62,7 +62,7 @@ COCOTB_PYTHONPATH  = $(SIM_CORE_DIR):$(SIM_SOC_DIR):$(SIM_PERIPS_DIR):$(SIM_COMM
 
 # Seleciona a arquitetura do processador (CORE)
 # Valores válidos: single_cycle, multi_cycle ou qualquer subdiretório em rtl/core/
-CORE ?= single_cycle
+CORE ?= multi_cycle
 
 # Valida se o diretório do CORE existe
 CORE_PATH           = $(CORE_DIR)/$(CORE)
@@ -211,7 +211,7 @@ boot:
 	@mkdir -p $(BUILD_DIR)/boot
 	@echo ">>> 🔨 [BOOT] Compilando bootloader..."
 	@$(CC) $(CFLAGS) -T $(SW_LINKER_DIR)/boot.ld -o $(BUILD_DIR)/boot/bootloader.elf \
-		$(SW_BOOT_DIR)/boot.c $(SW_STARTUP_DIR)/start.s
+		$(SW_STARTUP_DIR)/start.s $(SW_BOOT_DIR)/boot.c
 	@echo ">>> 📦 [BOOT] Extraindo binário puro..."
 	@$(OBJCOPY) -O binary $(BUILD_DIR)/boot/bootloader.elf $(BUILD_DIR)/boot/bootloader.bin
 	@echo ">>> 💾 [BOOT] Gerando HEX (32-bit word aligned)..."
