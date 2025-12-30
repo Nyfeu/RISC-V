@@ -50,8 +50,8 @@ entity lsu is
         -- A LSU entrega o dado formatado para ser escrito na RAM
         DMem_data_o   : out std_logic_vector(31 downto 0);
         
-        -- Sinal de habilitação de escrita repassado
-        DMem_we_o     : out std_logic;
+        -- Sinal de escrita repassado (4 bits para seleção de bytes)
+        DMem_we_o     : out std_logic_vector(3 downto 0);
 
         -----------------------------------------------------------------------
         -- Saída para o Datapath (Write Back)
@@ -74,9 +74,6 @@ begin
 
     -- O endereço vai direto para a memória
     DMem_addr_o <= Addr_i;
-    
-    -- O sinal de escrita vai direto para a memória
-    DMem_we_o   <= MemWrite_i;
 
     -- Extrai os 2 LSBs do endereço para definir alinhamento de Byte/Half
     s_addr_lsb  <= Addr_i(1 downto 0);
@@ -156,52 +153,59 @@ begin
     -----------------------------------------------------------------------
     -- Processo para o armazenamento (store) de dados
     -----------------------------------------------------------------------
-    -- Implementa a lógica Read-Modify-Write
+    -- Usa Byte Enables e alinha o dado de escrita
     
-    STORE_UNIT_PROC: process(DMem_data_i, WriteData_i, s_addr_lsb, Funct3_i)
-
-        variable v_data_to_write : std_logic_vector(31 downto 0);
-
+    STORE_UNIT_PROC: process(WriteData_i, s_addr_lsb, Funct3_i, MemWrite_i)
     begin
 
-        -- 1. Leitura: Pega o que já está na memória
-        v_data_to_write := DMem_data_i;
+        -- Valores padrão (sem escrita)
+        DMem_we_o   <= (others => '0');
+        DMem_data_o <= (others => '0'); -- O valor padrão importa pouco pois o WE estará em 0
 
-        -- 2. Modificação: Altera apenas os bytes necessários
-        case Funct3_i is
+        -- Só ativamos os Write Enables se a instrução mandar escrever (MemWrite_i = '1')
+        if MemWrite_i = '1' then
+            case Funct3_i is
 
-            -- SW (Store Word): Sobrescreve tudo
-            when c_SW =>
-                v_data_to_write := WriteData_i;
+                -- SW (Store Word): Escreve os 4 bytes
+                when c_SW =>
+                    DMem_we_o   <= "1111";
+                    DMem_data_o <= WriteData_i;
 
-            -- SH (Store Half-word): Modifica metade
-            when c_SH =>
-                case s_addr_lsb(1) is
-                    when '0' => -- Metade inferior
-                        v_data_to_write(15 downto 0) := WriteData_i(15 downto 0);
-                    when '1' => -- Metade superior
-                        v_data_to_write(31 downto 16) := WriteData_i(15 downto 0);
-                    when others => null;
-                end case;
+                -- SH (Store Half-word): Escreve 2 bytes
+                when c_SH =>
+                    if s_addr_lsb(1) = '0' then 
+                        -- Metade inferior (Bytes 0 e 1)
+                        DMem_we_o   <= "0011";
+                        DMem_data_o(15 downto 0) <= WriteData_i(15 downto 0);
+                    else 
+                        -- Metade superior (Bytes 2 e 3)
+                        DMem_we_o   <= "1100";
+                        DMem_data_o(31 downto 16) <= WriteData_i(15 downto 0);
+                    end if;
 
-            -- SB (Store Byte): Modifica um byte
-            when c_SB =>
-                case s_addr_lsb is
-                    when "00"   => v_data_to_write(7 downto 0)   := WriteData_i(7 downto 0);
-                    when "01"   => v_data_to_write(15 downto 8)  := WriteData_i(7 downto 0);
-                    when "10"   => v_data_to_write(23 downto 16) := WriteData_i(7 downto 0);
-                    when "11"   => v_data_to_write(31 downto 24) := WriteData_i(7 downto 0);
-                    when others => null;
-                end case;
+                -- SB (Store Byte): Escreve 1 byte
+                when c_SB =>
+                    case s_addr_lsb is
+                        when "00" => -- Byte 0
+                            DMem_we_o   <= "0001";
+                            DMem_data_o(7 downto 0)  <= WriteData_i(7 downto 0);
+                        when "01" => -- Byte 1
+                            DMem_we_o   <= "0010";
+                            DMem_data_o(15 downto 8) <= WriteData_i(7 downto 0);
+                        when "10" => -- Byte 2
+                            DMem_we_o   <= "0100";
+                            DMem_data_o(23 downto 16) <= WriteData_i(7 downto 0);
+                        when "11" => -- Byte 3
+                            DMem_we_o   <= "1000";
+                            DMem_data_o(31 downto 24) <= WriteData_i(7 downto 0);
+                        when others => null;
+                    end case;
 
-            when others =>
-                -- Se não for Store, mantém o valor original (segurança)
-                null;
-
-        end case;
-
-        -- 3. Escrita: Envia para a saída
-        DMem_data_o <= v_data_to_write;
+                when others => 
+                    -- Instrução inválida ou não implementada, não escreve nada
+                    DMem_we_o <= "0000";
+            end case;
+        end if;
 
     end process STORE_UNIT_PROC;
 
