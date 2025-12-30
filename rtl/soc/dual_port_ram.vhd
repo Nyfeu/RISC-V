@@ -13,7 +13,7 @@
 --    em duas portas independentes - usando BRAM inferida.
 -- 
 -- Autor     : [André Maiolini]
--- Data      : [22/12/2025]    
+-- Data      : [30/12/2025]    
 --
 ------------------------------------------------------------------------------------------------------------------
 
@@ -34,13 +34,13 @@ entity dual_port_ram is
         clk        : in  std_logic;
         
         -- Porta A
-        we_a       : in  std_logic;
+        we_a       : in  std_logic_vector((DATA_WIDTH/8)-1 downto 0);
         addr_a     : in  std_logic_vector(ADDR_WIDTH-1 downto 0);
         data_in_a  : in  std_logic_vector(DATA_WIDTH-1 downto 0);
         data_out_a : out std_logic_vector(DATA_WIDTH-1 downto 0);
         
         -- Porta B
-        we_b       : in  std_logic;
+        we_b       : in  std_logic_vector((DATA_WIDTH/8)-1 downto 0);
         addr_b     : in  std_logic_vector(ADDR_WIDTH-1 downto 0);
         data_in_b  : in  std_logic_vector(DATA_WIDTH-1 downto 0);
         data_out_b : out std_logic_vector(DATA_WIDTH-1 downto 0)
@@ -78,12 +78,13 @@ begin
             -- 1. Lemos a variável para a saída (pega o valor atual/antigo)
             data_out_a <= ram(to_integer(unsigned(addr_a)));
 
-            -- 2. Se houver escrita, atualizamos a variável
-            -- Como a leitura acima já agendou o valor antigo para o sinal de saída,
-            -- esta atualização só afetará a leitura do PRÓXIMO ciclo.
-            if we_a = '1' then
-                ram(to_integer(unsigned(addr_a))) := data_in_a; -- Note o uso de :=
-            end if;
+            -- 2. Escrita com Byte Enable
+            for i in 0 to (DATA_WIDTH/8)-1 loop
+                if we_a(i) = '1' then
+                    -- Escreve apenas no byte correspondente (i*8 até i*8+7)
+                    ram(to_integer(unsigned(addr_a)))(8*i+7 downto 8*i) := data_in_a(8*i+7 downto 8*i);
+                end if;
+            end loop;
 
         end if;
         
@@ -100,10 +101,12 @@ begin
             -- 1. Leitura (Read-First)
             data_out_b <= ram(to_integer(unsigned(addr_b)));
 
-            -- 2. Escrita
-            if we_b = '1' then
-                ram(to_integer(unsigned(addr_b))) := data_in_b;
-            end if;
+            -- 2. Escrita com Byte Enable
+            for i in 0 to (DATA_WIDTH/8)-1 loop
+                if we_b(i) = '1' then
+                    ram(to_integer(unsigned(addr_b)))(8*i+7 downto 8*i) := data_in_b(8*i+7 downto 8*i);
+                end if;
+            end loop;
 
         end if;
 

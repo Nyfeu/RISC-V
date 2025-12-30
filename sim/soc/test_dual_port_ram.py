@@ -74,7 +74,7 @@ async def test_basic_rw_port_a(dut):
     data = 0xDEADBEEF
     
     # PASSO 1: ESCRITA - Escreve o dado no endereço especificado
-    dut.we_a.value = 1            # Ativa escrita na porta A
+    dut.we_a.value = 0xF          # Ativa escrita na porta A
     dut.addr_a.value = addr       # Define endereço de escrita
     dut.data_in_a.value = data    # Define dado a escrever
     await RisingEdge(dut.clk)     # Aguarda rising edge do clock (ciclo 1)
@@ -131,21 +131,24 @@ async def test_random_stress(dut):
         is_write = random.choice([True, False])   # Tipo aleatório (W/R)
         use_port_a = random.choice([True, False]) # Porta aleatória (A/B)
         
+        # Máscara de escrita completa (Word Write) = 0xF (15)
+        # Se is_write for False, máscara é 0
+        we_mask = 0xF if is_write else 0
+
         # Configura os sinais de entrada conforme a transação gerada
         if use_port_a:
             # Operação na PORTA A
             dut.addr_a.value = addr
-            dut.we_a.value = 1 if is_write else 0         # Write Enable
+            dut.we_a.value = we_mask                      # Write Enable
             dut.data_in_a.value = data if is_write else 0 # Dado (se escrita)
             dut.we_b.value = 0  # Desativa porta B
         else:
             # Operação na PORTA B
             dut.addr_b.value = addr
-            dut.we_b.value = 1 if is_write else 0         # Write Enable
+            dut.we_b.value = we_mask                      # Write Enable
             dut.data_in_b.value = data if is_write else 0 # Dado (se escrita)
             dut.we_a.value = 0  # Desativa porta A
 
-        # Atualiza o Golden Model com a nova operação de escrita
         # Isso mantém um registro do que "deveria" estar na memória
         if is_write:
             golden_mem[addr] = data
