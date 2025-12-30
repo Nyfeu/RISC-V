@@ -66,7 +66,7 @@ entity processor_top is
     DMem_addr_o         : out std_logic_vector(31 downto 0);      -- Endereço de 32 bits para a memória de dados
     DMem_data_o         : out std_logic_vector(31 downto 0);      -- Dados de 32 bits a serem escritos na memória de dados
     DMem_data_i         : in  std_logic_vector(31 downto 0);      -- Dados de 32 bits lidos da memória de dados
-    DMem_writeEnable_o  : out std_logic                           -- Sinal de habilitação de escrita na memória de dados (ativo em nível alto)
+    DMem_writeEnable_o  : out std_logic_vector( 3 downto 0)       -- Sinal de habilitação de escrita na memória de dados (ativo em nível alto)
 
   ) ;
 
