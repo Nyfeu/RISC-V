@@ -14,21 +14,15 @@ F3_LH  = 0b001
 F3_LW  = 0b010
 F3_LBU = 0b100
 F3_LHU = 0b101
-
 F3_SB  = 0b000
 F3_SH  = 0b001
 F3_SW  = 0b010
-
-# Helper para extensão de sinal (simulando o comportamento do VHDL)
-def sign_extend(value, bits):
-    sign_bit = 1 << (bits - 1)
-    return (value & (sign_bit - 1)) - (value & sign_bit)
 
 @cocotb.test()
 async def test_lsu_passthrough(dut):
     
     # Indica o teste sendo realizado
-    log_header("Teste 1: Verifica se Endereço e WriteEnable passam direto")
+    log_header("Teste 1: Verifica Endereço e Geração de WE (para SW)")
     
     # Escreve mensagem de inicialização
     log_info("Iniciando Teste de Pass-through...")
@@ -41,7 +35,8 @@ async def test_lsu_passthrough(dut):
     dut.Addr_i.value      = addr
     dut.MemWrite_i.value  = we
     dut.WriteData_i.value = 0
-    dut.Funct3_i.value    = 0
+    # Usamos SW (Store Word) para garantir que a máscara seja "1111"
+    dut.Funct3_i.value    = F3_SW 
     dut.DMem_data_i.value = 0 
 
     # Aguarda a estabilização dos sinais
@@ -49,7 +44,9 @@ async def test_lsu_passthrough(dut):
     
     # Checks
     assert dut.DMem_addr_o.value == addr, f"Erro Endereço: {hex(dut.DMem_addr_o.value)} != {hex(addr)}"
-    assert dut.DMem_we_o.value   == we,   f"Erro WE: {dut.DMem_we_o.value} != {we}"
+    
+    # Correção: WE agora é 4 bits. Para SW, esperamos 0xF (1111 binário)
+    assert dut.DMem_we_o.value   == 0xF,  f"Erro WE: {dut.DMem_we_o.value} != 0xF (Esperado máscara completa para SW)"
     
     # Escreve mensagem de sucesso do teste
     log_success("Pass-through OK!")
@@ -65,7 +62,6 @@ async def test_lsu_loads(dut):
     log_info("Iniciando Teste de Loads...")
     
     # Cenário: Memória contém 0x89ABCDEF
-    # Byte 0 (LSB) = EF, Byte 1 = CD, Byte 2 = AB, Byte 3 (MSB) = 89
     mem_val = 0x89ABCDEF
     dut.DMem_data_i.value = mem_val
     dut.MemWrite_i.value  = 0         # Leitura
@@ -75,17 +71,17 @@ async def test_lsu_loads(dut):
         # LW (Word) - Endereço alinhado
         (F3_LW,  0b00, 0x89ABCDEF, "LW Alinhado"),
         
-        # LB (Byte com Sinal) - 0xEF é negativo em 8 bits? Sim (11101111) -> Extende para FFFFFFEF
+        # LB (Byte com Sinal) - Extensão de sinal
         (F3_LB,  0b00, 0xFFFFFFEF, "LB Byte 0 (Neg)"),
         (F3_LB,  0b01, 0xFFFFFFCD, "LB Byte 1 (Neg)"),
         (F3_LB,  0b10, 0xFFFFFFAB, "LB Byte 2 (Neg)"),
         (F3_LB,  0b11, 0xFFFFFF89, "LB Byte 3 (Neg)"),
         
-        # LBU (Byte Sem Sinal)
+        # LBU (Byte Sem Sinal) - Extensão de zero
         (F3_LBU, 0b00, 0x000000EF, "LBU Byte 0"),
         (F3_LBU, 0b11, 0x00000089, "LBU Byte 3"),
 
-        # LH (Half com Sinal) - 0xCDEF (Neg), 0x89AB (Neg)
+        # LH (Half com Sinal)
         (F3_LH,  0b00, 0xFFFFCDEF, "LH Half 0"),
         (F3_LH,  0b10, 0xFFFF89AB, "LH Half 1"),
 
@@ -96,86 +92,81 @@ async def test_lsu_loads(dut):
     # Loop de iteração do vetor de testes
     for f3, addr_lsb, expected, name in test_cases:
 
-        # Configura os sinais no DUT
         dut.Funct3_i.value = f3
-        dut.Addr_i.value   = addr_lsb # Só importa os 2 bits LSB
+        dut.Addr_i.value   = addr_lsb 
         
-        # Aguarda estabilização
         await settle()
         
-        # Captura resultado
         got = int(dut.LoadData_o.value)
         
-        # Ajuste para lidar com números negativos no Python se necessário, 
-        # mas comparando com hex hardcoded é seguro.
-        if got != expected and expected < 0: 
-             # Se o esperado fosse definido como signed int no python
-             pass 
-        
-        # Mas aqui definimos expected como unsigned 32-bit representação (ex: 0xFF...)
-        # O cocotb lê como unsigned por padrão a menos que especificado.
         assert got == expected, f"FALHA {name}: Esperado {hex(expected)}, Obtido {hex(got)}"
-
-        # Escreve mensagem de sucesso do teste
         log_info(f"OK: {name}")
 
-    log_success("Vetor de testes realizado com sucesso!")
+    log_success("Vetor de testes de LOAD realizado com sucesso!")
 
 
 @cocotb.test()
 async def test_lsu_stores(dut):
 
     # Indica o teste sendo realizado
-    log_header("Teste 3: Verifica a lógica de STORE (Read-Modify-Write)")
+    log_header("Teste 3: Verifica a lógica de STORE (Byte Enables e Alinhamento)")
     
     # Escreve mensagem de inicialização
     log_info("Iniciando Teste de Stores...")
     
-    # Dado existente na "Memória" (simulado na entrada)
-    # Vamos tentar escrever 0x11223344 (novo) sobre 0xAAAAAAAA (velho)
-    old_mem = 0xAAAAAAAA
-    new_val = 0x11223344
+    # Correção: Não simulamos mais "Old Memory" pois não há leitura (RMW).
+    # A LSU apenas posiciona o dado e ativa os bits corretos do WE.
+    
+    val_to_write = 0x11223344
     
     # Configura os sinais no DUT
-    dut.DMem_data_i.value = old_mem
-    dut.WriteData_i.value = new_val
+    dut.WriteData_i.value = val_to_write
     dut.MemWrite_i.value  = 1
+    # dut.DMem_data_i é ignorado pela nova LSU em stores
 
-    # Define o vetor de testes
+    # Tabela de Testes
+    # (Funct3, Addr_LSB, Esperado_WE_Mask, Esperado_Data_Out, Nome)
     test_cases = [
-        # SW: Deve sobrescrever tudo
-        (F3_SW, 0b00, 0x11223344, "SW Full"),
+        # SW: Write Enable "1111" (0xF), Dado completo
+        (F3_SW, 0b00, 0xF, 0x11223344, "SW Full"),
         
-        # SH: Sobrescreve Half, preserva o resto
-        # End 00: Write 3344, Keep AAAA (upper) -> AAAA3344
-        (F3_SH, 0b00, 0xAAAA3344, "SH Lower"),
-        # End 10: Write 3344 (pega os 16 bits LSB do reg), Keep AAAA (lower) -> 3344AAAA
-        (F3_SH, 0b10, 0x3344AAAA, "SH Upper"),
+        # SH: Write Enable "0011" ou "1100"
+        # Half Inferior: Pega 16 bits LSB (3344) e joga na saída
+        (F3_SH, 0b00, 0x3, 0x00003344, "SH Lower (Bytes 0,1)"),
+        # Half Superior: Pega 16 bits LSB (3344) e desloca para cima
+        (F3_SH, 0b10, 0xC, 0x33440000, "SH Upper (Bytes 2,3)"),
         
-        # SB: Sobrescreve Byte, preserva resto
-        # End 00: Write 44, Keep AAAAAA -> AAAAAA44
-        (F3_SB, 0b00, 0xAAAAAA44, "SB Byte 0"),
-        # End 01: Write 44, Keep AAAA..AA -> AAAA44AA
-        (F3_SB, 0b01, 0xAAAA44AA, "SB Byte 1"),
+        # SB: Write Enable com 1 bit ativo ("0001", "0010", etc)
+        # Byte 0: Pega 8 bits LSB (44)
+        (F3_SB, 0b00, 0x1, 0x00000044, "SB Byte 0"),
+        # Byte 1: Pega 8 bits LSB (44) e desloca
+        (F3_SB, 0b01, 0x2, 0x00004400, "SB Byte 1"),
+        # Byte 2
+        (F3_SB, 0b10, 0x4, 0x00440000, "SB Byte 2"),
+        # Byte 3
+        (F3_SB, 0b11, 0x8, 0x44000000, "SB Byte 3"),
     ]
 
     # Loop de iteração do vetor de testes
-    for f3, addr_lsb, expected, name in test_cases:
+    for f3, addr_lsb, exp_we, exp_data, name in test_cases:
         
-        # Configura os sinais no DUT
         dut.Funct3_i.value = f3
         dut.Addr_i.value   = addr_lsb
         
-        # Aguarda estabilização
         await settle()
         
-        # Captura resultado
-        got = int(dut.DMem_data_o.value)
+        got_we   = int(dut.DMem_we_o.value)
+        got_data = int(dut.DMem_data_o.value)
 
-        # Comparação
-        assert got == expected, f"FALHA {name}: Esperado {hex(expected)}, Obtido {hex(got)}"
+        # Verificação da Máscara de Escrita (WE)
+        assert got_we == exp_we, f"FALHA {name} (WE): Esperado {bin(exp_we)}, Obtido {bin(got_we)}"
 
-        # Escreve mensagem de sucesso do teste
+        # Verificação do Dado (Verificamos apenas os bytes ativos na máscara)
+        # Nota: O VHDL atribui '0' aos bytes inativos ou mantém indefinido? 
+        # No código sugerido anteriormente: DMem_data_o <= (others => '0') por padrão.
+        # Portanto, podemos comparar o valor inteiro exato.
+        assert got_data == exp_data, f"FALHA {name} (Data): Esperado {hex(exp_data)}, Obtido {hex(got_data)}"
+
         log_info(f"OK: {name}")
     
-    log_success("Vetor de testes realizado com sucesso!")
+    log_success("Vetor de testes de STORE realizado com sucesso!")
