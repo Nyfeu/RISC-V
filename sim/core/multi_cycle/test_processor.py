@@ -12,7 +12,7 @@
 # Importações COCOTB
 import cocotb
 from cocotb.clock import Clock
-from cocotb.triggers import RisingEdge, Event, with_timeout
+from cocotb.triggers import RisingEdge, Event, with_timeout, FallingEdge
 
 # Importação módulo os do sistema operacional para manipulação de arquivos
 import os
@@ -106,125 +106,88 @@ def flush_buffer_to_mem(mem, addr, bytes_list):
     mem[addr] = val
 
 # ================================================================================================================
-# 2. CONTROLADOR DE MEMÓRIA E PERIFÉRICOS (Modelo Síncrono)
+# 2. CONTROLADOR DE MEMÓRIA E PERIFÉRICOS (Modelo BRAM Síncrono)
 # ================================================================================================================
 
 async def memory_and_mmio_controller(dut, mem_data, halt_event):
     """
-    Simula o comportamento da memória RAM e dos dispositivos de I/O.
+    Simula Memória BRAM Síncrona Robusta.
+    Amostra sinais na borda de descida (FallingEdge) para garantir estabilidade
+    e escreve/lê na borda de subida (RisingEdge).
     """
-    log_info("Controlador de Memória Ativo e Monitorando Barramentos.")
+    log_info("Controlador de Memória (Síncrono/Falling Sample) Ativo.")
     console_buffer = ""
 
+    # Registradores de Pipeline (Latch)
+    latched_i_addr = 0
+    latched_d_addr = 0
+    latched_d_we   = 0
+    latched_d_data = 0
+
     while True:
-
-        # ----------------------------------------------------------------------
-        # [FASE 0] INÍCIO DO CICLO (Sincronização)
-        # ----------------------------------------------------------------------
+        # ------------------------------------------------------------------
+        # 1. BORDA DE SUBIDA (Rising Edge): Ação da Memória
+        # ------------------------------------------------------------------
         await RisingEdge(dut.CLK_i)
-        await settle() 
 
-        # ----------------------------------------------------------------------
-        # [FASE 1] INSTRUCTION FETCH (Busca de Instrução)
-        # ----------------------------------------------------------------------
-        try: 
-            i_addr = int(dut.IMem_addr_o.value)
-        except ValueError: 
-            i_addr = 0
-        
-        instruction_val = mem_data.get(i_addr & 0xFFFFFFFC, 0)
-        dut.IMem_data_i.value = instruction_val
+        # [LEITURA] Entrega o dado correspondente ao endereço amostrado no ciclo anterior
+        # (Simula latência de 1 ciclo da BRAM)
+        dut.IMem_data_i.value = mem_data.get(latched_i_addr & 0xFFFFFFFC, 0)
+        dut.DMem_data_i.value = mem_data.get(latched_d_addr & 0xFFFFFFFC, 0)
 
-        # ----------------------------------------------------------------------
-        # [FASE 2] DECODE & EXECUTE DELAY (Propagação Interna)
-        # ----------------------------------------------------------------------
-        await settle() 
-
-        # ----------------------------------------------------------------------
-        # [FASE 3] MEMORY READ (Leitura de Dados - Loads)
-        # ----------------------------------------------------------------------
-        try: 
-            d_addr = int(dut.DMem_addr_o.value)
-        except ValueError: 
-            d_addr = 0
-        
-        # Entrega o dado da memória (Loads leem a palavra inteira, a LSU formata)
-        dut.DMem_data_i.value = mem_data.get(d_addr & 0xFFFFFFFC, 0)
-
-        # ----------------------------------------------------------------------
-        # [FASE 4] WRITE SETUP DELAY (Preparação para Escrita)
-        # ----------------------------------------------------------------------
-        await settle() 
-
-        # ----------------------------------------------------------------------
-        # [FASE 5] MEMORY WRITE (Efetivação da Escrita - Stores)
-        # ----------------------------------------------------------------------
-
-        # Verifica sinais de escrita
-        try:
-            # ATUALIZADO: Nome do sinal para DMem_writeEnable_o
-            d_we = int(dut.DMem_writeEnable_o.value) 
-            d_data = int(dut.DMem_data_o.value)
-            d_addr_write = int(dut.DMem_addr_o.value)
-        except ValueError: 
-            d_we = 0
-
-        # ATUALIZADO: Verifica se ALGUM bit da máscara de escrita está ativo (> 0)
-        if d_we > 0:
+        # [ESCRITA] Efetiva a escrita se foi solicitada no ciclo anterior
+        if latched_d_we > 0:
             
-            # --- Periférico: CONSOLE (Simula UART) ---
-            if d_addr_write == MMIO_CONSOLE_ADDR:
-                # Assume que a escrita no console usa o byte menos significativo (d_we=1 ou d_we=15)
-                char = chr(d_data & 0xFF)
+            # MMIO: Console
+            if latched_d_addr == MMIO_CONSOLE_ADDR:
+                char = chr(latched_d_data & 0xFF)
                 if char == '\n':
                     log_console(f"{console_buffer}")
                     console_buffer = ""
                 else:
                     console_buffer += char
             
-            # --- Periférico: DEBUG INT (Imprime Inteiros) ---
-            elif d_addr_write == MMIO_INT_ADDR:
-                val_signed = d_data if d_data < 0x80000000 else d_data - 0x100000000
+            # MMIO: Halt
+            elif latched_d_addr == MMIO_HALT_ADDR:
+                log_success("Sinal de HALT recebido via MMIO!")
+                halt_event.set()
+                break # Encerra o loop do controlador
+
+            # MMIO: Debug Int
+            elif latched_d_addr == MMIO_INT_ADDR:
+                val_signed = latched_d_data if latched_d_data < 0x80000000 else latched_d_data - 0x100000000
                 log_int(f"{val_signed}")
             
-            # --- Controle: HALT (Fim de Simulação) ---
-            elif d_addr_write == MMIO_HALT_ADDR:
-                log_success("Sinal de HALT recebido via MMIO! Encerrando simulação.")
-                halt_event.set()
-                break 
-            
-            # --- Memória: RAM NORMAL (Store com Byte Enable) ---
+            # RAM Store
             else:
-                # Endereço alinhado da palavra
-                aligned_addr = d_addr_write & 0xFFFFFFFC
-                
-                # Leitura: Pega o valor atual da palavra na memória (ou 0 se não existir)
+                aligned_addr = latched_d_addr & 0xFFFFFFFC
                 current_word = mem_data.get(aligned_addr, 0)
-                
-                # Modificação: Aplica a máscara de escrita (d_we)
-                # A LSU já deslocou o d_data para a posição correta (byte lane alignment).
-                # Nós só precisamos misturar os bytes novos com os antigos.
-                
                 new_word = current_word
                 
-                # Byte 0 (LSB) - bits 7:0
-                if (d_we & 0x1):
-                    new_word = (new_word & 0xFFFFFF00) | (d_data & 0x000000FF)
-                
-                # Byte 1 - bits 15:8
-                if (d_we & 0x2):
-                    new_word = (new_word & 0xFFFF00FF) | (d_data & 0x0000FF00)
-                
-                # Byte 2 - bits 23:16
-                if (d_we & 0x4):
-                    new_word = (new_word & 0xFF00FFFF) | (d_data & 0x00FF0000)
-                
-                # Byte 3 (MSB) - bits 31:24
-                if (d_we & 0x8):
-                    new_word = (new_word & 0x00FFFFFF) | (d_data & 0xFF000000)
-
-                # Escrita: Salva a nova palavra combinada
+                if (latched_d_we & 0x1): new_word = (new_word & 0xFFFFFF00) | (latched_d_data & 0x000000FF)
+                if (latched_d_we & 0x2): new_word = (new_word & 0xFFFF00FF) | (latched_d_data & 0x0000FF00)
+                if (latched_d_we & 0x4): new_word = (new_word & 0xFF00FFFF) | (latched_d_data & 0x00FF0000)
+                if (latched_d_we & 0x8): new_word = (new_word & 0x00FFFFFF) | (latched_d_data & 0xFF000000)
                 mem_data[aligned_addr] = new_word
+
+        # ------------------------------------------------------------------
+        # 2. BORDA DE DESCIDA (Falling Edge): Amostragem (Setup)
+        # ------------------------------------------------------------------
+        await FallingEdge(dut.CLK_i)
+
+        # Amostra os sinais agora que estão estáveis (meio do ciclo)
+        try:
+            latched_i_addr = int(dut.IMem_addr_o.value)
+        except ValueError: latched_i_addr = 0
+
+        try:
+            latched_d_addr = int(dut.DMem_addr_o.value)
+            latched_d_data = int(dut.DMem_data_o.value)
+            latched_d_we   = int(dut.DMem_writeEnable_o.value)
+        except ValueError:
+            latched_d_addr = 0
+            latched_d_data = 0
+            latched_d_we   = 0
 
 # ================================================================================================================
 # 3. TESTE PRINCIPAL (Main Test)
