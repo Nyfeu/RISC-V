@@ -112,13 +112,6 @@ def flush_buffer_to_mem(mem, addr, bytes_list):
 async def memory_and_mmio_controller(dut, mem_data, halt_event):
     """
     Simula o comportamento da memória RAM e dos dispositivos de I/O.
-    
-    Este processo roda em paralelo ao hardware e precisa estar perfeitamente
-    sincronizado com os estágios do processador Single-Cycle.
-    
-    O ciclo é dividido em 4 fases de tempo (usando 'settle()') para garantir
-    que os sinais combinacionais (como o endereço calculado pela ALU) estejam
-    estáveis antes de serem lidos pelo Python.
     """
     log_info("Controlador de Memória Ativo e Monitorando Barramentos.")
     console_buffer = ""
@@ -128,84 +121,62 @@ async def memory_and_mmio_controller(dut, mem_data, halt_event):
         # ----------------------------------------------------------------------
         # [FASE 0] INÍCIO DO CICLO (Sincronização)
         # ----------------------------------------------------------------------
-
-        # Aguarda a borda de subida do clock. Neste momento, o PC do processador
-        # é atualizado (borda registrada).
         await RisingEdge(dut.CLK_i)
-        
-        # Pequeno delay para permitir que o novo valor do PC propague para a saída IMem_addr_o
         await settle() 
 
         # ----------------------------------------------------------------------
         # [FASE 1] INSTRUCTION FETCH (Busca de Instrução)
         # ----------------------------------------------------------------------
-
         try: 
-            # Lê o endereço da instrução solicitado pelo PC
             i_addr = int(dut.IMem_addr_o.value)
         except ValueError: 
             i_addr = 0
         
-        # Busca a instrução na memória simulada (dicionário)
-        # O endereço é alinhado para 4 bytes (Word Aligned),
-        # ou seja, 2 bits menos significativos são zero
         instruction_val = mem_data.get(i_addr & 0xFFFFFFFC, 0)
-        
-        # Entrega a instrução ao processador
         dut.IMem_data_i.value = instruction_val
 
         # ----------------------------------------------------------------------
         # [FASE 2] DECODE & EXECUTE DELAY (Propagação Interna)
         # ----------------------------------------------------------------------
-
-        # AGUARDA: o processador precisa de tempo para Decodificar a instrução,
-        # ler os Registradores e passar pela ALU. Somente APÓS esse tempo a ALU terá 
-        # calculado o endereço correto para DMem_addr_o.
         await settle() 
 
         # ----------------------------------------------------------------------
         # [FASE 3] MEMORY READ (Leitura de Dados - Loads)
         # ----------------------------------------------------------------------
-        
-        # Agora o endereço de dados (DMem_addr_o) é válido e estável.
         try: 
             d_addr = int(dut.DMem_addr_o.value)
         except ValueError: 
             d_addr = 0
         
-        # Entrega o dado da memória para o processador (caso seja uma instrução LOAD).
-        # Se for STORE ou R-Type, este valor será ignorado pelo hardware, o que é ok.
+        # Entrega o dado da memória (Loads leem a palavra inteira, a LSU formata)
         dut.DMem_data_i.value = mem_data.get(d_addr & 0xFFFFFFFC, 0)
 
         # ----------------------------------------------------------------------
         # [FASE 4] WRITE SETUP DELAY (Preparação para Escrita)
         # ----------------------------------------------------------------------
-
-        # Aguarda os sinais de controle de escrita (MemWrite) e dados de saída
-        # se estabilizarem completamente.
-        
         await settle() 
 
         # ----------------------------------------------------------------------
         # [FASE 5] MEMORY WRITE (Efetivação da Escrita - Stores)
         # ----------------------------------------------------------------------
 
-        # Verifica se o processador quer escrever algo (Store Word/Byte ou MMIO)
+        # Verifica sinais de escrita
         try:
-            d_we = int(dut.DMem_writeEnable_o.value)
+            # ATUALIZADO: Nome do sinal para DMem_writeEnable_o
+            d_we = int(dut.DMem_writeEnable_o.value) 
             d_data = int(dut.DMem_data_o.value)
-            # Re-lê o endereço para garantir a sincronia final
             d_addr_write = int(dut.DMem_addr_o.value)
         except ValueError: 
-            # Se algum sinal for 'X' ou 'Z', ignoramos a escrita para não quebrar a simulação
             d_we = 0
 
-        if d_we == 1:
+        # ATUALIZADO: Verifica se ALGUM bit da máscara de escrita está ativo (> 0)
+        if d_we > 0:
+            
             # --- Periférico: CONSOLE (Simula UART) ---
             if d_addr_write == MMIO_CONSOLE_ADDR:
-                char = chr(d_data & 0xFF) # Pega apenas o byte menos significativo
+                # Assume que a escrita no console usa o byte menos significativo (d_we=1 ou d_we=15)
+                char = chr(d_data & 0xFF)
                 if char == '\n':
-                    # Flush do buffer ao encontrar quebra de linha
                     log_console(f"{console_buffer}")
                     console_buffer = ""
                 else:
@@ -213,19 +184,47 @@ async def memory_and_mmio_controller(dut, mem_data, halt_event):
             
             # --- Periférico: DEBUG INT (Imprime Inteiros) ---
             elif d_addr_write == MMIO_INT_ADDR:
-                # Converte unsigned 32-bit para signed 32-bit para visualização correta
                 val_signed = d_data if d_data < 0x80000000 else d_data - 0x100000000
                 log_int(f"{val_signed}")
             
             # --- Controle: HALT (Fim de Simulação) ---
             elif d_addr_write == MMIO_HALT_ADDR:
                 log_success("Sinal de HALT recebido via MMIO! Encerrando simulação.")
-                halt_event.set() # Dispara evento para liberar o Teste Principal
-                break # Encerra este loop de controlador
+                halt_event.set()
+                break 
             
-            # --- Memória: RAM NORMAL (Store) ---
+            # --- Memória: RAM NORMAL (Store com Byte Enable) ---
             else:
-                mem_data[d_addr_write & 0xFFFFFFFC] = d_data
+                # Endereço alinhado da palavra
+                aligned_addr = d_addr_write & 0xFFFFFFFC
+                
+                # Leitura: Pega o valor atual da palavra na memória (ou 0 se não existir)
+                current_word = mem_data.get(aligned_addr, 0)
+                
+                # Modificação: Aplica a máscara de escrita (d_we)
+                # A LSU já deslocou o d_data para a posição correta (byte lane alignment).
+                # Nós só precisamos misturar os bytes novos com os antigos.
+                
+                new_word = current_word
+                
+                # Byte 0 (LSB) - bits 7:0
+                if (d_we & 0x1):
+                    new_word = (new_word & 0xFFFFFF00) | (d_data & 0x000000FF)
+                
+                # Byte 1 - bits 15:8
+                if (d_we & 0x2):
+                    new_word = (new_word & 0xFFFF00FF) | (d_data & 0x0000FF00)
+                
+                # Byte 2 - bits 23:16
+                if (d_we & 0x4):
+                    new_word = (new_word & 0xFF00FFFF) | (d_data & 0x00FF0000)
+                
+                # Byte 3 (MSB) - bits 31:24
+                if (d_we & 0x8):
+                    new_word = (new_word & 0x00FFFFFF) | (d_data & 0xFF000000)
+
+                # Escrita: Salva a nova palavra combinada
+                mem_data[aligned_addr] = new_word
 
 # ================================================================================================================
 # 3. TESTE PRINCIPAL (Main Test)

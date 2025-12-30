@@ -59,7 +59,7 @@ entity datapath is
         DMem_addr_o        : out std_logic_vector(31 downto 0);       -- Endereço para a DMEM 
         DMem_data_o        : out std_logic_vector(31 downto 0);       -- Dado a ser escrito na DMEM (de rs2)
         DMem_data_i        : in  std_logic_vector(31 downto 0);       -- Dado lido da DMEM
-        DMem_writeEnable_o : out std_logic;                           -- Habilita escrita na DMEM
+        DMem_writeEnable_o : out std_logic_vector( 3 downto 0);       -- Habilita escrita na DMEM
 
         ----------------------------------------------------------------------------------------------------------
         -- Interface com a Unidade de Controle
