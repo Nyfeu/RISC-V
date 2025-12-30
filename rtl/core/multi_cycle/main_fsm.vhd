@@ -13,7 +13,7 @@
 --      a arquitetura multi-cycle do core RV32I (RISC-V).
 --
 -- Autor     : [André Maiolini]
--- Data      : [29/12/2025]
+-- Data      : [30/12/2025]
 --
 -------------------------------------------------------------------------------------------------------------------
 
@@ -91,16 +91,39 @@ architecture rtl of main_fsm is
 
     signal current_state, next_state : t_state;
 
+    -- Espera no acesso à memória ---------------------------------------------------------------------------------
+
+    signal wait_mem : std_logic := '0';
+
 begin
 
     -- 1. Registrador de Estado (Processo Síncrono)
 
     process(Clk_i, Reset_i)
     begin
+
         if Reset_i = '1' then
+
+            -- Reset Assíncrono para o estado Instruction Fetch (IF)
             current_state <= S_IF;
+        
         elsif rising_edge(Clk_i) then
-            current_state <= next_state;
+
+            -- Lógica para transição de estado e controle do flag
+            if (current_state = S_IF or current_state = S_MEM_RD) and wait_mem = '0' then
+
+                -- Se é o 1° ciclo de um estado de leitura, fica nele e ativa o flag
+                wait_mem      <= '1';           -- Avisa que esperou um ciclo
+                current_state <= current_state; -- Mantém o estado
+
+            else
+
+                -- Se já esperou (wait_mem=1) ou é outro estado, avança e limpa o flag
+                wait_mem      <= '0';
+                current_state <= next_state;
+
+            end if;
+            
         end if;
     end process;
 
@@ -159,7 +182,7 @@ begin
     end process;
 
     -- 3. Lógica de Saída (Combinacional - Moore)
-    process(current_state, Opcode_i)
+    process(current_state, Opcode_i, wait_mem)
     begin
         
         -- Default Outputs (por segurança)
@@ -183,9 +206,13 @@ begin
             
             -- Estado IF: IRWrite=1, PCWrite=1, OPCWrite=1
             when S_IF =>
-                IRWrite_o  <= '1';
-                PCWrite_o  <= '1';
-                OPCWrite_o <= '1';
+                -- Ciclo 1 (wait_mem='0'): Só apresenta endereço (PC). Não escreve nada.
+                -- Ciclo 2 (wait_mem='1'): Memória pronta. Escreve IR, PC e OldPC.
+                if wait_mem = '1' then
+                    IRWrite_o  <= '1';
+                    PCWrite_o  <= '1';
+                    OPCWrite_o <= '1';
+                end if;
 
             -- Estado ID: RS1Write=1, RS2Write=1
             when S_ID =>
@@ -245,11 +272,14 @@ begin
 
             -- Estados de MEMÓRIA
             when S_MEM_RD =>
-                MDRWrite_o  <= '1';
-                -- Datapath assume leitura combinacional da RAM
+                -- Só grava no MDR quando o dado estiver pronto (2° ciclo)
+                if wait_mem = '1' then
+                    MDRWrite_o <= '1';
+                end if;
+                -- Nota: O datapath mantém o endereço (ALUResult) estável durante os dois ciclos
                 
             when S_MEM_WR =>
-                MemWrite_o  <= '1';
+                MemWrite_o  <= '1'; -- Escrita não precisa esperar leitura, então ok manter assim
 
             -- Estados de WRITE-BACK
             when S_WB_REG =>
