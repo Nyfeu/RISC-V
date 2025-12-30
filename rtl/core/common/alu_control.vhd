@@ -1,4 +1,4 @@
-------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------------
 -- 
 -- File: alu_control.vhd
 --
@@ -54,115 +54,87 @@ begin
     DECODER: process(ALUOp_i, Funct3_i, Funct7_i)
     begin
 
-        ----------------------------------------------------------------------------------------------------------
+        -- Valor padrão (default):
+
+            ALUControl_o <= c_ALU_ADD;
+
+        -----------------------------------------------------------------------------------------------------------
         -- NÍVEL 1: Decodificação com base em ALUOp_i
-        ----------------------------------------------------------------------------------------------------------
-        case ALUOp_i is
-        
-            -- Operação de soma 
-            when "00" => ALUControl_o <= c_ALU_ADD ;
+        -----------------------------------------------------------------------------------------------------------
 
-            -- Operação de subtração 
-            when "01" =>
+            case ALUOp_i is
+            
+                -- ================================================================================================
+                -- MODO 1: Soma Forçada (Load, Store, LUI, AUIPC, JAL, JALR)
+                -- ================================================================================================
 
-                --------------------------------------------------------------------------------------------------
-                -- NÍVEL 2: Decodificação com base em funct3
-                --------------------------------------------------------------------------------------------------
-                case Funct3_i is
-                    -- Para BEQ e BNE a subtração é suficiente
-                    when "000" | "001" =>
-                        ALUControl_o <= c_ALU_SUB;
-                    -- Para BLT e BGE usa SLT ao invés de SUB
-                    when "100" | "101" =>
-                        ALUControl_o <= c_ALU_SLT;
-                    -- Para BLTU, BGEU, precisamos de uma comparação sem sinal
-                    when "110" | "111" =>
-                        ALUControl_o <= c_ALU_SLTU;
-                    -- Caso padrão para segurança
-                    when others =>
-                        ALUControl_o <= (others => '0');
-                end case;
+                    when "00" => ALUControl_o <= c_ALU_ADD ;
 
-            -- Avaliar funct3 e funct7
-            when "10" => 
+                -- ================================================================================================
+                -- MODO 2: Branches (Decodificação Específica para Comparação)
+                -- ================================================================================================
 
-                --------------------------------------------------------------------------------------------------
-                -- NÍVEL 2: Decodificação com base em funct3
-                --------------------------------------------------------------------------------------------------
-                case Funct3_i is 
+                    when "01" =>
 
-                    when "000" =>
+                        -------------------------------------------------------------------------------------------
+                        -- NÍVEL 2: Decodificação com base em funct3
+                        -------------------------------------------------------------------------------------------
 
-                        ------------------------------------------------------------------------------------------
-                        -- NÍVEL 3: Decodificação com base em funct7(5) - diferenciar ADD e SUB 
-                        ------------------------------------------------------------------------------------------
-                        if Funct7_i(5) = '1' then
-                            ALUControl_o <= C_ALU_SUB; -- SUB
-                        else
-                            ALUControl_o <= C_ALU_ADD; -- ADD
-                        end if;
+                        case Funct3_i is
+                            
+                            when "000" | "001" => ALUControl_o <= c_ALU_SUB;   -- BEQ, BNE (subtração)
+                            when "100" | "101" => ALUControl_o <= c_ALU_SLT;   -- BLT, BGE (usa SLT ao invés de SUB) 
+                            when "110" | "111" => ALUControl_o <= c_ALU_SLTU;  -- BLTU, BGEU (sinalizado)
+                            when others => ALUControl_o <= c_ALU_ADD;          -- Valor padrão (default)
+                        
+                        end case;
 
-                    when "001" => ALUControl_o <= c_ALU_SLL;  -- SLL
-                    when "010" => ALUControl_o <= c_ALU_SLT;  -- SLT
-                    when "011" => ALUControl_o <= c_ALU_SLTU; -- SLTU
-                    when "100" => ALUControl_o <= c_ALU_XOR;  -- XOR
+                -- ================================================================================================
+                -- MODO 3: R-Type ("10") e I-Type ("11") 
+                -- ================================================================================================
 
-                    when "101" =>
+                when "10" | "11" =>
+                    case Funct3_i is
+                        
+                        -- ADD / SUB
+                        when "000" => 
+                            -- Apenas R-Type ("10") suporta SUB via bit 30 (Funct7 bit 5)
+                            if ALUOp_i = "10" and Funct7_i(5) = '1' then
+                                ALUControl_o <= c_ALU_SUB;
+                            else
+                                ALUControl_o <= c_ALU_ADD; -- I-Type (ADDI) é sempre ADD
+                            end if;
 
-                        ------------------------------------------------------------------------------------------
-                        -- NÍVEL 3: Decodificação com base em funct7(5) - diferenciar SRL e SRA
-                        ------------------------------------------------------------------------------------------
-                        if Funct7_i(5) = '1' then
-                            ALUControl_o <= c_ALU_SRA; -- SRA
-                        else
-                            ALUControl_o <= c_ALU_SRL; -- SRL
-                        end if;
+                        -- Shifts e Lógica
+                        when "001" => ALUControl_o <= c_ALU_SLL;  -- SLL / SLLI
+                        when "010" => ALUControl_o <= c_ALU_SLT;  -- SLT / SLTI
+                        when "011" => ALUControl_o <= c_ALU_SLTU; -- SLTU / SLTIU
+                        when "100" => ALUControl_o <= c_ALU_XOR;  -- XOR / XORI
+                        when "110" => ALUControl_o <= c_ALU_OR;   -- OR  / ORI
+                        when "111" => ALUControl_o <= c_ALU_AND;  -- AND / ANDI
 
-                    when "110" => ALUControl_o <= c_ALU_OR;   -- OR
-                    when "111" => ALUControl_o <= c_ALU_AND;  -- AND
+                        -- Shift Right (Lógico/Aritmético)
+                        when "101" => 
+                            -- Tanto R quanto I suportam troca de SRL/SRA via bit 30
+                            if Funct7_i(5) = '1' then
+                                ALUControl_o <= c_ALU_SRA; -- SRA / SRAI
+                            else
+                                ALUControl_o <= c_ALU_SRL; -- SRL / SRLI
+                            end if;
 
-                    -- Código não utilizado (caso padrão)
-                    when others => ALUControl_o <= (others => 'X');
+                        when others => ALUControl_o <= c_ALU_ADD;
+                    end case;
 
-                end case ;
+                -- ================================================================================================
+                -- MODO 4: Default (Não Utilizado) 
+                -- ================================================================================================
 
-            -- I-Type Aritmético/Lógico
-            when "11" => 
-
-                --------------------------------------------------------------------------------------------------
-                -- NÍVEL 2: Decodificação com base em funct3
-                --------------------------------------------------------------------------------------------------
-                case Funct3_i is
-
-                    when "000" => ALUControl_o <= c_ALU_ADD;  -- ADDI
-                    when "010" => ALUControl_o <= c_ALU_SLT;  -- SLTI
-                    when "011" => ALUControl_o <= c_ALU_SLTU; -- SLTIU
-                    when "100" => ALUControl_o <= c_ALU_XOR;  -- XORI
-                    when "110" => ALUControl_o <= c_ALU_OR;   -- ORI
-                    when "111" => ALUControl_o <= c_ALU_AND;  -- ANDI
-                    when "001" => ALUControl_o <= c_ALU_SLL;  -- SLLI
-                    when "101" => 
-
-                        ------------------------------------------------------------------------------------------
-                        -- NÍVEL 3: Decodificação com base em funct7(5) - diferenciar SRLI e SRAI
-                        ------------------------------------------------------------------------------------------
-                        if Funct7_i(5) = '1' then
-                            ALUControl_o <= c_ALU_SRA; -- SRAI
-                        else
-                            ALUControl_o <= c_ALU_SRL; -- SRLI
-                        end if;
-
-                    when others => ALUControl_o <= (others => 'X');
-
-                end case;
-
-            -- Código não utilizado (caso padrão)
-            when others => ALUControl_o <= (others => 'X');
-        
-        end case ;
+                    when others => ALUControl_o <= c_ALU_ADD;
+            
+            end case ;
 
     end process DECODER;
 
 end rtl ; -- rtl
 
-------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------------
