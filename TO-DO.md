@@ -3,75 +3,61 @@
 Esta seção guia a refatoração da arquitetura Single-Cycle para Multi-Cycle (RV32I), com foco na modularização e isolamento de componentes.
 
 ## 1. 🏗️ Preparação e Estrutura
-- [ ] **Limpeza Inicial**:
-    - [ ] Garantir que a pasta `rtl/core/multi_cycle/` esteja limpa (fazer backup do que já existe se necessário).
-- [ ] **Revisão de Dependências Comuns**:
-    - [ ] Confirmar que `rtl/core/common/` contém: `alu.vhd`, `reg_file.vhd`, `imm_gen.vhd` (não precisamos reescrever estes).
+- [x] **Limpeza Inicial**:
+    - [x] Garantir que a pasta `rtl/core/multi_cycle/` esteja limpa (fazer backup do que já existe se necessário).
+- [x] **Revisão de Dependências Comuns**:
+    - [x] Confirmar que `rtl/core/common/` contém: `alu.vhd`, `reg_file.vhd`, `imm_gen.vhd` (não precisamos reescrever estes).
 
 ## 2. 🔌 Modificações no Datapath (`datapath.vhd`)
 *O Datapath Multi-Cycle precisa de registradores "invisíveis" ao programador para guardar dados entre os estados do clock.*
 
-- [ ] **Instanciar Registradores Internos (Barreiras)**:
-    - [ ] **IR (Instruction Register)**: Guarda a instrução lida na fase de Fetch. (Enable controlado por `IRWrite`).
-    - [ ] **MDR (Memory Data Register)**: Guarda o dado vindo da memória (Load).
-    - [ ] **Reg A e Reg B**: Guardam os valores lidos do Banco de Registradores (`rs1` e `rs2`).
-    - [ ] **ALUOut**: Guarda o resultado da ALU para ser usado no próximo ciclo (ex: endereço de memória ou WriteBack).
-- [ ] **Atualizar Multiplexadores (MUXs)**:
-    - [ ] **MUX A (Entrada A da ALU)**: Adicionar opção para selecionar `PC` (para cálculo de branch/jal) ou `Reg A`.
-    - [ ] **MUX B (Entrada B da ALU)**: Adicionar opções para `Reg B`, `4` (incremento PC), `Imediato`, ou `Shifts`.
-    - [ ] **MUX MemToReg**: Agora deve selecionar entre `ALUOut` (resultados R-Type/I-Type) ou `MDR` (Loads).
-- [ ] **Lógica do PC**:
-    - [ ] Alterar o PC para ser um registrador com *Enable* (`PCWrite` ou `PCWriteCond` vindo do controle).
+- [x] **Instanciar Registradores Internos (Barreiras)**:
+    - [x] **IR (Instruction Register)**: Guarda a instrução lida na fase de Fetch. (Enable controlado por `IRWrite`).
+    - [x] **MDR (Memory Data Register)**: Guarda o dado vindo da memória (Load).
+    - [x] **Reg A e Reg B**: Guardam os valores lidos do Banco de Registradores (`rs1` e `rs2`).
+    - [x] **ALUOut**: Guarda o resultado da ALU para ser usado no próximo ciclo (ex: endereço de memória ou WriteBack).
+- [x] **Atualizar Multiplexadores (MUXs)**:
+    - [x] **MUX A (Entrada A da ALU)**: Adicionar opção para selecionar `PC` (para cálculo de branch/jal) ou `Reg A`.
+    - [x] **MUX B (Entrada B da ALU)**: Adicionar opções para `Reg B`, `4` (incremento PC), `Imediato`, ou `Shifts`.
+    - [x] **MUX MemToReg**: Agora deve selecionar entre `ALUOut` (resultados R-Type/I-Type) ou `MDR` (Loads).
+- [x] **Lógica do PC**:
+    - [x] Alterar o PC para ser um registrador com *Enable* (`PCWrite` ou `PCWriteCond` vindo do controle).
 
 ## 3. 🧠 Controle Modular (`control_unit/`)
 *Em vez de um arquivo gigante, vamos dividir a FSM em três entidades menores conectadas por um wrapper.*
 
 ### 3.1. `main_fsm.vhd` (Máquina de Estados)
 *Responsável apenas pelas transições de estados, sem gerar os sinais finais de controle.*
-- [ ] Definir os Estados (Enum):
+- [x] Definir os Estados (Enum):
     - `S_FETCH`, `S_DECODE`
     - `S_EXEC_R`, `S_EXEC_I`, `S_JAL`, `S_JALR`, `S_BRANCH`
     - `S_MEM_ADDR`, `S_MEM_READ`, `S_MEM_WRITE`, `S_WB`
-- [ ] Implementar Lógica de Próximo Estado (Process Combinacional):
+- [x] Implementar Lógica de Próximo Estado (Process Combinacional):
     - Ler `Opcode`.
     - Transitar de `FETCH` -> `DECODE` -> [Execução Específica] -> [Memória/WB] -> `FETCH`.
-- [ ] Implementar Lógica Sequencial:
+- [x] Implementar Lógica Sequencial:
     - Atualizar `CurrentState` na borda de subida do Clock.
 
 ### 3.2. `control_decoder.vhd` (Decodificador de Sinais)
 *Recebe o Estado Atual e gera os sinais de controle para o Datapath.*
-- [ ] Mapear saídas baseadas no **Estado Atual**:
-    - [ ] **Estados de Busca**: Em `S_FETCH`, ligar `IRWrite`, `ALUSrcA=PC`, `ALUSrcB=4`, `PCWrite`.
-    - [ ] **Estados de Execução**: Em `S_EXEC_R`, ligar `ALUSrcA=RegA`, `ALUSrcB=RegB`, etc.
-    - [ ] **Estados de Memória**: Em `S_MEM_READ`, garantir que `IorD` (Instruction or Data) selecione o endereço da ALUOut.
-    - [ ] **Estados de WriteBack**: Controlar `RegWrite` e `MemToReg`.
+- [x] Mapear saídas baseadas no **Estado Atual**:
+    - [x] **Estados de Busca**: Em `S_FETCH`, ligar `IRWrite`, `ALUSrcA=PC`, `ALUSrcB=4`, `PCWrite`.
+    - [x] **Estados de Execução**: Em `S_EXEC_R`, ligar `ALUSrcA=RegA`, `ALUSrcB=RegB`, etc.
+    - [x] **Estados de Memória**: Em `S_MEM_READ`, garantir que `IorD` (Instruction or Data) selecione o endereço da ALUOut.
+    - [x] **Estados de WriteBack**: Controlar `RegWrite` e `MemToReg`.
 
 ### 3.3. `alu_decoder.vhd` (ALU Control)
 *Pode ser reutilizado ou adaptado do Single-Cycle, mas deve estar separado.*
-- [ ] Receber `ALUOp` (gerado pelo `control_decoder`) e campos `Funct3/Funct7`.
-- [ ] Gerar `ALUControl` (4 bits) para a ALU.
+- [x] Receber `ALUOp` (gerado pelo `control_decoder`) e campos `Funct3/Funct7`.
+- [x] Gerar `ALUControl` (4 bits) para a ALU.
 
 ### 3.4. `control_top.vhd` (Wrapper)
-- [ ] Instanciar e conectar: `main_fsm`, `control_decoder` e `alu_decoder`.
-- [ ] Expor apenas as portas necessárias para o Datapath.
+- [x] Instanciar e conectar: `main_fsm`, `control_decoder` e `alu_decoder`.
+- [x] Expor apenas as portas necessárias para o Datapath.
 
 ## 4. 🔗 Top Level (`processor_top.vhd`)
-- [ ] Conectar o novo `control_top` ao `datapath` modificado.
-- [ ] **Gerenciamento de Memória**:
-    - [ ] Implementar MUX externo (ou interno ao Datapath) para unificar o barramento de endereços, já que a maioria das implementações Multi-Cycle usa uma memória unificada (Princeton) ou arbitra o acesso.
-    - *Nota: Se mantivermos IMem e DMem separadas no testbench, o MUX seleciona qual endereço vai para qual porta baseado no estado.*
-
-## 5. 🧪 Verificação Passo-a-Passo
-- [ ] **Teste 1: Fetch & Decode**:
-    - Rodar simulação curta. Verificar se `IR` carrega a instrução correta e se a FSM vai de `FETCH` para `DECODE`.
-- [ ] **Teste 2: Instruções Tipo-R (ALU)**:
-    - Testar `ADD`, `SUB`. Verificar se os registradores `A`, `B` e `ALUOut` capturam os dados corretamente nos ciclos intermediários.
-- [ ] **Teste 3: Loads e Stores**:
-    - Verificar se o endereço é calculado num ciclo, a memória acessada no outro e o WB feito no terceiro.
-- [ ] **Teste 4: Branches e Jumps**:
-    - Verificar se o PC é atualizado corretamente (não esquecer de `PCWriteCond` para branches).
-- [ ] **Teste Final**:
-    - Rodar `fibonacci` e `hello_world`.
+- [x] Conectar o novo `control_top` ao `datapath` modificado.
+- [x] **Gerenciamento de Memória**:
 
 # ✅ Checklist do SoC RISC-V
 
@@ -119,7 +105,7 @@ Este documento rastreia o progresso da migração de um **Core** isolado para um
 
 ### Top Level
 
-- [ ] Criar soc_top.vhd:
+- [x] Criar soc_top.vhd:
     - Instanciar `processor_top` (Core).
     - Instanciar `bus_interconnect`.
     - Instanciar Memorias e Periféricos.
@@ -137,11 +123,11 @@ Este documento rastreia o progresso da migração de um **Core** isolado para um
 
 ## 5. Simulação do Sistema
 
-- [ ] Criar `sim/soc/soc_tb.vhd`:
+- [x] Criar `sim/soc/soc_tb.vhd`:
     - Instanciar `soc_top`.
     - Simular clock e reset.
     - Simular entrada serial (RX) injetando dados de um arquivo.
-- [ ] Validar execução do "Hello World" imprimindo no console do simulador via VHDL TextIO.
+- [ ] Validar execução do "Hello World" imprimindo no console do simulador 
 
 ## 6. FPGA (Síntese)
 
