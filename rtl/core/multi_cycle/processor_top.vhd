@@ -54,7 +54,7 @@ entity processor_top is
     -- Sinais de controle
 
     CLK_i               : in  std_logic;                          -- Clock principal do processador
-    Reset_i             : in  std_logic;                          -- Sinal de reset assíncrono (ativo em nível alto)
+    Reset_i             : in  std_logic;                          -- Sinal de reset síncrono (ativo em nível alto)
 
     -- Barramento de memória de instruções (IMEM)
 

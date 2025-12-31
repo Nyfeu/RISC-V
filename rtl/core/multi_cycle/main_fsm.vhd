@@ -99,32 +99,37 @@ begin
 
     -- 1. Registrador de Estado (Processo Síncrono)
 
-    process(Clk_i, Reset_i)
+    process(Clk_i)
     begin
-
-        if Reset_i = '1' then
-
-            -- Reset Assíncrono para o estado Instruction Fetch (IF)
-            current_state <= S_IF;
         
-        elsif rising_edge(Clk_i) then
+        if rising_edge(Clk_i) then
 
-            -- Lógica para transição de estado e controle do flag
-            if (current_state = S_IF or current_state = S_MEM_RD) and wait_mem = '0' then
+            if Reset_i = '1' then
 
-                -- Se é o 1° ciclo de um estado de leitura, fica nele e ativa o flag
-                wait_mem      <= '1';           -- Avisa que esperou um ciclo
-                current_state <= current_state; -- Mantém o estado
-
-            else
-
-                -- Se já esperou (wait_mem=1) ou é outro estado, avança e limpa o flag
+                -- Reset Assíncrono para o estado Instruction Fetch (IF)
+                current_state <= S_IF;  
                 wait_mem      <= '0';
-                current_state <= next_state;
 
-            end if;
-            
+            else 
+
+                -- Lógica para transição de estado e controle do flag
+                if (current_state = S_IF or current_state = S_MEM_RD) and wait_mem = '0' then
+
+                    -- Se é o 1° ciclo de um estado de leitura, fica nele e ativa o flag
+                    wait_mem      <= '1';           -- Avisa que esperou um ciclo
+                    current_state <= current_state; -- Mantém o estado
+
+                else
+
+                    -- Se já esperou (wait_mem=1) ou é outro estado, avança e limpa o flag
+                    wait_mem      <= '0';
+                    current_state <= next_state;
+
+                end if;
+
+            end if;    
         end if;
+
     end process;
 
     -- 2. Lógica de Próximo Estado (Combinacional)

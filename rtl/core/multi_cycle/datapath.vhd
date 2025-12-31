@@ -47,7 +47,7 @@ entity datapath is
         -- Sinais Globais (Clock e Mater-Reset)
 
         CLK_i              : in  std_logic;                           -- Clock principal
-        Reset_i            : in  std_logic;                           -- Sinal de reset assíncrono
+        Reset_i            : in  std_logic;                           -- Sinal de reset síncrono
 
         -- Barramento de Memória de Instruções (IMEM)
 
@@ -184,41 +184,45 @@ begin
         process(CLK_i, Reset_i) 
         begin
 
-            if Reset_i = '1' then
+            if rising_edge(CLK_i) then
 
-                -- Reinicia o estado do CORE com sinal de RESET
+                if Reset_i = '1' then
 
-                r_OldPC     <= (others => '0');
-                r_IR        <= (others => '0');
-                r_MDR       <= (others => '0');
-                r_RS1       <= (others => '0');
-                r_RS2       <= (others => '0');
-                r_ALUResult <= (others => '0');
+                    -- Reinicia o estado do CORE com sinal de  [SÍNCRONO]
 
-            elsif rising_edge(CLK_i) then 
+                    r_OldPC     <= (others => '0');
+                    r_IR        <= (others => '0');
+                    r_MDR       <= (others => '0');
+                    r_RS1       <= (others => '0');
+                    r_RS2       <= (others => '0');
+                    r_ALUResult <= (others => '0');
 
-                if s_opc_write = '1' then
-                    r_OldPC <= r_PC;               -- Registra o valor de PC referente à instrução atual
-                end if;
+                else 
 
-                if s_ir_write = '1' then
-                    r_IR <= s_instruction;         -- Registrado para ser usado em ID
-                end if;
+                    if s_opc_write = '1' then
+                        r_OldPC <= r_PC;               -- Registra o valor de PC referente à instrução atual
+                    end if;
 
-                if s_mdr_write = '1' then
-                    r_MDR <= s_lsu_data_out;       -- Registrado para ser usado em WB
-                end if;
-                
-                if s_rs1_write = '1' then
-                    r_RS1 <= s_read_data_1;        -- Registrado para ser usado em EX
-                end if;
+                    if s_ir_write = '1' then
+                        r_IR <= s_instruction;         -- Registrado para ser usado em ID
+                    end if;
 
-                if s_rs2_write = '1' then
-                    r_RS2 <= s_read_data_2;        -- Registrado para ser usado em EX
-                end if;
+                    if s_mdr_write = '1' then
+                        r_MDR <= s_lsu_data_out;       -- Registrado para ser usado em WB
+                    end if;
+                    
+                    if s_rs1_write = '1' then
+                        r_RS1 <= s_read_data_1;        -- Registrado para ser usado em EX
+                    end if;
 
-                if s_alur_write = '1' then
-                    r_ALUResult <= s_alu_result;   -- Registrado para ser usado em MEM
+                    if s_rs2_write = '1' then
+                        r_RS2 <= s_read_data_2;        -- Registrado para ser usado em EX
+                    end if;
+
+                    if s_alur_write = '1' then
+                        r_ALUResult <= s_alu_result;   -- Registrado para ser usado em MEM
+                    end if;
+
                 end if;
 
             end if;
@@ -232,11 +236,13 @@ begin
 
             PC_REGISTER:process(CLK_i, Reset_i)
             begin
-                if Reset_i = '1' then
-                     r_PC <= (others => '0');
-                elsif rising_edge(CLK_i) then
-                    if s_pc_write = '1' then
-                        r_PC <= s_pc_next;
+                if rising_edge(CLK_i) then
+                    if Reset_i = '1' then
+                        r_PC <= (others => '0');
+                    else 
+                        if s_pc_write = '1' then
+                            r_PC <= s_pc_next;
+                        end if;
                     end if;
                 end if;
             end process;
