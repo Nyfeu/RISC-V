@@ -28,6 +28,7 @@ use ieee.numeric_std.all;
 
 entity bus_interconnect is
     port (
+
         -- ========================================================================================
         -- 1. INTERFACE COM O PROCESSADOR (CORE)
         -- ========================================================================================
@@ -70,7 +71,14 @@ entity bus_interconnect is
         uart_data_i         : in  std_logic_vector(31 downto 0);
         uart_data_o         : out std_logic_vector(31 downto 0);
         uart_we_o           : out std_logic;
-        uart_sel_o          : out std_logic
+        uart_sel_o          : out std_logic;
+        
+        -- Interface: GPIO
+        gpio_addr_o         : out std_logic_vector(3 downto 0);
+        gpio_data_i         : in  std_logic_vector(31 downto 0);
+        gpio_data_o         : out std_logic_vector(31 downto 0);
+        gpio_we_o           : out std_logic;
+        gpio_sel_o          : out std_logic
 
     );
 end entity;
@@ -84,6 +92,7 @@ architecture rtl of bus_interconnect is
     signal s_dmem_sel_rom  : std_logic;
     signal s_dmem_sel_uart : std_logic;
     signal s_dmem_sel_ram  : std_logic;
+    signal s_dmem_sel_gpio : std_logic;
 
     -- Sinais internos de decodificação para o lado de INSTRUÇÕES (IMem)
     signal s_imem_sel_rom  : std_logic;
@@ -101,6 +110,7 @@ begin
     -- Lado de Dados
     s_dmem_sel_rom  <= '1' when dmem_addr_i(31 downto 28) = x"0" else '0';
     s_dmem_sel_uart <= '1' when dmem_addr_i(31 downto 28) = x"1" else '0';
+    s_dmem_sel_gpio <= '1' when dmem_addr_i(31 downto 28) = x"2" else '0';
     s_dmem_sel_ram  <= '1' when dmem_addr_i(31 downto 28) = x"8" else '0';
 
     -- Lado de Instruções (Baseado no bit 31 para distinguir ROM de RAM)
@@ -110,6 +120,7 @@ begin
     -- -------------------------------------------------------------------------
     -- 2. ROTEAMENTO PARA COMPONENTES (Saídas)
     -- -------------------------------------------------------------------------
+
     -- ROM
     rom_addr_a_o <= imem_addr_i;
     rom_addr_b_o <= dmem_addr_i;
@@ -127,6 +138,12 @@ begin
     uart_data_o  <= dmem_data_i;
     uart_we_o    <= '1' when (s_dmem_sel_uart = '1' and unsigned(dmem_we_i) > 0) else '0';
     uart_sel_o   <= s_dmem_sel_uart;
+
+    -- GPIO
+    gpio_addr_o  <= dmem_addr_i(3 downto 0);
+    gpio_data_o  <= dmem_data_i;
+    gpio_we_o    <= '1' when (s_dmem_sel_gpio = '1' and unsigned(dmem_we_i) > 0) else '0';
+    gpio_sel_o   <= s_dmem_sel_gpio;
 
     -- -------------------------------------------------------------------------
     -- 3. MULTIPLEXAÇÃO DE RETORNO AO PROCESSADOR (Leitura)
@@ -148,6 +165,8 @@ begin
             dmem_data_o <= uart_data_i;
         elsif s_dmem_sel_ram = '1' then
             dmem_data_o <= ram_data_b_i;
+        elsif s_dmem_sel_gpio = '1' then
+            dmem_data_o <= gpio_data_i;
         else
             dmem_data_o <= (others => '0');
         end if;

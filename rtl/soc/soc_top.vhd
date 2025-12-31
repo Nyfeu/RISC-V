@@ -33,13 +33,19 @@ entity soc_top is
         BAUD_RATE : integer := 115_200       -- Taxa de Baud para a UART
     );
     port (
+
         -- Sinais de Controle do Sistema ------------------------------------------------
         CLK_i       : in  std_logic;         -- Clock de sistema
         Reset_i     : in  std_logic;         -- Sinal de Reset assíncrono ativo alto
         
-        -- Pinos Externos (Interface com a FPGA) ----------------------------------------
+        -- Pinos Externos (Interface UART) ----------------------------------------------
         UART_TX_o   : out std_logic;         -- Saída TX da UART
-        UART_RX_i   : in  std_logic          -- Entrada RX da UART
+        UART_RX_i   : in  std_logic;         -- Entrada RX da UART
+
+        -- Pinos Externos (Interface GPIO) ----------------------------------------------
+        GPIO_LEDS_o : out std_logic_vector(15 downto 0);
+        GPIO_SW_i   : in  std_logic_vector(15 downto 0)
+
     );
 end entity;
 
@@ -77,6 +83,13 @@ architecture rtl of soc_top is
     signal s_uart_data_tx             : std_logic_vector(31 downto 0);
     signal s_uart_we                  : std_logic;
     signal s_uart_sel                 : std_logic;
+
+    -- GPIO
+    signal s_gpio_addr    : std_logic_vector(3 downto 0);
+    signal s_gpio_data_rx : std_logic_vector(31 downto 0); -- Do GPIO para o Bus
+    signal s_gpio_data_tx : std_logic_vector(31 downto 0); -- Do Bus para o GPIO
+    signal s_gpio_we      : std_logic;
+    signal s_gpio_sel     : std_logic;
 
 begin
 
@@ -131,7 +144,14 @@ begin
             uart_data_i     => s_uart_data_rx,
             uart_data_o     => s_uart_data_tx,
             uart_we_o       => s_uart_we,
-            uart_sel_o      => s_uart_sel
+            uart_sel_o      => s_uart_sel,
+
+            -- Interface GPIO
+            gpio_addr_o     => s_gpio_addr,
+            gpio_data_i     => s_gpio_data_rx,
+            gpio_data_o     => s_gpio_data_tx,
+            gpio_we_o       => s_gpio_we,
+            gpio_sel_o      => s_gpio_sel
         );
 
     -- =========================================================================
@@ -173,6 +193,21 @@ begin
             data_o      => s_uart_data_rx,
             uart_tx_pin => UART_TX_o,
             uart_rx_pin => UART_RX_i
+        );
+
+    U_GPIO: entity work.gpio_controller
+        port map (
+            clk         => CLK_i,
+            rst         => Reset_i,
+            
+            -- Conexão com o Bus Interconnect
+            sel_i       => s_gpio_sel,
+            we_i        => s_gpio_we,
+            addr_i      => s_gpio_addr,
+            data_i      => s_gpio_data_tx,
+            data_o      => s_gpio_data_rx,
+            gpio_leds   => GPIO_LEDS_o,
+            gpio_sw     => GPIO_SW_i
         );
 
 end architecture;
