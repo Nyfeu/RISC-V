@@ -1,58 +1,51 @@
 # ==========================================================================================
-#                             CONFIGURAÇÕES DO PROJETO
+#                             CONFIGURACOES DO PROJETO
 # ==========================================================================================
 
-# Nome do Top Level (Sua entidade principal)
+# Nome do Top Level
 set topEntity "soc_top"
 
-# Parte da FPGA (Nexys 4 DDR / A7-100T)
+# Parte da FPGA (Digilent Nexys 4)
 set targetPart "xc7a100tcsg324-1"
 
-# Arquitetura do Core a ser usada (single_cycle ou multi_cycle)
+# Arquitetura do Core (multi_cycle)
 set coreArch "multi_cycle"
 
-# Diretórios de Saída
-set outputDir ./build/fpga_bitstream
+# Diretorios
+set outputDir ./build/fpga
 file mkdir $outputDir
 
 # ==========================================================================================
-#                             REDUÇÃO DE RUÍDO (SILENCE!)
+#                             PREPARACAO DO AMBIENTE
 # ==========================================================================================
-puts ">>> [1/6] Configurando ambiente e silenciando logs..."
+puts "\n--------------------------------------------------------------------------------------------------------------------------------"
+puts ">>> [1/6] Configurando ambiente...\n"
 
-# Suprime mensagens informativas inúteis do Vivado
+# Suprime mensagens informativas padrao
 set_msg_config -severity INFO -suppress
 set_msg_config -severity STATUS -suppress
-# Mostra warnings, mas limita a 10 para não poluir
-set_msg_config -severity WARNING -limit 10
 
 # ==========================================================================================
-#                             LEITURA DE FONTES (AUTO-DISCOVERY)
+#                             LEITURA DE FONTES
 # ==========================================================================================
-puts ">>> [2/6] Lendo repositório RISC-V..."
+puts "\n--------------------------------------------------------------------------------------------------------------------------------"
+puts ">>> [2/6] Lendo arquivos fonte do projeto RISC-V...\n"
 
-# Função auxiliar para ler VHDL de um diretório
 proc read_dir {dir pattern} {
     set files [glob -nocomplain -directory $dir $pattern]
-    foreach f $files {
-        # puts "    + Lendo: [file tail $f]" ;# Descomente para ver cada arquivo
-        read_vhdl $f
+    if {[llength $files] > 0} {
+        read_vhdl $files
     }
 }
 
-# 1. Packages (Devem vir primeiro!)
-# -------------------------------------------------------
+# 1. Packages
 read_dir "./pkg" "*.vhd"
-# O pacote da microarquitetura fica dentro da pasta do core específico
 read_dir "./rtl/core/$coreArch" "*pkg.vhd"
 
-# 2. Core Common (ALU, RegFile, etc)
-# -------------------------------------------------------
+# 2. Core Common
 read_dir "./rtl/core/common" "*.vhd"
 
-# 3. Core Architecture (Datapath, Control do single ou multi)
-# -------------------------------------------------------
-# Lemos tudo que NÃO for pkg (já lido acima)
+# 3. Core Architecture
 set core_files [glob -nocomplain -directory "./rtl/core/$coreArch" "*.vhd"]
 foreach f $core_files {
     if {[string first "pkg.vhd" $f] == -1} {
@@ -60,92 +53,82 @@ foreach f $core_files {
     }
 }
 
-# 4. Periféricos (UART, GPIO, etc)
-# -------------------------------------------------------
-# Varre subpastas dentro de rtl/perips
+# 4. Perifericos
 set perip_dirs [glob -nocomplain -type d "./rtl/perips/*"]
 foreach dir $perip_dirs {
     read_dir $dir "*.vhd"
 }
-# Se tiver arquivos soltos na raiz de perips
 read_dir "./rtl/perips" "*.vhd"
 
-# 5. SoC (Bus, Top Level, RAM, ROM)
-# -------------------------------------------------------
+# 5. SoC
 read_dir "./rtl/soc" "*.vhd"
 
-# 6. Constraints (.xdc)
-# -------------------------------------------------------
-# Aponta para o seu arquivo de pinos atualizado
+# 6. Constraints
 set xdc_file "./fpga/constraints/pins.xdc" 
-
 if {[file exists $xdc_file]} {
+    puts "    + Lendo Constraints: [file tail $xdc_file]"
     read_xdc $xdc_file
 } else {
-    puts "❌ ERRO CRÍTICO: Arquivo de constraints não encontrado: $xdc_file"
+    puts "!!! ERRO: Arquivo de constraints nao encontrado: $xdc_file"
     exit 1
 }
 
 # ==========================================================================================
-#                             SÍNTESE
+#                             SINTESE
 # ==========================================================================================
-puts ">>> [3/6] Executando Síntese (Aguarde)..."
+puts "\n--------------------------------------------------------------------------------------------------------------------------------"
+puts ">>> [3/6] Executando Sintese do Projeto...\n"
 
-# O comando 'catch' captura erros para não explodir o script sem aviso
 if {[catch {
-    # -quiet: Remove o lixo do terminal
-    # -flatten_hierarchy rebuilt: Otimização boa para FPGAs Xilinx
     synth_design -top $topEntity -part $targetPart -flatten_hierarchy rebuilt -retiming -quiet
 } err]} {
-    puts " "
-    puts "❌ FALHA NA SÍNTESE!"
-    puts "-----------------------------------------------------------"
-    puts $err
-    puts "-----------------------------------------------------------"
+    puts "\n!!! FALHA NA SINTESE !!!"
+    puts "$err"
     exit 1
 }
 
-# Salva checkpoint e relatório
 write_checkpoint -force $outputDir/post_synth.dcp
 report_utilization -file $outputDir/utilization_synth.rpt
+report_timing_summary -file $outputDir/timing_summary.rpt
 
 # ==========================================================================================
-#                             IMPLEMENTAÇÃO (PLACE & ROUTE)
+#                             IMPLEMENTACAO
 # ==========================================================================================
-puts ">>> [4/6] Otimização, Place e Route..."
+puts "\n--------------------------------------------------------------------------------------------------------------------------------"
+puts ">>> [4/6] Opt, Place & Route...\n"
 
 if {[catch {
     opt_design -quiet
     place_design -quiet
     route_design -quiet
 } err]} {
-    puts "❌ FALHA NA IMPLEMENTAÇÃO!"
-    puts $err
+    puts "\n!!! FALHA NA IMPLEMENTACAO !!!"
+    puts "$err"
     exit 1
 }
 
 write_checkpoint -force $outputDir/post_route.dcp
 report_utilization -file $outputDir/utilization_route.rpt
-# Checagem básica de timing (opcional, mas bom ter)
-report_timing_summary -file $outputDir/timing_summary.rpt
 
 # ==========================================================================================
 #                             BITSTREAM
 # ==========================================================================================
-puts ">>> [5/6] Gerando Bitstream..."
+puts "\n--------------------------------------------------------------------------------------------------------------------------------"
+puts ">>> [5/6] Gerando Bitstream...\n"
 
 write_bitstream -force $outputDir/${topEntity}.bit
 
 puts " "
-puts "============================================================"
-puts "✅ SUCESSO! Bitstream gerado em:"
+puts "================================================================"
+puts "   SUCESSO! Bitstream gerado:"
 puts "   $outputDir/${topEntity}.bit"
-puts "============================================================"
+puts "================================================================"
 
 # ==========================================================================================
-#                             PROGRAMAÇÃO (OPCIONAL)
+#                             PROGRAMACAO
 # ==========================================================================================
-puts ">>> [6/6] Tentando programar a placa..."
+puts "\n--------------------------------------------------------------------------------------------------------------------------------"
+puts ">>> [6/6] Tentando programar a placa...\n"
 
 if {[catch {
     open_hw_manager
@@ -159,11 +142,12 @@ if {[catch {
     
     close_hw_target
     close_hw_manager
-    puts ">>> 🔌 Placa programada com sucesso!"
+    puts "   -> Placa programada com sucesso!"
 } err]} {
-    puts ">>> ⚠️ Aviso: Não foi possível programar a placa automaticamente."
-    puts "       (Provavelmente a placa não está conectada ou driver ocupado)"
-    puts "       Bitstream está pronto para gravação manual."
+    puts "   -> Aviso: Programacao automatica falhou (Placa desconectada?)"
+    puts "      O bitstream esta pronto para uso manual."
 }
+
+puts "\n--------------------------------------------------------------------------------------------------------------------------------"
 
 exit
