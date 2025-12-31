@@ -1,32 +1,40 @@
 #include <stdint.h>
 
-#define RAM_START 0x80000000
+// Definições de Endereços (Baseado no seu bus_interconnect e soc_top)
+#define GPIO_BASE 0x20000000
 
-// Payload atualizado: Instruções de 32 bits (8 dígitos hex)
-const uint32_t app_payload[] = {
-    0x80004137, 0x00010113, 0x014000EF, 0x00100513,
-    0x100002B7, 0x00828293, 0x00A2A023, 0xFD010113,
-    0x02112623, 0x02812423, 0x03010413, 0x02F00793,
-    0xFEF42623, 0xFE042423, 0x00100793, 0xFEF42223,
-    0xFC042E23, 0x0400006F, 0x100007B7, 0x00478793,
-    0xFE842703, 0x00E7A023, 0xFE842703, 0xFE442783,
-    0x00F707B3, 0xFEF42023, 0xFE442783, 0xFEF42423,
-    0xFE042783, 0xFEF42223, 0xFD442783, 0x00178793,
-    0xFCF42E23, 0xFD442703, 0xFE442783, 0xFAF74EE3,
-    0x00000793, 0x00078513, 0x02C12083, 0x02812403,
-    0x03010113, 0x00008067
-};
+// Ponteiros para os registradores
+// Offset 0x00: LEDs (Write/Read)
+#define REG_LEDS  (*(volatile uint32_t *)(GPIO_BASE + 0x00))
+// Offset 0x04: Switches (Read Only)
+#define REG_SW    (*(volatile uint32_t *)(GPIO_BASE + 0x04))
 
 void main() {
-    uint32_t *dest = (uint32_t *)RAM_START;
-    uint32_t payload_size = sizeof(app_payload) / sizeof(uint32_t);
+    uint32_t counter = 0;
+    uint32_t switches = 0;
+    volatile int i; // 'volatile' impede o compilador de remover o loop de delay
 
-    // Copia o programa da ROM para a RAM
-    for (uint32_t i = 0; i < payload_size; i++) {
-        dest[i] = app_payload[i];
+    // Teste Inicial: Acende todos os LEDs por um momento
+    REG_LEDS = 0xFFFF;
+    for (i = 0; i < 1000000; i++); 
+
+    while (1) {
+        // Lê os switches
+        switches = REG_SW;
+
+        // Se o Switch 0 estiver ligado, copia os Switches para os LEDs
+        // (Modo Pass-through para teste de entrada)
+        if (switches & 0x1) {
+            REG_LEDS = switches;
+        } 
+        // Se Switch 0 desligado, conta em binário
+        else {
+            REG_LEDS = counter;
+            counter++;
+
+            // Delay simples
+            // Ajuste o valor 200000 se ficar muito rápido ou lento
+            for (i = 0; i < 200000; i++);
+        }
     }
-
-    // Salta para a execução na RAM
-    void (*app_entry)() = (void (*)())RAM_START;
-    app_entry();
 }

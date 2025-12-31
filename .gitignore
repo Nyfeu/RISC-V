@@ -14,3 +14,9 @@
 
 # Ignorar pycache do Python
 __pycache__/
+
+# Ignorar arquivos vivado
+.Xil
+./*.txt
+./*.jou
+./*.log
