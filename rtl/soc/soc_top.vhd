@@ -181,18 +181,21 @@ begin
             data_out_b => s_ram_data_b
         );
 
-    U_UART: entity work.uart_controller
-        generic map (CLK_FREQ => CLK_FREQ, BAUD_RATE => BAUD_RATE)
+    U_UART : entity work.uart_controller
+        generic map (
+            CLK_FREQ  => CLK_FREQ,
+            BAUD_RATE => BAUD_RATE
+        )
         port map (
-            clk         => CLK_i,
-            rst         => Reset_i,
-            sel_i       => s_uart_sel,
-            we_i        => s_uart_we,
-            addr_i      => s_uart_addr,
-            data_i      => s_uart_data_tx,
-            data_o      => s_uart_data_rx,
-            uart_tx_pin => UART_TX_o,
-            uart_rx_pin => UART_RX_i
+            clk          => CLK_i,
+            rst          => Reset_i,
+            addr_i       => s_uart_addr,      
+            data_i       => s_uart_data_tx,   
+            data_o       => s_uart_data_rx,   
+            we_i         => s_uart_we,        
+            sel_i        => s_uart_sel,
+            uart_tx_pin  => UART_TX_o,
+            uart_rx_pin  => UART_RX_i
         );
 
     U_GPIO: entity work.gpio_controller
