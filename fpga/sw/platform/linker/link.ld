@@ -3,8 +3,8 @@ ENTRY(_start)
 
 MEMORY
 {
-  /* SoC: RAM mapeada em 0x80000000 (16KB) */
-  ram (rwx) : ORIGIN = 0x80000000, LENGTH = 16K
+  /* Deixa os primeiros 2KB livres para dados do Bootloader */
+  ram (rwx) : ORIGIN = 0x80000800, LENGTH = 14K
 }
 
 SECTIONS

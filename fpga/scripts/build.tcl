@@ -25,6 +25,9 @@ puts ">>> [1/6] Configurando ambiente...\n"
 set_msg_config -severity INFO -suppress
 set_msg_config -severity STATUS -suppress
 
+# Define o caminho do HEX de produção (FPGA)
+set bootHex "build/fpga/boot/bootloader.hex"
+
 # ==========================================================================================
 #                             LEITURA DE FONTES
 # ==========================================================================================
@@ -80,7 +83,7 @@ puts "\n------------------------------------------------------------------------
 puts ">>> [3/6] Executando Sintese do Projeto...\n"
 
 if {[catch {
-    synth_design -top $topEntity -part $targetPart -flatten_hierarchy rebuilt -retiming -quiet
+    synth_design -top $topEntity -part $targetPart -generic "INIT_FILE=$bootHex" -flatten_hierarchy rebuilt -retiming -quiet
 } err]} {
     puts "\n!!! FALHA NA SINTESE !!!"
     puts "$err"

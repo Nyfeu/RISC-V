@@ -8,8 +8,21 @@
 #                                 ESTRUTURA DE DIRETÓRIOS
 # ==========================================================================================
 
-# Diretório de Build (saídas de compilação)
+# Diretório Base de Build
 BUILD_DIR          = build
+
+# --- CAMINHOS DE SOFTWARE (SEPARAÇÃO) ---
+FPGA_SW_DIR        = fpga/sw
+SIM_SW_DIR         = sim/sw
+COMMON_SW_DIR      = sw/apps
+
+# Saídas de Build Organizadas
+BUILD_FPGA         = $(BUILD_DIR)/fpga
+BUILD_SIM          = $(BUILD_DIR)/sim
+# Bootloader específico para Simulação (Cocotb)
+BUILD_COCOTB_BOOT  = $(BUILD_DIR)/cocotb/boot
+# Bootloader específico para FPGA
+BUILD_FPGA_BOOT    = $(BUILD_FPGA)/boot
 
 # Estrutura de Hardware (RTL)
 PKG_DIR            = pkg
@@ -19,20 +32,13 @@ SOC_DIR            = $(RTL_DIR)/soc
 PERIPS_DIR         = $(RTL_DIR)/perips
 CORE_COMMON        = $(CORE_DIR)/common
 
-# Estrutura de Simulação (Testbenches e Wrappers)
+# Estrutura de Simulação
 SIM_DIR            = sim
 SIM_CORE_DIR       = $(SIM_DIR)/core
 SIM_CORE_COMMON    = $(SIM_CORE_DIR)/common
 SIM_PERIPS_DIR     = $(SIM_DIR)/perips
 SIM_SOC_DIR        = $(SIM_DIR)/soc
 SIM_COMMON_DIR     = $(SIM_DIR)/common
-
-# Estrutura de Software (Apps e Bootloader)
-SW_DIR             = sw
-SW_APPS_DIR        = $(SW_DIR)/apps
-SW_BOOT_DIR        = $(SW_DIR)/platform/bootloader
-SW_LINKER_DIR      = $(SW_DIR)/platform/linker
-SW_STARTUP_DIR     = $(SW_DIR)/platform/startup
 
 # ==========================================================================================
 #                                  FERRAMENTAS E COMPILADORES
@@ -43,8 +49,7 @@ CC                 = riscv32-unknown-elf-gcc
 OBJCOPY            = riscv32-unknown-elf-objcopy
 
 # Compilação C/Assembly
-CFLAGS             = -march=rv32i -mabi=ilp32 -nostdlib -nostartfiles
-OBJCOPY_FLAGS      = -O verilog
+BASE_CFLAGS        = -march=rv32i -mabi=ilp32 -nostdlib -nostartfiles -g
 
 # Simulação e Visualização
 GTKWAVE            = gtkwave
@@ -56,22 +61,21 @@ COCOTB_SIMULATOR   = $(COCOTB_SIM)
 COCOTB_BUILD       = $(BUILD_DIR)/cocotb
 COCOTB_PYTHONPATH  = $(SIM_CORE_DIR):$(SIM_SOC_DIR):$(SIM_PERIPS_DIR):$(SIM_COMMON_DIR)
 
+# Necessário para passar caminhos absolutos para o GHDL (Generic)
+ABS_BUILD_DIR      = $(abspath $(BUILD_DIR))
+
 # ==========================================================================================
 #                              SELEÇÃO DINÂMICA DE CORE
 # ==========================================================================================
 
-# Seleciona a arquitetura do processador (CORE)
-# Valores válidos: single_cycle, multi_cycle ou qualquer subdiretório em rtl/core/
 CORE ?= multi_cycle
 
-# Valida se o diretório do CORE existe
 CORE_PATH           = $(CORE_DIR)/$(CORE)
 CORE_EXISTS         = $(wildcard $(CORE_PATH))
 ifeq ($(CORE_EXISTS),)
     $(error Arquitetura '$(CORE)' inválida! O diretório $(CORE_PATH) não existe.)
 endif
 
-# Caminhos dinâmicos baseados no CORE selecionado
 CORE_CURRENT        = $(CORE_PATH)
 SIM_CORE_CURRENT    = $(SIM_CORE_DIR)/$(CORE)
 BUILD_CORE_DIR      = $(COCOTB_BUILD)/$(CORE)
@@ -80,34 +84,17 @@ BUILD_CORE_DIR      = $(COCOTB_BUILD)/$(CORE)
 #                                FONTES VHDL (Automático)
 # ==========================================================================================
 
-# Pacotes VHDL (compilados primeiro - Dependências)
 PKG_SRCS           = $(wildcard $(PKG_DIR)/*.vhd) $(CORE_CURRENT)/riscv_uarch_pkg.vhd
-
-# RTLs comuns a todos os designs (CORE/common)
 COMMON_SRCS        = $(wildcard $(CORE_COMMON)/*/*.vhd) $(wildcard $(CORE_COMMON)/*.vhd)
-
-# RTLs específicas da arquitetura selecionada (CORE/<arquitetura>)
 CORE_SRCS          = $(wildcard $(CORE_CURRENT)/*.vhd)
-
-# SoC RTL (Barramentos, Memórias, Integração de componentes)
 SOC_SRCS           = $(wildcard $(SOC_DIR)/*.vhd)
-
-# Periféricos RTL (UART, etc - em subdiretórios)
 PERIPS_SRCS        = $(wildcard $(PERIPS_DIR)/*/*.vhd)
 
-# Wrappers de Simulação - comuns
 SIM_WRAPPERS_COMMON = $(wildcard $(SIM_CORE_DIR)/wrappers/*.vhd)
+SIM_WRAPPERS_CORE   = $(wildcard $(SIM_CORE_CURRENT)/wrappers/*.vhd)
+SIM_WRAPPERS_SOC    = $(wildcard $(SIM_SOC_DIR)/wrappers/*.vhd)
+SIM_WRAPPERS        = $(SIM_WRAPPERS_COMMON) $(SIM_WRAPPERS_CORE) $(SIM_WRAPPERS_SOC)
 
-# Wrappers de Simulação - específicos da arquitetura
-SIM_WRAPPERS_CORE  = $(wildcard $(SIM_CORE_CURRENT)/wrappers/*.vhd)
-
-# Wrappers de SoC
-SIM_WRAPPERS_SOC   = $(wildcard $(SIM_SOC_DIR)/wrappers/*.vhd)
-
-# Todos os wrappers
-SIM_WRAPPERS       = $(SIM_WRAPPERS_COMMON) $(SIM_WRAPPERS_CORE) $(SIM_WRAPPERS_SOC)
-
-# Todos os fontes VHDL (ordem importa: Packages → Common → Core → SoC → Periféricos → Wrappers)
 ALL_RTL_SRCS       = $(PKG_SRCS) $(COMMON_SRCS) $(CORE_SRCS) $(SOC_SRCS) $(PERIPS_SRCS) $(SIM_WRAPPERS)
 
 # ==========================================================================================
@@ -131,8 +118,8 @@ all:
 	@echo " "
 	@echo " 📦 SOFTWARE COMPILATION"
 	@echo " ────────────────────────────────────────────────────────────────────────────────────────────────────────"
-	@echo "   make sw SW=<prog>                                            Compilar aplicação C/ASM (em sw/apps)"
-	@echo "   make boot                                                    Compilar bootloader (em sw/bootloader)"
+	@echo "   make sw SW=<prog>                                            Compilar App (Detecta FPGA ou Simulação)"
+	@echo "   make boot                                                    Compilar bootloader da FPGA"
 	@echo "   make list-apps                                               Listar aplicações disponíveis"
 	@echo " "
 	@echo " 🧪 HARDWARE TESTING & SIMULATION"
@@ -154,100 +141,163 @@ all:
 	@echo " CONFIGURAÇÃO PADRÃO:"
 	@echo " ────────────────────────────────────────────────────────────────────────────────────────────────────────"
 	@echo "   CORE = $(CORE)  (Alterar com CORE=<nome>)"
-	@echo "   Arquiteturas disponíveis: single_cycle, multi_cycle"
+	@echo "   Arquiteturas: single_cycle, multi_cycle"
 	@echo " "
 	@echo " EXEMPLOS DE USO:"
 	@echo " ────────────────────────────────────────────────────────────────────────────────────────────────────────"
-	@echo "   # Compilar aplicação hello"
+	@echo "   # Compilar aplicação hello (detecta se é FPGA ou Sim)"
 	@echo "   $$ make sw SW=hello"
 	@echo " "
 	@echo "   # Compilar e rodar teste do datapath com single_cycle"
 	@echo "   $$ make cocotb CORE=single_cycle TEST=test_datapath TOP=datapath_wrapper"
 	@echo " "
-	@echo "   # Compilar e rodar teste do datapath com multi_cycle"
-	@echo "   $$ make cocotb CORE=multi_cycle TEST=test_datapath TOP=datapath_wrapper"
+	@echo "   # Testar Sistema Completo (Usa bootloader de simulação)"
+	@echo "   $$ make cocotb TOP=soc_top TEST=test_soc_top SW=hello"
 	@echo " "
-	@echo "   # Rodar teste com software carregado na memória"
-	@echo "   $$ make cocotb CORE=single_cycle TEST=test_processor TOP=processor_top SW=hello"
-	@echo " "
-	@echo "   # Visualizar ondas da última simulação"
-	@echo "   $$ make view TEST=test_datapath"
+	@echo "   # Programar FPGA e Enviar Código"
+	@echo "   $$ make fpga"
+	@echo "   $$ make upload SW=fibonacci"
 	@echo " "
 	@echo "========================================================================================================="
 	@echo " "
 
 # ==========================================================================================
-#                            SOFTWARE COMPILATION TARGETS
+#                            SOFTWARE: TARGETS ESPECÍFICOS
 # ==========================================================================================
 
-.PHONY: sw boot list-apps
+.PHONY: sw sw-fpga sw-sim boot boot-fpga boot-sim list-apps
 
-# Compilação de Apps (C e Assembly) --------------------------------------------------------
+# --- SW-FPGA: Compila EXCLUSIVAMENTE para Hardware ---
+sw-fpga:
+	@if [ -z "$(SW)" ]; then echo "❌ Defina SW=..."; exit 1; fi
+	@echo ">>> 🏗️  [FPGA] Buscando $(SW)..."
+	
+	$(eval SRC := $(shell find $(FPGA_SW_DIR)/apps $(COMMON_SW_DIR) -name "$(SW).c" -o -name "$(SW).s" 2>/dev/null | head -n 1))
+	
+	@if [ -z "$(SRC)" ]; then \
+		echo "❌ Erro: $(SW) não encontrado em $(FPGA_SW_DIR)/apps ou $(COMMON_SW_DIR)"; \
+		exit 1; \
+	fi
+	
+	@echo ">>> 📂 Fonte: $(SRC)"
+	@mkdir -p $(BUILD_FPGA)
+	
+	@$(CC) $(BASE_CFLAGS) \
+		-I$(FPGA_SW_DIR)/platform/bsp \
+		-T $(FPGA_SW_DIR)/platform/linker/link.ld \
+		-o $(BUILD_FPGA)/$(SW).elf \
+		$(FPGA_SW_DIR)/platform/startup/start.s \
+		$(wildcard $(FPGA_SW_DIR)/platform/bsp/*.c) \
+		$(SRC)
+	
+	@$(OBJCOPY) -O binary $(BUILD_FPGA)/$(SW).elf $(BUILD_FPGA)/$(SW).bin
+	@$(OBJCOPY) -O verilog $(BUILD_FPGA)/$(SW).elf $(BUILD_FPGA)/$(SW).hex
+	@echo ">>> ✅ [FPGA] Binário pronto: $(BUILD_FPGA)/$(SW).bin"
 
-$(BUILD_DIR)/sw/%.hex: $(SW_APPS_DIR)/%.s
-	@mkdir -p $(@D)
-	@echo ">>> 🔨 [SW] Compilando Assembly: $<"
-	@$(CC) $(CFLAGS) -T $(LINK_SCRIPT) -o $(patsubst %.hex,%.elf,$(@)) $<
-	@echo ">>> 📦 [SW] Gerando HEX: $@"
-	@$(OBJCOPY) $(OBJCOPY_FLAGS) $(patsubst %.hex,%.elf,$(@)) $(@)
+# --- SW-SIM: Compila EXCLUSIVAMENTE para Simulação ---
+sw-sim:
+	@if [ -z "$(SW)" ]; then echo "❌ Defina SW=..."; exit 1; fi
+	@echo ">>> 🧪 [SIM] Buscando $(SW)..."
+	
+	$(eval SRC := $(shell find $(SIM_SW_DIR)/apps $(COMMON_SW_DIR) -name "$(SW).c" -o -name "$(SW).s" 2>/dev/null | head -n 1))
+	
+	@if [ -z "$(SRC)" ]; then \
+		echo "❌ Erro: $(SW) não encontrado em $(SIM_SW_DIR)/apps ou $(COMMON_SW_DIR)"; \
+		exit 1; \
+	fi
+	
+	@echo ">>> 📂 Fonte: $(SRC)"
+	@mkdir -p $(BUILD_SIM)
+	
+	@$(CC) $(BASE_CFLAGS) \
+		-I$(SIM_SW_DIR)/platform/bsp \
+		-T $(SIM_SW_DIR)/platform/linker/link.ld \
+		-o $(BUILD_SIM)/$(SW).elf \
+		$(SIM_SW_DIR)/platform/startup/crt0.s \
+		$(wildcard $(SIM_SW_DIR)/platform/bsp/*.c) \
+		$(SRC)
+	
+	@$(OBJCOPY) -O verilog $(BUILD_SIM)/$(SW).elf $(BUILD_SIM)/$(SW).hex
+	@echo ">>> ✅ [SIM] Hex pronto: $(BUILD_SIM)/$(SW).hex"
 
-$(BUILD_DIR)/sw/%.hex: $(SW_APPS_DIR)/%.c
-	@mkdir -p $(@D)
-	@echo ">>> 🔨 [SW] Compilando C: $<"
-	@$(CC) $(CFLAGS) -T $(LINK_SCRIPT) -o $(patsubst %.hex,%.elf,$(@)) $(SW_STARTUP_DIR)/crt0.s $<
-	@echo ">>> 📦 [SW] Gerando HEX: $@"
-	@$(OBJCOPY) $(OBJCOPY_FLAGS) $(patsubst %.hex,%.elf,$(@)) $(@)
-	@echo ">>> 💾 [SW] Gerando BIN: $(patsubst %.hex,%.bin,$(@))"
-	@$(OBJCOPY) -O binary $(patsubst %.hex,%.elf,$(@)) $(patsubst %.hex,%.bin,$(@))
+# --- SW: Dispatcher Inteligente ---
+sw:
+	@if [ -z "$(SW)" ]; then echo "❌ Defina SW=..."; exit 1; fi
+	@if [ -n "$$(find $(FPGA_SW_DIR)/apps -name "$(SW).c" -o -name "$(SW).s" 2>/dev/null)" ]; then \
+		$(MAKE) -s sw-fpga SW=$(SW); \
+	elif [ -n "$$(find $(SIM_SW_DIR)/apps -name "$(SW).c" -o -name "$(SW).s" 2>/dev/null)" ]; then \
+		$(MAKE) -s sw-sim SW=$(SW); \
+	elif [ -n "$$(find $(COMMON_SW_DIR) -name "$(SW).c" -o -name "$(SW).s" 2>/dev/null)" ]; then \
+		echo ">>> 🔄 App Comum detectado. Compilando para ambos..."; \
+		$(MAKE) -s sw-fpga SW=$(SW); \
+		$(MAKE) -s sw-sim SW=$(SW); \
+	else \
+		echo "❌ App $(SW) não encontrado em lugar nenhum."; \
+		exit 1; \
+	fi
 
-sw: $(BUILD_DIR)/sw/$(SW).hex
+# --- BOOTLOADERS ---
+boot: boot-fpga
 
-# Compilação do Bootloader (silenciosa para dependências)
-boot-quiet:
-	@$(MAKE) -s boot
+boot-fpga:
+	@mkdir -p $(BUILD_FPGA_BOOT)
+	@echo ">>> 🔨 [BOOT-FPGA] Compilando..."
+	@$(CC) $(BASE_CFLAGS) -I$(FPGA_SW_DIR)/platform/bsp -T $(FPGA_SW_DIR)/platform/linker/boot.ld \
+		-o $(BUILD_FPGA_BOOT)/bootloader.elf \
+		$(FPGA_SW_DIR)/platform/startup/start.s \
+		$(FPGA_SW_DIR)/platform/bootloader/boot.c \
+		$(wildcard $(FPGA_SW_DIR)/platform/bsp/*.c)
+	@$(OBJCOPY) -O binary $(BUILD_FPGA_BOOT)/bootloader.elf $(BUILD_FPGA_BOOT)/bootloader.bin
+	@od -An -t x4 -v -w4 $(BUILD_FPGA_BOOT)/bootloader.bin > $(BUILD_FPGA_BOOT)/bootloader.hex
 
-# Compilação do Bootloader (verbose)
-boot:
-	@mkdir -p $(BUILD_DIR)/boot
-	@echo ">>> 🔨 [BOOT] Compilando bootloader..."
-	@$(CC) $(CFLAGS) -T $(SW_LINKER_DIR)/boot.ld -o $(BUILD_DIR)/boot/bootloader.elf \
-		$(SW_STARTUP_DIR)/start.s $(SW_BOOT_DIR)/boot.c
-	@echo ">>> 📦 [BOOT] Extraindo binário puro..."
-	@$(OBJCOPY) -O binary $(BUILD_DIR)/boot/bootloader.elf $(BUILD_DIR)/boot/bootloader.bin
-	@echo ">>> 💾 [BOOT] Gerando HEX (32-bit word aligned)..."
-	@od -An -t x4 -v -w4 $(BUILD_DIR)/boot/bootloader.bin > $(BUILD_DIR)/boot/bootloader.hex
+boot-sim:
+	@mkdir -p $(BUILD_COCOTB_BOOT)
+	@echo ">>> 🧪 [BOOT-SIM] Compilando..."
+	@$(CC) $(BASE_CFLAGS) -I$(SIM_SW_DIR)/platform/bsp -T $(SIM_SW_DIR)/platform/linker/boot.ld \
+		-o $(BUILD_COCOTB_BOOT)/bootloader.elf \
+		$(SIM_SW_DIR)/platform/startup/start.s \
+		$(SIM_SW_DIR)/platform/bootloader/boot.c \
+		$(wildcard $(SIM_SW_DIR)/platform/bsp/*.c)
+	@$(OBJCOPY) -O binary $(BUILD_COCOTB_BOOT)/bootloader.elf $(BUILD_COCOTB_BOOT)/bootloader.bin
+	@od -An -t x4 -v -w4 $(BUILD_COCOTB_BOOT)/bootloader.bin > $(BUILD_COCOTB_BOOT)/bootloader.hex
 
-# Listar aplicações disponíveis
 list-apps:
-	@echo " "
-	@echo "📱 Aplicações disponíveis em $(SW_APPS_DIR):"
-	@echo "────────────────────────────────────────────"
-	@ls -1 $(SW_APPS_DIR) | sed 's/\.[^.]*$$//' | sort | uniq | sed 's/^/  • /'
-	@echo " "
+	@echo "⚡ FPGA: $$(ls $(FPGA_SW_DIR)/apps 2>/dev/null | sed 's/\..*//' | tr '\n' ' ')"
+	@echo "🧪 SIM:  $$(ls $(SIM_SW_DIR)/apps 2>/dev/null | sed 's/\..*//' | tr '\n' ' ')"
+	@echo "🔄 COMUM: $$(ls $(COMMON_SW_DIR) 2>/dev/null | sed 's/\..*//' | tr '\n' ' ')"
 
 # ==========================================================================================
 #                          COCOTB SIMULATION TARGETS
 # ==========================================================================================
 
-# Valores padrão (podem ser sobrescritos na linha de comando)
 TOP  ?= processor_top
 TEST ?= test_processor
 
-# Detectar qual linker script usar baseado no TOP/TEST
-# Se for SoC (soc_top, test_soc_top, test_boot_rom, test_bus_interconnect, etc), usar link_soc.ld
-# Senão, usar link.ld para processor_top
-ifeq ($(filter soc% boot% bus_interconnect% dual_port_ram% memory_system%,$(TOP)$(TEST)),)
-    LINK_SCRIPT = $(SW_LINKER_DIR)/link.ld
+# Define qual HEX carregar no Cocotb
+ifneq (,$(findstring $(FPGA_SW_DIR),$(SRC_FILE)))
+    APP_HEX_PATH = $(BUILD_FPGA)/$(SW).hex
 else
-    LINK_SCRIPT = $(SW_LINKER_DIR)/link_soc.ld
+    APP_HEX_PATH = $(BUILD_SIM)/$(SW).hex
 endif
 
-.PHONY: cocotb test-datapath test-all list-tests
+# Bootloader path para simulação
+BOOT_SIM_PATH = $(ABS_BUILD_DIR)/cocotb/boot/bootloader.hex
 
-# Target genérico para COCOTB
-# Se SW está definido, compila o software antes
-# Se TOP/TEST menciona boot, compila o bootloader também
-cocotb: $(if $(SW),$(BUILD_DIR)/sw/$(SW).hex) $(if $(filter boot%,$(TOP)$(TEST)),boot-quiet)
+# Lógica para Injetar Bootloader SOMENTE em testes de SoC
+IS_SYSTEM_TEST := $(filter soc% boot% bus_interconnect% dual_port_ram% memory_system%,$(TOP)$(TEST))
+
+ifdef IS_SYSTEM_TEST
+    SIM_ARGS_EXTRA = -gINIT_FILE=$(BOOT_SIM_PATH)
+    BOOT_DEP = boot-sim
+else
+    SIM_ARGS_EXTRA = 
+    BOOT_DEP = 
+endif
+
+cocotb:
+	@if [ ! -z "$(BOOT_DEP)" ]; then $(MAKE) -s $(BOOT_DEP); fi
+	@if [ ! -z "$(SW)" ]; then $(MAKE) -s sw-sim SW=$(SW); fi
+	
 	@mkdir -p $(BUILD_CORE_DIR)
 	@echo " "
 	@echo "======================================================================"
@@ -258,12 +308,13 @@ cocotb: $(if $(SW),$(BUILD_DIR)/sw/$(SW).hex) $(if $(filter boot%,$(TOP)$(TEST))
 	@echo ">>> 🎯 Top Level    :   $(TOP)"
 	@echo ">>> 📂 Testbench    :   $(TEST)"
 	@echo ">>> 💾 Software     :   $(if $(SW),$(SW).hex,nenhum)"
+	@echo ">>> 🔌 Bootloader   :   $(if $(IS_SYSTEM_TEST),$(BOOT_SIM_PATH),N/A (Unit Test))"
 	@echo " "
-	@echo "======================================================================"
-	@echo " "
+	
 	@export COCOTB_ANSI_OUTPUT=1; \
 	export COCOTB_RESULTS_FILE=$(BUILD_CORE_DIR)/results.xml; \
-	export PROGRAM_PATH=$(if $(SW),$(BUILD_DIR)/sw/$(SW).hex,); \
+	export PROGRAM_PATH=$(if $(SW),$(APP_HEX_PATH),); \
+	export HEX_PATH_FOR_TEST=$(BOOT_SIM_PATH); \
 	$(MAKE) -s -f $(shell cocotb-config --makefiles)/Makefile.sim \
 		SIM=$(COCOTB_SIMULATOR) \
 		TOPLEVEL_LANG=vhdl \
@@ -273,16 +324,14 @@ cocotb: $(if $(SW),$(BUILD_DIR)/sw/$(SW).hex) $(if $(filter boot%,$(TOP)$(TEST))
 		VHDL_SOURCES="$(ALL_RTL_SRCS)" \
 		GHDL_ARGS="-fsynopsys" \
 		PYTHONPATH=$(COCOTB_PYTHONPATH):$(SIM_CORE_COMMON):$(SIM_CORE_CURRENT) \
-		SIM_ARGS="--vcd=$(BUILD_CORE_DIR)/wave-$(TEST).vcd --ieee-asserts=disable-at-0" \
+		SIM_ARGS="--vcd=$(BUILD_CORE_DIR)/wave-$(TEST).vcd --ieee-asserts=disable-at-0 $(SIM_ARGS_EXTRA)" \
 		SIM_BUILD=$(BUILD_CORE_DIR) \
 		2>&1 | grep -v "vpi_iterate returned NULL"
 	@echo " "
 	@echo ">>> ✅ Teste concluído"
 	@echo ">>> 🌊 Ondas salvas em: $(BUILD_CORE_DIR)/wave-$(TEST).vcd"
-	@echo ">>> 📋 Resultados em:   $(BUILD_CORE_DIR)/results.xml"
-	@echo " "
 
-# Listar testes disponíveis
+# Listar testes (Mantido igual)
 list-tests:
 	@echo "🔎 Testes disponíveis em $(SIM_CORE_CURRENT):"
 	@echo "────────────────────────────────────────────"
@@ -301,8 +350,6 @@ list-tests:
 #                        VISUALIZATION & DEBUG TARGETS
 # ==========================================================================================
 
-.PHONY: view
-
 view:
 	@echo ">>> 📊 Abrindo GTKWave..."
 	@if [ -f $(BUILD_CORE_DIR)/wave-$(TEST).vcd ]; then \
@@ -317,24 +364,26 @@ view:
 #                           CLEANUP & MAINTENANCE
 # ==========================================================================================
 
-.PHONY: clean distclean
-
 clean:
 	@echo ">>> 🧹 Limpando diretório de build..."
 	@rm -rf $(BUILD_DIR) *.cf
 	@echo ">>> ✅ Limpeza concluída"
 
-distclean: clean
-	@echo ">>> 🗑️  Removendo todos os artefatos de simulação..."
-	@find . -name "*.vcd" -delete
-	@find . -name "*.vvp" -delete
-	@find . -name "work" -type d -exec rm -rf {} + 2>/dev/null || true
-	@echo ">>> ✅ Limpeza completa concluída"
-
 # ==========================================================================================
-#                                  PHONY TARGETS
+# Programação da FPGA e Upload
 # ==========================================================================================
 
-.PHONY: all cocotb sw boot clean list-apps list-tests view
+fpga: boot-fpga
+	@echo ">>> ⚡ Programando FPGA..."
+	@powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "./fpga.ps1"
+	@echo ">>> ✅ FPGA programada com sucesso"
 
-# ==========================================================================================
+upload:
+	@if [ -z "$(SW)" ]; then echo "❌ Erro: Defina SW=..."; exit 1; fi
+	
+	@$(MAKE) -s sw-fpga SW=$(SW)
+	
+	@echo ">>> 🚀 Uploading $(SW)..."
+	@powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "python fpga/upload.py $(BUILD_FPGA)/$(SW).bin"
+
+.PHONY: all cocotb clean view fpga upload

@@ -29,8 +29,11 @@ use work.riscv_isa_pkg.all;
 
 entity soc_top is
     generic (
+
+        INIT_FILE : string  := "build/fpga/boot/bootloader.hex";
         CLK_FREQ  : integer := 100_000_000;  -- Frequência do Clock em Hz
         BAUD_RATE : integer := 115_200       -- Taxa de Baud para a UART
+    
     );
     port (
 
@@ -159,6 +162,9 @@ begin
     -- =========================================================================
 
     U_ROM: entity work.boot_rom
+        generic map (
+            INIT_FILE => INIT_FILE
+        )
         port map (
             clk      => CLK_i,
             addr_a_i => s_rom_addr_a,
