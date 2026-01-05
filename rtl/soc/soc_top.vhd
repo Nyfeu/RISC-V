@@ -47,7 +47,14 @@ entity soc_top is
 
         -- Pinos Externos (Interface GPIO) ----------------------------------------------
         GPIO_LEDS_o : out std_logic_vector(15 downto 0);
-        GPIO_SW_i   : in  std_logic_vector(15 downto 0)
+        GPIO_SW_i   : in  std_logic_vector(15 downto 0);
+
+        -- Pinos Externos (Interface VGA) -----------------------------------------------
+        VGA_HS_o    : out std_logic;
+        VGA_VS_o    : out std_logic;
+        VGA_R_o     : out std_logic_vector(3 downto 0);
+        VGA_G_o     : out std_logic_vector(3 downto 0);
+        VGA_B_o     : out std_logic_vector(3 downto 0)
 
     );
 end entity;
@@ -93,6 +100,13 @@ architecture rtl of soc_top is
     signal s_gpio_data_tx : std_logic_vector(31 downto 0); -- Do Bus para o GPIO
     signal s_gpio_we      : std_logic;
     signal s_gpio_sel     : std_logic;
+
+    -- VGA
+    signal s_vga_addr   : std_logic_vector(16 downto 0);
+    signal s_vga_data_rx: std_logic_vector(31 downto 0); -- Dado lido da VRAM
+    signal s_vga_data_tx: std_logic_vector(31 downto 0); -- Dado escrito na VRAM (Cor)
+    signal s_vga_we     : std_logic;
+    signal s_vga_sel    : std_logic;
 
 begin
 
@@ -154,7 +168,14 @@ begin
             gpio_data_i     => s_gpio_data_rx,
             gpio_data_o     => s_gpio_data_tx,
             gpio_we_o       => s_gpio_we,
-            gpio_sel_o      => s_gpio_sel
+            gpio_sel_o      => s_gpio_sel,
+
+            -- Interface VGA
+            vga_addr_o      => s_vga_addr,
+            vga_data_i      => s_vga_data_rx, 
+            vga_data_o      => s_vga_data_tx, 
+            vga_we_o        => s_vga_we,
+            vga_sel_o       => s_vga_sel
         );
 
     -- =========================================================================
@@ -217,6 +238,25 @@ begin
             data_o      => s_gpio_data_rx,
             gpio_leds   => GPIO_LEDS_o,
             gpio_sw     => GPIO_SW_i
+        );
+
+    U_VGA: entity work.vga_peripheral
+        port map (
+            clk         => CLK_i,
+            rst         => Reset_i,
+            
+            -- Interface com o Processador
+            cpu_we_i    => s_vga_we,
+            cpu_addr_i  => s_vga_addr,
+            cpu_data_i  => s_vga_data_tx,
+            cpu_data_o  => s_vga_data_rx,
+            
+            -- Interface Física
+            vga_hs_o    => VGA_HS_o,
+            vga_vs_o    => VGA_VS_o,
+            vga_r_o     => VGA_R_o,
+            vga_g_o     => VGA_G_o,
+            vga_b_o     => VGA_B_o
         );
 
 end architecture;
