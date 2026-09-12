@@ -32,6 +32,8 @@ def init_datapath(dut):
     dut.MDRWrite_i.value   = 0
     dut.reg_write_i.value  = 0
     dut.mem_write_i.value  = 0
+    dut.dbg_boot_addr_i.value = 0
+    dut.dbg_reg_clr_i.value = 0
     
     dut.pcsrc_i.value      = 0  
     dut.alu_src_a_i.value  = 0  

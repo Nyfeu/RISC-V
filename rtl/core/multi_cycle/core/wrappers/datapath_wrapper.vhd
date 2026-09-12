@@ -57,7 +57,9 @@ entity datapath_wrapper is
         DBG_r_rs1_o         : out std_logic_vector(31 downto 0);        
         DBG_r_rs2_o         : out std_logic_vector(31 downto 0);        
         DBG_r_alu_o         : out std_logic_vector(31 downto 0);        
-        DBG_r_MDR_o         : out std_logic_vector(31 downto 0)         
+        DBG_r_MDR_o         : out std_logic_vector(31 downto 0);
+        dbg_boot_addr_i     : in  std_logic_vector(31 downto 0);
+        dbg_reg_clr_i       : in  std_logic         
 
     );
 end entity datapath_wrapper;
@@ -119,7 +121,9 @@ begin
             CSR_Mip_o           => open,
             CSR_Valid_o         => open,
 
-            -- Sinais do Debugger (fixa entrada em '0')
+            -- Sinais do Debugger e Inicialização
+            dbg_boot_addr_i     => dbg_boot_addr_i,
+            dbg_reg_clr_i       => dbg_reg_clr_i,
             debug_reg_addr_i    => (others => '0'),
             debug_reg_data_o    => open,
 

@@ -65,6 +65,7 @@ def model_addr_decode(addr):
     if nibble == 0x0: return "ROM"
     if nibble == 0x1: return "UART"
     if nibble == 0x2: return "GPIO"
+    if nibble == 0x3: return "VGA"
     if nibble == 0x4: return "DMA"
     if nibble == 0x5: return "CLINT" 
     if nibble == 0x6: return "PLIC"
@@ -173,6 +174,7 @@ async def test_fuzzing_map(dut):
             elif target == "DMA": dut.dma_data_i.value = mock_data;   dut.dma_rdy_i.value = 1
             elif target == "UART": dut.uart_data_i.value = mock_data; dut.uart_rdy_i.value = 1
             elif target == "GPIO": dut.gpio_data_i.value = mock_data; dut.gpio_rdy_i.value = 1
+            elif target == "VGA":  dut.vga_data_i.value = mock_data;  dut.vga_rdy_i.value = 1
             elif target == "NPU":  dut.npu_data_i.value = mock_data;  dut.npu_rdy_i.value = 1
             elif target == "CLINT": dut.clint_data_i.value = mock_data; dut.clint_rdy_i.value = 1
             elif target == "PLIC": dut.plic_data_i.value = mock_data; dut.plic_rdy_i.value = 1
@@ -198,6 +200,7 @@ async def test_fuzzing_map(dut):
         dut.dma_rdy_i.value = 0
         dut.uart_rdy_i.value = 0
         dut.gpio_rdy_i.value = 0
+        dut.vga_rdy_i.value = 0
         dut.npu_rdy_i.value = 0
         dut.clint_rdy_i.value = 0
         dut.plic_rdy_i.value = 0

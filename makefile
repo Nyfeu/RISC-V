@@ -189,7 +189,7 @@ test-e2e-%:
 	@echo "================================================="
 	@mkdir -p $(TARGET_BUILD_DIR)
 	@if [ "$(SKIP_C_BUILD)" != "1" ]; then $(MAKE) -C sim/core/$(PKG_ARCH)/e2e/sw/apps APP=$(APP) > /dev/null; fi 
-	@sim_args="--vcd=$(TARGET_BUILD_DIR)/wave.vcd --ieee-asserts=disable -gBOOT_ADDR_INT=$(SIM_BOOT_ADDR)"; \
+	@sim_args="--vcd=$(TARGET_BUILD_DIR)/wave.vcd --ieee-asserts=disable"; \
     if [ "$*" = "soc_top" ]; then \
         echo "[COMPILER] Compilando Bootloader do SoC..."; \
         $(MAKE) -C sim/soc/sw all || exit 1; \

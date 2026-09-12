@@ -111,6 +111,11 @@ def main():
         else:
             make_prefix = "test-unit"
         
+        # 1. Força a limpeza do cache do GHDL e Cocotb antes de rodar o próximo alvo
+        cmd_clean = "make clean"
+        subprocess.run(cmd_clean, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        
+        # 2. Executa o teste com o ambiente limpo
         cmd = f"make {make_prefix}-{target} CORE_ARCH={arch}"
         print(f"\n--- 🚀 Executando: {cmd} ---")
         

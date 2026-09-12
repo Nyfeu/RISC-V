@@ -291,6 +291,10 @@ async def test_processor_execution(dut):
     dut.DMem_data_i.value = 0
     dut.IMem_rdy_i.value = 0
     dut.DMem_rdy_i.value = 0
+    
+    # Inicializa as novas portas do Debug Controller
+    dut.dbg_boot_addr_i.value = 0x00000000 
+    dut.dbg_reg_clr_i.value = 0
 
     # Inicializa linhas de interrupção em 0
     dut.Irq_External_i.value = 0
