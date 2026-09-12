@@ -10,24 +10,28 @@
       
       
       
-        <link rel="canonical" href="https://RISC-V-Azedinha.github.io/RISC-V/software/Toolchain%20e%20Build%20System/">
+        <link rel="canonical" href="https://RISC-V-Azedinha.github.io/RISC-V/software/toolchain_build_system/">
       
       
+        <link rel="prev" href="../../soc/debug_controller/">
+      
+      
+        <link rel="next" href="../boot/">
       
       
         
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
-        <title>Infraestrutura de Compilação e Build System (GNU Make) - RISC-V SOC</title>
+        <title>Toolchain e Build System - RISC-V SOC</title>
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
         <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -110,7 +114,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Infraestrutura de Compilação e Build System (GNU Make)
+              Toolchain e Build System
             
           </span>
         </div>
@@ -251,7 +255,29 @@
     
     
       <li class="md-tabs__item">
-        <a href="../boot/" class="md-tabs__link">
+        <a href="../../soc/gpio_controller/" class="md-tabs__link">
+          
+  
+  
+  Periféricos
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="./" class="md-tabs__link">
           
   
   
@@ -271,11 +297,11 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../soc/vga_controller/" class="md-tabs__link">
+        <a href="../../dev/fpga_build/" class="md-tabs__link">
           
   
   
-  Periféricos
+  Desenvolvimento
 
         </a>
       </li>
@@ -291,27 +317,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../dev/simulation.md" class="md-tabs__link">
-          
-  
-  
-  Simulação e Verificação
-
-        </a>
-      </li>
-    
-  
-
-      
-        
-  
-  
-  
-  
-    
-    
-      <li class="md-tabs__item">
-        <a href="../../apps/protocolo_comunicacao_host_fpga.md" class="md-tabs__link">
+        <a href="../apps_servidores_ia/" class="md-tabs__link">
           
   
   
@@ -474,34 +480,6 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../intro/quickstart.md" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Primeiros Passos
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
           </ul>
         </nav>
       
@@ -650,6 +628,119 @@
   
   
     <li class="md-nav__item">
+      <a href="../../soc/barramento/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Barramento
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../soc/memoria_dma/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Memória e DMA
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Periféricos
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Periféricos
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../soc/gpio_controller/" class="md-nav__link">
         
   
@@ -699,6 +790,62 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../soc/vga_controller/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Controlador VGA
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../soc/debug_controller/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Controlador de Depuração
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -710,24 +857,29 @@
       
   
   
+    
   
   
+  
     
     
     
     
-      
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
             
   
   
@@ -745,8 +897,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_3">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -755,6 +907,447 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Toolchain e Build System
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Toolchain e Build System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#visao-geral" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Visão Geral
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-cadeia-de-compilacao-risc-v-cross-compilation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Cadeia de Compilação RISC-V (Cross-Compilation)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Cadeia de Compilação RISC-V (Cross-Compilation)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11-pipeline-de-compilacao" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.1 Pipeline de Compilação
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-etapas-do-processo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2 Etapas do Processo
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1.2 Etapas do Processo">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pre-processamento" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pré-processamento
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#compilacao" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Compilação
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#montagem-assembling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Montagem (Assembling)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#linking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Linking
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#saida-final" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Saída Final
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#13-configuracao-da-arquitetura" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.3 Configuração da Arquitetura
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-arquitetura-modular-dos-makefiles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Arquitetura Modular dos Makefiles
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Arquitetura Modular dos Makefiles">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-justificativa-da-modularidade" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 Justificativa da Modularidade
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-responsabilidade-dos-modulos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 Responsabilidade dos Módulos
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-configuracao-e-deteccao-de-ambiente" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Configuração e Detecção de Ambiente
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Configuração e Detecção de Ambiente">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-configmk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 config.mk
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-detectmk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 detect.mk
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-relacao-entre-configuracao-e-deteccao" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3 Relação entre Configuração e Detecção
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-gerenciamento-de-fontes-sourcesmk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Gerenciamento de Fontes (sources.mk)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-regras-de-software-rules_swmk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Regras de Software (rules_sw.mk)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Regras de Software (rules_sw.mk)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-pipeline-de-geracao" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 Pipeline de Geração
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-funcionamento-interno" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2 Funcionamento Interno
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#53-recompilacao-incremental" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.3 Recompilação Incremental
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#54-relevancia-para-o-soc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.4 Relevância para o SoC
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-geracao-de-artefatos-para-hardware" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Geração de Artefatos para Hardware
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Geração de Artefatos para Hardware">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#61-conversao-com-objcopy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.1 Conversão com objcopy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#62-formatos-gerados" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.2 Formatos Gerados
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#63-integracao-com-hardware" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.3 Integração com Hardware
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-simulacao-rules_simmk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Simulação (rules_sim.mk)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-sintese-e-fpga-rules_fpgamk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Síntese e FPGA (rules_fpga.mk)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-pontes-de-automacao-entre-software-e-hardware" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Pontes de Automação entre Software e Hardware
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
             
               
                 
@@ -837,91 +1430,6 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
-        
-          
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Periféricos
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Periféricos
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../soc/vga_controller/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Controlador VGA
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    
-    
-    
-    
-      
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
         
           
@@ -932,7 +1440,7 @@
   <span class="md-ellipsis">
     
   
-    Simulação e Verificação
+    Desenvolvimento
   
 
     
@@ -948,39 +1456,11 @@
             <span class="md-nav__icon md-icon"></span>
             
   
-    Simulação e Verificação
+    Desenvolvimento
   
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../dev/simulation.md" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Ambiente de Testes (Cocotb)
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
             
               
                 
@@ -1074,7 +1554,35 @@
   
   
     <li class="md-nav__item">
-      <a href="../../apps/protocolo_comunicacao_host_fpga.md" class="md-nav__link">
+      <a href="../apps_servidores_ia/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Aplicações e Servidores IA
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../protocolo_comunicacao_host_fpga/" class="md-nav__link">
         
   
   
@@ -1102,7 +1610,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../apps/interface_grafica_educacional_depuracao.md" class="md-nav__link">
+      <a href="../interface_grafica_educacional_depuracao/" class="md-nav__link">
         
   
   
@@ -1130,7 +1638,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../apps/clientes_inteligencia_artificial.md" class="md-nav__link">
+      <a href="../clientes_inteligencia_artificial/" class="md-nav__link">
         
   
   
@@ -1138,62 +1646,6 @@
     
   
     Clientes de Inteligência Artificial
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../apps/pong.md" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Jogo Pong
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../apps/fractal.md" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Renderização de Fractal
   
 
     
@@ -1976,6 +2428,44 @@
         <footer class="md-footer">
   
     
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../../soc/debug_controller/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Controlador de Depuração">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Controlador de Depuração
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../boot/" class="md-footer__link md-footer__link--next" aria-label="Next: Processo de Boot">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Processo de Boot
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
   
   <div class="md-footer-meta md-typeset">
     <div class="md-footer-meta__inner md-grid">
@@ -2005,9 +2495,9 @@
       <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tabs", "navigation.footer", "navigation.tracking", "navigation.top", "toc.follow", "content.code.copy", "content.tabs.link", "search.highlight", "search.suggest", "content.tooltips"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
-        <script src="../../javascripts/mathjax.js"></script>
+        <script src="../../javascript/mathjax.js"></script>
       
         <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
       
