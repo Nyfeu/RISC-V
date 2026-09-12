@@ -52,8 +52,8 @@ markdown_extensions:
   - pymdownx.tabbed:
       alternate_style: true
   - pymdownx.emoji:
-      emoji_index: !!python/name:material.extensions.emoji.twemoji
-      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+      emoji_index: !!python/name:pymdownx.emoji.twemoji
+      emoji_generator: !!python/name:pymdownx.emoji.to_svg
   - tables
   - attr_list
 
@@ -62,20 +62,28 @@ nav:
   - Introdução:
       - Visão Geral: index.md
       - Requisitos e Setup: intro/setup.md
-      - Primeiros Passos: intro/quickstart.md
   - Arquitetura de Hardware:
       - Microarquitetura Monociclo: hardware/single-cycle.md
       - Microarquitetura Multiciclo: hardware/multi-cycle.md
       - Subsistema de Interrupções: hardware/interrupts.md
-  - Simulação e Verificação:
-      - Ambiente de Testes (Cocotb): dev/simulation.md     # Baseado nos ficheiros em sim/
+      - Barramento: soc/barramento.md
+      - Memória e DMA: soc/memoria_dma.md
+  - Periféricos:
+      - Controlador GPIO: soc/gpio_controller.md
+      - Controlador UART: soc/uart_controller.md
+      - Controlador VGA: soc/vga_controller.md
+      - Controlador de Depuração: soc/debug_controller.md
+  - Software:
+      - Toolchain e Build System: software/toolchain_build_system.md
+      - Processo de Boot: software/boot.md
+      - Linker Scripts: software/linker.md
+  - Desenvolvimento:
       - Fluxo de Síntese (FPGA): dev/fpga_build.md         # Baseado em fpga/scripts/
   - Aplicações:
-      - Protocolo de Comunicação: apps/protocolo_comunicacao_host_fpga.md 
-      - Interface Gráfica Educacional e Depuração: apps/interface_grafica_educacional_depuracao.md 
-      - Clientes de Inteligência Artificial: apps/clientes_inteligencia_artificial.md 
-      - Jogo Pong: apps/pong.md
-      - Renderização de Fractal: apps/fractal.md
+      - Aplicações e Servidores IA: software/apps_servidores_ia.md
+      - Protocolo de Comunicação: software/protocolo_comunicacao_host_fpga.md
+      - Interface Gráfica Educacional e Depuração: software/interface_grafica_educacional_depuracao.md
+      - Clientes de Inteligência Artificial: software/clientes_inteligencia_artificial.md
 
 
 extra_css:
@@ -87,5 +95,5 @@ plugins:
       type: datetime
 
 extra_javascript:
-  - javascripts/mathjax.js
+  - javascript/mathjax.js
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js

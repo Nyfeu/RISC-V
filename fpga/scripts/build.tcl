@@ -46,14 +46,18 @@ proc read_dir {dir pattern} {
     if {[file exists $dir]} {
         set files [glob -nocomplain -directory $dir $pattern]
         if {[llength $files] > 0} {
-            read_vhdl $files
+            read_vhdl -vhdl2008 $files
         }
     }
 }
 
-# Packages do RISC-V
+# Packages Genéricos
 read_dir "./pkg" "*.vhd"
-read_dir "./rtl/core/$coreArch" "*pkg.vhd"
+
+# Packages e Arquivos do Core (Arquitetura Ativa)
+read_dir "./rtl/core/$coreArch/pkg" "*.vhd"
+read_dir "./rtl/core/$coreArch/core" "*.vhd"
+read_dir "./rtl/core/common" "*.vhd"
 
 # Arquivos da NPU
 set npu_root "./rtl/perips/npu"
@@ -61,24 +65,11 @@ set npu_root "./rtl/perips/npu"
 # NPU Package 
 read_vhdl "$npu_root/pkg/npu_pkg.vhd"
 
-# NPU Modules (Core, PPU, Common)
+# NPU Modules (Core, PPU, Common, Top)
 read_dir "$npu_root/rtl/common" "*.vhd"
 read_dir "$npu_root/rtl/core"   "*.vhd"
 read_dir "$npu_root/rtl/ppu"    "*.vhd"
-
-# NPU Top Level
-read_dir "$npu_root/rtl/"       "*.vhd"
-
-# Core Common
-read_dir "./rtl/core/common" "*.vhd"
-
-# Core Architecture
-set core_files [glob -nocomplain -directory "./rtl/core/$coreArch" "*.vhd"]
-foreach f $core_files {
-    if {[string first "pkg.vhd" $f] == -1} {
-        read_vhdl $f
-    }
-}
+read_dir "$npu_root/rtl"        "*.vhd"
 
 # Outros Periféricos (GPIO, UART, VGA)
 set perip_dirs [glob -nocomplain -type d "./rtl/perips/*"]
@@ -91,7 +82,7 @@ foreach dir $perip_dirs {
 # Lê arquivos soltos na raiz de perips (se houver)
 read_dir "./rtl/perips" "*.vhd"
 
-# SoC
+# SoC Top Level
 read_dir "./rtl/soc" "*.vhd"
 
 # Constraints
@@ -143,17 +134,28 @@ report_timing_summary -file $rptDir/timing_summary.rpt
 report_power -file $rptDir/power.rpt
 
 # ==========================================================================================
-#                             BITSTREAM
+#                             BITSTREAM E CFGMEM (FLASH)
 # ==========================================================================================
 puts "\n--------------------------------------------------------------------------------------------------------------------------------"
-puts ">>> [5/6] Gerando Bitstream...\n"
+puts ">>> [5/6] Gerando Bitstream e Arquivo de Memoria (MCS)...\n"
 
+# Otimizações para boot rápido via Quad-SPI Flash
+set_property BITSTREAM.GENERAL.COMPRESS TRUE [current_design]
+set_property BITSTREAM.CONFIG.CONFIGRATE 33 [current_design]
+set_property CONFIG_MODE SPIx4 [current_design]
+set_property BITSTREAM.CONFIG.SPI_BUSWIDTH 4 [current_design]
+
+# Gera o bitstream tradicional (volátil)
 write_bitstream -force $bitDir/${topEntity}.bit -quiet
+
+# Gera o arquivo MCS para a memória Flash (não volátil)
+write_cfgmem -force -format mcs -size 16 -interface SPIx4 -loadbit "up 0x0 $bitDir/${topEntity}.bit" -quiet $bitDir/${topEntity}.mcs
 
 puts " "
 puts "================================================================"
-puts "   SUCESSO! Bitstream gerado:"
-puts "   $outputDir/${topEntity}.bit"
+puts "   SUCESSO! Arquivos gerados:"
+puts "   Bitstream: $outputDir/${topEntity}.bit"
+puts "   Flash MCS: $outputDir/${topEntity}.mcs"
 puts "================================================================"
 
 if {[file exists "clockInfo.txt"]} {

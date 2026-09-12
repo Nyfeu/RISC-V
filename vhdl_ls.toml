@@ -1,0 +1,15 @@
+[library.single_cycle_lib]
+files = [
+    "rtl/single_cycle/**/*.vhd"
+]
+
+[library.multi_cycle_lib]
+files = [
+    "rtl/multi_cycle/**/*.vhd"
+]
+
+[library.work]
+files = [
+    "rtl/soc/**/*.vhd",
+    "rtl/perips/**/*.vhd"
+]
