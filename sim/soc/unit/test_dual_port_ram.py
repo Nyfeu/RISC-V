@@ -117,6 +117,8 @@ async def test_basic_rw_port_a(dut):
         log_error(f"Erro: Leu {hex(val or 0)}, esperava {hex(data)}")
         assert False
         
+    await ram_transaction(dut, 'A', addr=addr, we_mask=0xF, data=0x0)
+        
     log_success("Basic RW OK")
 
 @cocotb.test()
