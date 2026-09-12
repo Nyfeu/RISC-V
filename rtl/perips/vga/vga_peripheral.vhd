@@ -76,6 +76,16 @@ architecture rtl of vga_peripheral is
     -- Sinal para o dado alinhado
 
     signal s_data_aligned : std_logic_vector(7 downto 0);  -- Dado alinhado para escrita na VRAM
+    signal r_rdy          : std_logic := '0';              -- Sinal de Ready interno para handshake
+
+    -- Estágio de escrita registrado: desacopla a decodificação de qual tile de BRAM
+    -- escrever (video_ram é grande o bastante para ser inferida em várias primitivas
+    -- BRAM, cuja seleção depende do endereço) do mesmo ciclo do pedido no barramento.
+    -- rdy_o continua tendo o mesmo timing de antes (não afeta a banda do mestre);
+    -- só a escrita física na VRAM passa a ocorrer 1 ciclo depois do aceite.
+    signal r_we_a   : std_logic := '0';
+    signal r_addr_a : std_logic_vector(16 downto 0) := (others => '0');
+    signal r_data_a : std_logic_vector(31 downto 0) := (others => '0');
 
     -- Sinais para coordenadas escaladas
 
@@ -90,31 +100,52 @@ architecture rtl of vga_peripheral is
 
 begin
 
-    -- O sinal de escrita só é real se o mestre disser que a transação é VÁLIDA
-    s_vram_we <= we_i and vld_i;
+    -- Atribuição contínua para a saída do barramento
+    rdy_o <= r_rdy;
+
+    -- ESTÁGIO DE CAPTURA: registra o pedido de escrita aceito neste ciclo -----------------------------------------
+    -- (mesma condição de aceite do Edge Guard original; só passou a alimentar registradores
+    -- em vez de ir direto para a VRAM)
+
+        process(clk)
+        begin
+            if rising_edge(clk) then
+                if rst = '1' then
+                    r_we_a   <= '0';
+                    r_addr_a <= (others => '0');
+                    r_data_a <= (others => '0');
+                else
+                    r_we_a   <= we_i and vld_i and not r_rdy;
+                    r_addr_a <= addr_i;
+                    r_data_a <= data_i;
+                end if;
+            end if;
+        end process;
+
+    s_vram_we <= r_we_a;
 
     -- LÓGICA DE ALINHAMENTO (MUX) --------------------------------------------------------------------------------
 
-    -- Escolhe o byte certo baseado nos 2 últimos bits do endereço 
-        
-        process(addr_i, data_i)
+    -- Escolhe o byte certo baseado nos 2 últimos bits do endereço (já registrado)
+
+        process(r_addr_a, r_data_a)
         begin
-            case addr_i(1 downto 0) is
-                when "00"   => s_data_aligned <= data_i(7 downto 0);
-                when "01"   => s_data_aligned <= data_i(15 downto 8);
-                when "10"   => s_data_aligned <= data_i(23 downto 16);
-                when "11"   => s_data_aligned <= data_i(31 downto 24);
+            case r_addr_a(1 downto 0) is
+                when "00"   => s_data_aligned <= r_data_a(7 downto 0);
+                when "01"   => s_data_aligned <= r_data_a(15 downto 8);
+                when "10"   => s_data_aligned <= r_data_a(23 downto 16);
+                when "11"   => s_data_aligned <= r_data_a(31 downto 24);
                 when others => s_data_aligned <= (others => '0');
             end case;
         end process;
 
-    -- Instância da Memória (usa o dado alinhado) -----------------------------------------------------------------
+    -- Instância da Memória (usa o dado alinhado e já registrado) -------------------------------------------------
 
         U_VRAM: entity work.video_ram
             port map (
                 clk     => clk,
                 we_a    => s_vram_we,
-                addr_a  => addr_i,
+                addr_a  => r_addr_a,
                 data_a  => s_data_aligned,
                 addr_b  => vram_addr,
                 data_b  => vram_data
@@ -173,26 +204,26 @@ begin
         begin
             if rising_edge(clk) then
                 if rst = '1' then
-                    rdy_o  <= '0';
+                    r_rdy  <= '0';
                     data_o <= (others => '0');
                 else
-                    -- Default
-                    rdy_o  <= '0';
+                    -- Default (Pulso de 1 ciclo)
+                    r_rdy  <= '0';
                     data_o <= (others => '0');
 
-                    if vld_i = '1' then
-                        -- Handshake: Resposta no ciclo T+1
-                        rdy_o <= '1';
+                    -- EDGE GUARD: Executa se for válido E ainda não foi respondido
+                    if vld_i = '1' and r_rdy = '0' then
+                        -- Handshake Atômico
+                        r_rdy <= '1';
                         
                         -- Leitura de Registradores (Ex: VSYNC)
                         if we_i = '0' then
                             if addr_i = "11111111111111111" then -- Endereço 0x1FFFF
-                                data_o <= (0 => s_vsync, others => '0'); -- Retorna bit 0 = VSYNC
+                                data_o <= (0 => s_vsync, others => '0'); 
                             end if;
                         end if;
                         
-                        -- Para escritas (WE=1), o 'rdy_o' serve apenas como ACK,
-                        -- pois a escrita na BRAM já foi engatilhada pelo s_vram_we.
+                        -- Escritas na VRAM são tratadas pelo s_vram_we combinacional.
                     end if;
                 end if;
             end if;

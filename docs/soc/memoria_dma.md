@@ -220,7 +220,7 @@ São registradores **dentro do núcleo processador** que controlam interrupçõe
 
 São registradores **fora do núcleo**, mapeados no espaço de memória endereçável. Cada periférico expõe seus registradores de controle e dados em endereços específicos dentro do mapa de memória. O software acessa esses registradores usando instruções normais de `load` e `store`. Isso vai de encontro à filosofia básica de arquiteturas RISC.
 
-**Esta seção documenta os registradores MMIO dos periféricos.** Para os CSRs internos do core, consulte a [Seção 6: CSRs Internos do Core RISC-V](#6-csrs-internos-do-core-risc-v).
+**Esta seção documenta os registradores MMIO dos periféricos.** Para o tratamento de *traps* e interrupções em Machine Mode, consulte o [Subsistema de Interrupções](../hardware/interrupts.md).
 
 ### 3.2 Arquitetura de Acesso a Periféricos
 

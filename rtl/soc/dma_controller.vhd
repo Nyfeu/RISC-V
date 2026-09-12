@@ -9,11 +9,10 @@
 -- ██████╔╝██║ ╚═╝ ██║██║  ██║
 -- ╚═════╝ ╚═╝     ╚═╝╚═╝  ╚═╝
 --                            
--- Descrição : Controlador DMA Simples 1D (Mem-to-Mem / Mem-to-IP)
---             Suporta modo de destino fixo (para FIFOs) ou incremental.
+-- Descrição : Controlador DMA Avançado 1D (Mem-to-Mem / Mem-to-IP)
+--             [ATUALIZADO: FIFO 32-words / Decoupled Burst de Escrita]
 --
--- Autor     : [André Maiolini]
--- Data      : [18/01/2026]   
+-- Autor     : André Maiolini
 --
 ------------------------------------------------------------------------------------------------------------------
 
@@ -21,272 +20,200 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
--------------------------------------------------------------------------------------------------------------------
--- ENTIDADE: Definição da interface do controlador DMA (Direct Memory Access)
--------------------------------------------------------------------------------------------------------------------
-
 entity dma_controller is
-
     port (
-
-        -- ========================================================================================================
-        -- Sinais de Controle (Globais)
-        -- ========================================================================================================
-
         clk_i       : in  std_logic;
         rst_i       : in  std_logic;
         soc_en_i    : in  std_logic;
 
-        -- ========================================================================================================
-        -- Interface Slave (Configuração pela CPU)
-        -- ========================================================================================================
-        
-        cfg_addr_i  : in  std_logic_vector(3 downto 0);  -- Apenas offset (4 regs)
+        cfg_addr_i  : in  std_logic_vector(3 downto 0);
         cfg_data_i  : in  std_logic_vector(31 downto 0);
         cfg_data_o  : out std_logic_vector(31 downto 0);
         cfg_we_i    : in  std_logic;
         cfg_vld_i   : in  std_logic;
         cfg_rdy_o   : out std_logic;
 
-        -- ========================================================================================================
-        -- Interface Master (Acesso ao Barramento)
-        -- ========================================================================================================
-        
-        -- A decisão sobre o uso do barramento em configuração multi-master bus,
-        -- será decidida pelo bus_arbiter
+        m_rd_addr_o : out std_logic_vector(31 downto 0);
+        m_rd_vld_o  : out std_logic;
+        m_rd_data_i : in  std_logic_vector(31 downto 0);
+        m_rd_rdy_i  : in  std_logic;
 
-        m_addr_o    : out std_logic_vector(31 downto 0);
-        m_data_o    : out std_logic_vector(31 downto 0);
-        m_data_i    : in  std_logic_vector(31 downto 0);
-        m_we_o      : out std_logic;
-        m_vld_o     : out std_logic;
-        m_rdy_i     : in  std_logic;
+        m_wr_addr_o : out std_logic_vector(31 downto 0);
+        m_wr_data_o : out std_logic_vector(31 downto 0);
+        m_wr_we_o   : out std_logic;
+        m_wr_vld_o  : out std_logic;
+        m_wr_rdy_i  : in  std_logic;
         
-        -- Interrupção (sinal de interrupção)
         irq_done_o  : out std_logic
-
-        -- ========================================================================================================
-
     );
-
 end entity;
-
--------------------------------------------------------------------------------------------------------------------
--- ARQUITETURA: Implementação comportamental do controlador DMA (Direct Memory Access)
--------------------------------------------------------------------------------------------------------------------
 
 architecture rtl of dma_controller is
 
-    -- Registradores Mapeados em Memória --------------------------------------------------------------------------
-
-    -- 0x00: SRC_ADDR (Endereço de Origem)
-    -- 0x04: DST_ADDR (Endereço de Destino)
-    -- 0x08: COUNT    (Número de palavras de 32 bits a transferir)
-    -- 0x0C: CONTROL  (Bit 0: Start, Bit 1: Fixed_Dst, Bit 2: Busy/Status)
-
-    signal r_src_addr  : unsigned(31 downto 0);
-    signal r_dst_addr  : unsigned(31 downto 0);
-    signal r_count     : unsigned(31 downto 0);
-    
-    -- Flags de Controle
-
-    signal r_ctrl_fixed_dst : std_logic; -- 1 = Não incrementa endereço de destino (NPU)
+    signal r_src_addr       : unsigned(31 downto 0);
+    signal r_dst_addr       : unsigned(31 downto 0);
+    signal r_rd_count       : unsigned(31 downto 0);
+    signal r_wr_count       : unsigned(31 downto 0);
+    signal r_ctrl_fixed_dst : std_logic;
     signal r_busy           : std_logic;
 
-    -- Buffer de Dados interno
+    -- Aumento da profundidade da FIFO para 32 posições
+    type fifo_t is array (0 to 31) of std_logic_vector(31 downto 0);
+    signal r_fifo       : fifo_t;
+    signal r_fifo_wr    : unsigned(4 downto 0); -- 2^5 = 32 posições
+    signal r_fifo_rd    : unsigned(4 downto 0);
+    signal r_fifo_count : unsigned(5 downto 0); -- Necessita de 6 bits para contar de 0 até 32
 
-    signal r_data_buffer    : std_logic_vector(31 downto 0);
+    signal s_rd_req : std_logic;
 
-    -- Máquina de Estados -----------------------------------------------------------------------------------------
+    -- Estágio de saída registrado do lado de escrita: desacopla a leitura da FIFO
+    -- interna (armazenamento distribuído, leitura assíncrona indexada) do mesmo ciclo
+    -- em que o dado atravessa o crossbar até o escravo de destino. A vazão sustentada
+    -- não muda (o estágio é realimentado a cada ciclo livre); só a latência da
+    -- primeira palavra de cada rajada aumenta em 1 ciclo.
+    signal r_wr_valid_reg : std_logic := '0';
+    signal r_wr_data_reg  : std_logic_vector(31 downto 0) := (others => '0');
 
-    type state_type is (
+    -- Edge Guard (Interface de Configuração)
+    signal r_cfg_rdy : std_logic := '0';
 
-        -- IDLE: o DMA está ocioso, o sinal r_busy desativado, a CPU pode escrever nos registradores,
-        -- assim que a CPU escreve '1' em START (0x0C, Bit 0) o DMA levanta a flag r_busy e vai para o
-        -- próximo estado.
-
-        IDLE,    
-        
-        -- READ_REQ: o DMA coloca o endereço 'r_src_addr' no barramento e levanta 'm_vld_o', indicando
-        -- que quer ler. Ele espera até que o barramento responda com m_rdy_i. Nesse momento, o DMA captura
-        -- o dado vindo de m_data_i e guarda num registrador temporário (r_data_buffer) e transita
-        -- para o estado WRITE_REQ.
-
-        READ_REQ,     
-        
-        -- READ_WAIT: Estado de espera intermediário.
-        -- O DMA baixa o sinal 'm_vld_o' por um ciclo. Isso é necessário para sinalizar ao bus_arbiter
-        -- que a transação de leitura terminou, permitindo que ele saia do estado de travamento (WAIT_M1).
-        
-        READ_WAIT,
-
-        -- WRITE_REQ: o DMA coloca o endereço 'r_dst_addr' e o dado guardado no 'r_data_buffer' no barramento.
-        -- Levanta as flags 'm_vld_o' e 'm_we_o' - sinalizando requisição de escrita. Então, aguarda a 
-        -- confirmação com 'm_rdy_i'. Por fim, transita parar o estado CHECK_DONE. 
-
-        WRITE_REQ,             
-
-        -- CHECK_DONE: neste estado, o DMA decrementa o contador 'r_count', incrementa o endereço de origem 
-        -- 'r_src_addr' (+4 bytes) e aplica a lógica de destino: se 'fixed_dst = 0', incrementa 'r_dst_addr' (+4);
-        -- caso 'fixed_dst = 1', mantém 'r_dst_addr' (para buffer FIFO).
-
-        CHECK_DONE
-
-    );
-
-    signal current_state, next_state : state_type;
-
-    ---------------------------------------------------------------------------------------------------------------
+    -- Espelha "r_rd_count /= 0", atualizado apenas nos dois eventos que mudam
+    -- r_rd_count (carga de config e decremento por leitura). Existe para tirar
+    -- a comparação de 32 bits do caminho combinacional que vai até a
+    -- arbitragem do crossbar: s_rd_req selecionava o dono do barramento (e,
+    -- por consequência, todo o barramento de endereço/WE do escravo) a cada
+    -- ciclo, então esse comparador dominava quase todo o top de piores
+    -- caminhos de setup do design. Com o flag pré-computado, os consumidores
+    -- só leem um bit já pronto no registrador.
+    signal r_rd_pending : std_logic := '0';
 
 begin
 
-    -- ============================================================================================================
-    -- Registradores e Atualizações de Estado
-    -- ============================================================================================================
+    cfg_rdy_o <= r_cfg_rdy;
 
-    process(clk_i, rst_i)
+    -- Requisições de Barramento ativas continuamente baseadas no estado da FIFO interna
+    -- Limite de leitura alterado para < 32
+    s_rd_req <= '1' when (r_busy = '1' and r_rd_pending = '1' and r_fifo_count < 32 and soc_en_i /= '0') else '0';
+
+    m_rd_vld_o  <= s_rd_req;
+    m_rd_addr_o <= std_logic_vector(r_src_addr);
+
+    m_wr_vld_o  <= r_wr_valid_reg;
+    m_wr_we_o   <= r_wr_valid_reg;
+    m_wr_addr_o <= std_logic_vector(r_dst_addr);
+    m_wr_data_o <= r_wr_data_reg;
+
+    process(clk_i)
+        variable v_fifo_push : boolean;
+        variable v_fifo_pull : boolean;
     begin
-        if rst_i = '1' then
+        if rising_edge(clk_i) then
+            if rst_i = '1' then
+                r_src_addr       <= (others => '0');
+                r_dst_addr       <= (others => '0');
+                r_rd_count       <= (others => '0');
+                r_wr_count       <= (others => '0');
+                r_ctrl_fixed_dst <= '0';
+                r_busy           <= '0';
+                r_fifo_wr        <= (others => '0');
+                r_fifo_rd        <= (others => '0');
+                r_fifo_count     <= (others => '0');
+                r_wr_valid_reg   <= '0';
+                r_wr_data_reg    <= (others => '0');
+                r_cfg_rdy        <= '0';
+                r_rd_pending     <= '0';
+                irq_done_o       <= '0';
+            else
+                v_fifo_push := false;
+                v_fifo_pull := false;
+                irq_done_o  <= '0';
 
-            r_src_addr       <= (others => '0');
-            r_dst_addr       <= (others => '0');
-            r_count          <= (others => '0');
-            r_ctrl_fixed_dst <= '0';
-            r_busy           <= '0'; -- Auto-clears on finish
-            current_state    <= IDLE;
-            r_data_buffer    <= (others => '0');
-
-        elsif rising_edge(clk_i) then
-
-            -- Atualiza Estado
-            current_state <= next_state;
-            
-            -- Limpa Busy quando termina
-            if current_state = CHECK_DONE and next_state = IDLE then
-                r_busy <= '0';
-            end if;
-
-            -- Escrita de Configuração (Apenas se não Busy)
-            if cfg_vld_i = '1' and cfg_we_i = '1' and r_busy = '0' then
-                case cfg_addr_i is
-                    when x"0" => r_src_addr <= unsigned(cfg_data_i);
-                    when x"4" => r_dst_addr <= unsigned(cfg_data_i);
-                    when x"8" => r_count    <= unsigned(cfg_data_i);
-                    when x"C" =>
-                        -- Bit 0: Start (Dispara a FSM)
-                        if cfg_data_i(0) = '1' then
-                            r_busy <= '1';
-                        end if;
-                        -- Bit 1: Fixed Destination (Para NPU)
-                        r_ctrl_fixed_dst <= cfg_data_i(1);
-                    when others => null;
-                end case;
-            end if;
-
-            -- Atualização interna de endereços pela FSM (Durante a transferência)
-            if current_state = CHECK_DONE and r_count > 0 then
-                r_src_addr <= r_src_addr + 4; -- Sempre incrementa origem (RAM)
-                if r_ctrl_fixed_dst = '0' then
-                    r_dst_addr <= r_dst_addr + 4; -- Só incrementa destino se não for fixo
-                end if;
-                r_count <= r_count - 1;
-            end if;
-
-            -- Captura de Dados (Data Path)
-            -- Se o barramento indicou Ready no ciclo READ_REQ, guardamos o dado
-            if current_state = READ_REQ and m_rdy_i = '1' then
-                r_data_buffer <= m_data_i;
-            end if;
-
-        end if;
-    end process;
-
-    -- Leitura dos Registradores
-    cfg_data_o <= std_logic_vector(r_src_addr) when cfg_addr_i = x"0" else
-                  std_logic_vector(r_dst_addr) when cfg_addr_i = x"4" else
-                  std_logic_vector(r_count)    when cfg_addr_i = x"8" else
-                  (0 => r_busy, 1 => r_ctrl_fixed_dst, others => '0') when cfg_addr_i = x"C" else
-                  (others => '0');
-
-    -- Ready da config é sempre 1 (Single cycle write/read)
-    cfg_rdy_o <= '1';
-
-
-    -- ============================================================================================================
-    -- Lógica Combinacional: Próximo Estado e Saídas do Mestre
-    -- ============================================================================================================
-
-    process(current_state, r_busy, r_count, m_rdy_i, r_src_addr, r_dst_addr, r_data_buffer, soc_en_i)
-    begin
-        next_state <= current_state;
-        
-        -- Defaults
-        m_vld_o <= '0';
-        m_we_o  <= '0';
-        m_addr_o <= (others => '0');
-        m_data_o <= (others => '0');
-        irq_done_o <= '0';
-
-        case current_state is
-            
-            when IDLE =>
-                if r_busy = '1' then
-                    if soc_en_i = '0' then
-                        next_state <= IDLE; 
-                    elsif r_count = 0 then
-                        next_state <= CHECK_DONE; 
-                    else
-                        next_state <= READ_REQ;
+                -- 1. ESCRITA DE CONFIGURAÇÃO (Edge Guard para a CPU)
+                r_cfg_rdy <= '0';
+                
+                if cfg_vld_i = '1' and r_cfg_rdy = '0' then
+                    r_cfg_rdy <= '1';
+                    if cfg_we_i = '1' and r_busy = '0' then
+                        case cfg_addr_i is
+                            when x"0" => r_src_addr <= unsigned(cfg_data_i);
+                            when x"4" => r_dst_addr <= unsigned(cfg_data_i);
+                            when x"8" =>
+                                r_rd_count   <= unsigned(cfg_data_i);
+                                r_wr_count   <= unsigned(cfg_data_i);
+                                r_rd_pending <= '1' when unsigned(cfg_data_i) /= 0 else '0';
+                            when x"C" =>
+                                if cfg_data_i(0) = '1' then
+                                    r_busy       <= '1';
+                                    r_fifo_wr    <= (others => '0');
+                                    r_fifo_rd    <= (others => '0');
+                                    r_fifo_count <= (others => '0');
+                                end if;
+                                r_ctrl_fixed_dst <= cfg_data_i(1);
+                            when others => null;
+                        end case;
                     end if;
                 end if;
 
-            when READ_REQ =>
-                m_addr_o <= std_logic_vector(r_src_addr);
-                m_vld_o  <= '1';
-                m_we_o   <= '0'; -- Leitura
-                
-                if m_rdy_i = '1' then
-                    -- Vamos para READ_WAIT em vez de WRITE_REQ diretamente.
-                    -- Isso força m_vld_o a '0' por um ciclo, satisfazendo o Bus Arbiter.
-                    next_state <= READ_WAIT;
+                if r_busy = '1' and r_rd_pending = '0' and r_wr_count = 0 and r_fifo_count = 0 then
+                    r_busy <= '0';
                 end if;
 
-            when READ_WAIT =>
-                
-                -- m_vld_o está em '0' (pelos defaults).
-                -- O Bus Arbiter verá isso, sairá do estado de travamento e estará pronto
-                -- para aceitar a nova requisição (WRITE) no próximo ciclo.
-                next_state <= WRITE_REQ;
-
-            when WRITE_REQ =>
-                m_addr_o <= std_logic_vector(r_dst_addr);
-                m_data_o <= r_data_buffer;
-                m_vld_o  <= '1';
-                m_we_o   <= '1'; -- Escrita
-
-                if m_rdy_i = '1' then
-                   next_state <= CHECK_DONE; 
+                -- 2. READ ENGINE (Estágio 1 - Produtor em True Burst)
+                if s_rd_req = '1' and m_rd_rdy_i = '1' then
+                    r_fifo(to_integer(r_fifo_wr)) <= m_rd_data_i;
+                    r_fifo_wr    <= r_fifo_wr + 1;
+                    r_src_addr   <= r_src_addr + 4;
+                    r_rd_count   <= r_rd_count - 1;
+                    r_rd_pending <= '0' when r_rd_count = 1 else '1';
+                    v_fifo_push  := true;
                 end if;
 
-            when CHECK_DONE =>
-                -- Se count for 1 (último item transferido) OU 0 (caso borda), termina.
-                -- O contador só será decrementado no rising_edge, mas a decisão de estado olha o valor atual.
-                if r_count <= 1 then
-                    next_state <= IDLE;
-                    irq_done_o <= '1';
-                elsif soc_en_i = '0' then
-                    next_state <= CHECK_DONE; 
-                else
-                    next_state <= READ_REQ;
+                -- 3. WRITE ENGINE (Estágio 2 - Buffer de Saída Registrado)
+
+                -- 3a. Dreno: o barramento consome a palavra que já está no registrador de saída
+                if r_wr_valid_reg = '1' and m_wr_rdy_i = '1' then
+                    if r_ctrl_fixed_dst = '0' then
+                        r_dst_addr <= r_dst_addr + 4;
+                    end if;
+                    r_wr_count <= r_wr_count - 1;
+
+                    if r_wr_count = 1 then
+                        r_busy <= '0';
+                        irq_done_o <= '1';
+                    end if;
                 end if;
-                
-            when others => next_state <= IDLE;
-            
-        end case;
+
+                -- 3b. Pré-busca: alimenta o registrador de saída quando ele está livre
+                -- (ou ficando livre neste ciclo, por causa do dreno acima) e há dado
+                -- disponível na FIFO interna. Mantém a FIFO cheia sempre que possível,
+                -- então em streaming contínuo a vazão continua 1 palavra/ciclo.
+                if (r_wr_valid_reg = '0') or (m_wr_rdy_i = '1') then
+                    if r_busy = '1' and r_wr_count > 0 and r_fifo_count > 0 and soc_en_i /= '0' then
+                        r_wr_valid_reg <= '1';
+                        r_wr_data_reg  <= r_fifo(to_integer(r_fifo_rd));
+                        r_fifo_rd      <= r_fifo_rd + 1;
+                        v_fifo_pull    := true;
+                    else
+                        r_wr_valid_reg <= '0';
+                    end if;
+                end if;
+
+                -- 4. ATUALIZAÇÃO DO ESTADO DA FIFO (armazenamento interno apenas; o
+                -- registrador de saída acima não entra nessa contagem)
+                if v_fifo_push and not v_fifo_pull then
+                    r_fifo_count <= r_fifo_count + 1;
+                elsif v_fifo_pull and not v_fifo_push then
+                    r_fifo_count <= r_fifo_count - 1;
+                end if;
+
+            end if;
+        end if;
     end process;
 
-    -- ============================================================================================================
+    cfg_data_o <= std_logic_vector(r_src_addr) when cfg_addr_i = x"0" else
+                  std_logic_vector(r_dst_addr) when cfg_addr_i = x"4" else
+                  std_logic_vector(r_wr_count) when cfg_addr_i = x"8" else 
+                  (0 => r_busy, 1 => r_ctrl_fixed_dst, others => '0') when cfg_addr_i = x"C" else
+                  (others => '0');
 
-end architecture; -- rtl
-
--------------------------------------------------------------------------------------------------------------------
+end architecture;

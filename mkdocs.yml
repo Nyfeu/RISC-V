@@ -67,22 +67,23 @@ nav:
       - Microarquitetura Multiciclo: hardware/multi-cycle.md
       - Subsistema de Interrupções: hardware/interrupts.md
       - Barramento: soc/barramento.md
-      - Controlador de Debug: soc/debug_controller.md
       - Memória e DMA: soc/memoria_dma.md
-  - Software:
-      - Processo de Boot: software/boot.md
-      - Linker Scripts: software/linker.md
-      - Toolchain e Build System: software/toolchain_build_system.md
-      - Protocolo de Comunicação: software/protocolo_comunicacao_host_fpga.md
-      - Interface Gráfica: software/interface_grafica_educacional_depuracao.md
-      - Aplicações e Servidores: software/documentar_apps_servidores_ia.md
-      - Pipeline de Inteligência Artificial: software/clientes_inteligencia_artificial.md
   - Periféricos:
       - Controlador GPIO: soc/gpio_controller.md
       - Controlador UART: soc/uart_controller.md
       - Controlador VGA: soc/vga_controller.md
-  - Simulação e Verificação:
-      - Fluxo de Síntese (FPGA): dev/fpga_build.md         
+      - Controlador de Depuração: soc/debug_controller.md
+  - Software:
+      - Toolchain e Build System: software/toolchain_build_system.md
+      - Processo de Boot: software/boot.md
+      - Linker Scripts: software/linker.md
+  - Desenvolvimento:
+      - Fluxo de Síntese (FPGA): dev/fpga_build.md         # Baseado em fpga/scripts/
+  - Aplicações:
+      - Aplicações e Servidores IA: software/apps_servidores_ia.md
+      - Protocolo de Comunicação: software/protocolo_comunicacao_host_fpga.md
+      - Interface Gráfica Educacional e Depuração: software/interface_grafica_educacional_depuracao.md
+      - Clientes de Inteligência Artificial: software/clientes_inteligencia_artificial.md
 
 
 extra_css:
@@ -94,5 +95,5 @@ plugins:
       type: datetime
 
 extra_javascript:
-  - javascripts/mathjax.js
+  - javascript/mathjax.js
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
