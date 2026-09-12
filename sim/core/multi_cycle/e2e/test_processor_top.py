@@ -292,8 +292,10 @@ async def test_processor_execution(dut):
     dut.IMem_rdy_i.value = 0
     dut.DMem_rdy_i.value = 0
     
-    # Inicializa as novas portas do Debug Controller
-    dut.dbg_boot_addr_i.value = 0x00000000 
+    # Inicializa as portas do Debug Controller de forma dinâmica via env
+    boot_addr_str = os.environ.get("SIM_BOOT_ADDR", "0")
+    boot_addr = int(boot_addr_str, 16) if boot_addr_str.startswith("0x") else int(boot_addr_str)
+    dut.dbg_boot_addr_i.value = boot_addr
     dut.dbg_reg_clr_i.value = 0
 
     # Inicializa linhas de interrupção em 0

@@ -190,15 +190,19 @@ test-e2e-%:
 	@mkdir -p $(TARGET_BUILD_DIR)
 	@if [ "$(SKIP_C_BUILD)" != "1" ]; then $(MAKE) -C sim/core/$(PKG_ARCH)/e2e/sw/apps APP=$(APP) > /dev/null; fi 
 	@sim_args="--vcd=$(TARGET_BUILD_DIR)/wave.vcd --ieee-asserts=disable"; \
-    if [ "$*" = "soc_top" ]; then \
-        echo "[COMPILER] Compilando Bootloader do SoC..."; \
-        $(MAKE) -C sim/soc/sw all || exit 1; \
-        sim_args="--vcd=$(TARGET_BUILD_DIR)/wave.vcd --ieee-asserts=disable -gINIT_FILE=$(PWD)/sim/soc/sw/build/bootloader.hex"; \
-    fi; \
+	if [ "$*" = "soc_top" ]; then \
+		echo "[COMPILER] Compilando Bootloader do SoC..."; \
+		$(MAKE) -C sim/soc/sw all || exit 1; \
+		sim_args="--vcd=$(TARGET_BUILD_DIR)/wave.vcd --ieee-asserts=disable -gINIT_FILE=$(PWD)/sim/soc/sw/build/bootloader.hex"; \
+	fi; \
+	if [ "$(CORE_ARCH)" = "single_cycle" ] && [ "$*" = "processor_top" ]; then \
+		sim_args="$$sim_args -gBOOT_ADDR_INT=$(SIM_BOOT_ADDR)"; \
+	fi; \
 	wrapper_top=$$(python3 scripts/query_yaml.py $(CORE_ARCH) $* wrapper_top); \
 	wrapper_src=$$(python3 scripts/query_yaml.py $(CORE_ARCH) $* wrapper_src); \
 	if [ -n "$$wrapper_src" ]; then src_path="$(PWD)/$$wrapper_src"; else src_path=""; fi; \
 	top_lvl=$${wrapper_top:-$*}; \
+	SIM_BOOT_ADDR="$(SIM_BOOT_ADDR)" \
 	PROGRAM_PATH="$(PROGRAM_PATH)" \
 	$(MAKE) -s --no-print-directory -f $(shell cocotb-config --makefiles)/Makefile.sim \
 		SIM=ghdl \
